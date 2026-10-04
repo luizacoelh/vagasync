@@ -131,6 +131,7 @@ model VerificationToken {
 }
 
 enum JobStatus {
+  MONITORADA  // vaga coletada automaticamente (n8n) — ainda não candidatada
   APLICADA
   ENTREVISTA
   REPROVADA

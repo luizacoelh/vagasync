@@ -128,7 +128,8 @@ export async function POST(req: NextRequest) {
         technologies: stringifyArray(analysis.technologies),
         questions: stringifyArray(analysis.questions),
         checklist: stringifyArray(analysis.checklist),
-        // url e source salvos se fornecidos pelo n8n
+        // Vagas do n8n entram como MONITORADA — ainda não candidatadas
+        status: "MONITORADA",
         ...(url ? { url } : {}),
       },
     });
