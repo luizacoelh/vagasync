@@ -24,6 +24,37 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   independente do formato retornado pelo SDK (`.status`, `.httpErrorCode`, ou
   embutido na mensagem como string)
 
+### Sprint 22 — feat(n8n): integracao automática de vagas
+
+Webhook atualizado (`app/api/webhook/n8n/route.ts`):
+- Aceita campos opcionais `url` (link original da vaga) e `source`
+  (indeed | gupy | infojobs | catho | gmail | manual)
+- Valida URL se fornecida
+- Registra source no aiUsage para rastreabilidade por canal
+- Log no console: qual vaga foi criada e de qual fonte
+
+Workflow n8n implementado (`n8n-workflows/indeed-rss.json`):
+- Indeed via RSS feed público — sem autenticação
+- Roda a cada 2h, filtra só vagas das últimas 2h
+- Extrai título + snippet + URL e envia para /api/webhook/n8n
+- Importar direto no n8n: Add workflow → Import from file
+
+Documentação (`docs/N8N_SETUP.md`):
+- Guia completo de setup do n8n self-hosted via Docker
+- Variáveis de ambiente necessárias (VagaSync + n8n)
+- Instrucoes de import do workflow
+- Documentação detalhada das fontes pendentes:
+  Gupy (API HTTP publica), InfoJobs (RSS), Catho (RSS), Gmail (OAuth2)
+- Secao de deduplicacao de vagas (problema a resolver)
+- Comando curl para testar webhook manualmente
+
+Proximas fontes a implementar (workflows pendentes):
+- feat(n8n): workflow Gupy API
+- feat(n8n): workflow InfoJobs RSS
+- feat(n8n): workflow Catho RSS
+- feat(n8n): workflow Gmail trigger
+- fix(webhook): deduplicacao por URL antes de criar vaga
+
 ### Sprint 21 — fix(gemini): modelo e retry corrigidos
 - [x] `lib/gemini.ts`: modelo trocado para `gemini-3.5-flash` — estável,
   disponível na chave Pro, nome fixo (evita surpresas de alias dinâmico).
