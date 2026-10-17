@@ -13,6 +13,44 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(monitoradas) + fix(admin): aba de vagas monitoradas e dono imutável
+
+**feat/monitored-jobs-tab**
+- [x] Nova página `/monitoradas` (`app/monitoradas/page.tsx` +
+  `components/monitoradas/MonitoredJobList.tsx`): feed das vagas com status
+  `MONITORADA` (coletadas pelo n8n), agrupadas por dia (Hoje / Ontem / data),
+  com **"Tenho interesse"** (status vira `APLICADA`, data da candidatura = hoje,
+  a vaga passa para o dashboard principal) e **"Descartar"** (exclui, com
+  confirmação inline). Um painel de vidro por dia, não por vaga, para não pesar
+  com muitos itens
+- [x] Dashboard principal não lista mais vagas `MONITORADA`: `app/page.tsx`
+  filtra `status: { not: "MONITORADA" }` e conta as monitoradas numa terceira
+  query do `Promise.all`; novo botão com sino e contador no header
+  (`components/dashboard/MonitoredLink.tsx`)
+- [x] `lib/jobStatus.ts`: `DASHBOARD_STATUSES` (funil sem `MONITORADA`) usado em
+  `StatsBar` e `FilterBar` — a taxa de conversão deixa de contar vagas que
+  ainda nem foram candidatadas
+- [x] `app/vaga/[id]/page.tsx`: botão de voltar leva para `/monitoradas` quando
+  a vaga é monitorada; imports sem uso removidos
+
+**fix/admin-owner-protection**
+- [x] `prisma/schema.prisma` + migration `20261013120000_add_user_owner`: campo
+  `User.isOwner` (padrão `false`)
+- [x] `app/api/admin/users/[id]/route.ts`: nenhum admin consegue alterar o
+  `isAdmin` do dono; `isOwner` nunca é lido do body (sem mass assignment)
+- [x] `components/admin/UsersTable.tsx`: dono aparece com o selo "Dono" no lugar
+  do checkbox
+- [x] `scripts/set-admin.mjs`: nova flag `--owner` (define dono + admin)
+- [x] `app/admin/page.tsx`: a página agora re-valida `isAdmin` no banco — antes
+  só a API fazia isso, então um admin revogado ainda abria `/admin` com o
+  cookie JWT antigo (até 30 dias) e via usuários e consumo de IA
+
+**Como aplicar:** (1) `npm run migrate:turso`; (2)
+`node scripts/set-admin.mjs seu-email --owner` (uma vez por ambiente); (3) deploy.
+Local: `npx prisma migrate deploy` + `npx prisma generate`. A migration precisa
+rodar no Turso **antes** do deploy: o Auth.js lê todas as colunas de `User` e,
+sem a coluna, o login quebra.
+
 ### Sprint 21 — fix(gemini): modelo corrigido para alias estável
 - [x] `lib/gemini.ts`: modelo trocado para `gemini-flash-latest` — alias oficial
   do Google que sempre aponta para o Flash mais recente disponível na chave,
@@ -162,9 +200,20 @@ Hoje é match exato normalizado — não entende "JS" = "JavaScript" ou
 (`{ "js": "javascript", "react.js": "react", ... }`), aplicada antes do
 match em `SkillCompatibility`.
 
-### 5. Ativar e testar webhook n8n ponta a ponta
-Requer: workflow n8n configurado externamente + `N8N_WEBHOOK_SECRET` e
-`N8N_TARGET_USER_ID` no `.env` de produção. A rota já está pronta e auditada.
+### 5. Finalizar a automação n8n
+Funcionando ponta a ponta em teste (We Work Remotely RSS → webhook →
+`/monitoradas`). Falta:
+- Publicar o workflow e hospedar o n8n 24/7 (Railway/Render) — local só roda
+  com o Docker ligado
+- Outras fontes: Gupy, InfoJobs, Catho, Gmail (ver `docs/N8N_SETUP.md`)
+- Deduplicar vagas por URL (hoje a mesma vaga pode entrar duas vezes)
+- Adicionar `weworkremotely` em `VALID_SOURCES` do webhook (o fluxo hoje manda
+  `indeed`, então o consumo de IA fica rotulado com a fonte errada)
+- Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
+  outros usuários cada conta precisaria da própria config (palavras-chave e
+  fontes)
+- Versionar o workflow real: exportar do n8n (⋯ → Download) em vez de usar o
+  template `indeed-rss.json`, que ficou defasado
 
 ### 6. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.
@@ -174,6 +223,13 @@ Sugestão: dashboard com vagas reais, tela de análise preenchida, mobile.
 Log estruturado quando `/api/analyze` falhar repetidamente.
 Opção simples: Vercel Analytics (já incluso no plano) + alerta por email
 via Resend quando `error.tsx` for renderizado N vezes em X minutos.
+
+### 8. Verificar o `JobsProvider` (perf)
+Em `components/dashboard/DashboardClient.tsx` o `JobsProvider` fica dentro da
+página, e páginas desmontam ao navegar para `/vaga/[id]` — pela estrutura do
+código, o contexto provavelmente não chega na página da vaga, que acaba usando
+sempre os dados do servidor. Confirmar medindo; se for isso, mover o provider
+para o `layout.tsx`.
 
 ---
 

@@ -189,3 +189,19 @@ curl -X POST https://seu-projeto.vercel.app/api/webhook/n8n \
 ```
 
 Resposta esperada: JSON com a vaga criada (`id`, `title`, `company`, etc.)
+
+---
+
+## 8. Onde as vagas aparecem no VagaSync
+
+Toda vaga criada pelo webhook entra com status `MONITORADA` e **não** aparece no
+dashboard principal. Ela fica na aba **Monitoradas** (botão com sino no header
+do dashboard, com contador), agrupada por dia de chegada:
+
+- **Tenho interesse** → status vira `APLICADA`, a data da candidatura passa a
+  ser hoje e a vaga vai para o dashboard principal
+- **Descartar** → exclui a vaga (com confirmação)
+
+Hoje todas as vagas do n8n vão para a conta definida em `N8N_TARGET_USER_ID`.
+Outros usuários não recebem vagas automáticas até existir configuração de
+monitoramento por conta (ver `ROADMAP.md`, "Finalizar a automação n8n").
