@@ -8,6 +8,7 @@ interface AdminUser {
   name: string | null;
   email: string | null;
   isAdmin: boolean;
+  isOwner: boolean;
   dailyAiLimitOverride: number | null;
   geminiCallCount: number;
   _count: { jobs: number; aiUsage: number };
@@ -115,6 +116,17 @@ export default function UsersTable({
                   />
                 </td>
                 <td className="px-3 py-3">
+                  {u.isOwner ? (
+                    // O dono nunca tem o admin alterado pela interface — por isso
+                    // não há checkbox, só o selo. Mudar o dono só via script/banco.
+                    <span
+                      className="inline-flex items-center rounded-full border border-[#85B7EB]/40 bg-[#85B7EB]/10 px-2.5 py-0.5 text-xs text-[#85B7EB]"
+                      style={{ fontFamily: "var(--font-outfit)" }}
+                      title="Dono da instância — o acesso de admin não pode ser alterado pela interface"
+                    >
+                      Dono
+                    </span>
+                  ) : (
                   <input
                     type="checkbox"
                     checked={u.isAdmin}
@@ -127,6 +139,7 @@ export default function UsersTable({
                         : undefined
                     }
                   />
+                  )}
                 </td>
               </tr>
             ))}
