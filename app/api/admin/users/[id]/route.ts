@@ -4,9 +4,12 @@ import { requireAdmin } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
 
-// Só dois campos editáveis por aqui: o override de limite diário de IA, e o
-// próprio isAdmin (pra promover/rebaixar outra conta). Nunca deixa um admin
-// remover o próprio isAdmin por essa rota — evita se trancar fora sem querer.
+// Só dois campos editáveis por aqui: o override de limite diário de IA e o
+// isAdmin de OUTRA conta (promover/rebaixar). Duas travas no isAdmin:
+//  - ninguém altera o próprio (evita se trancar fora sem querer);
+//  - ninguém altera o do dono da instância (User.isOwner) — o dono só muda por
+//    script/banco. isOwner nunca é lido do body: não dá para virar dono pela API.
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,11 +21,27 @@ export async function PATCH(
   const body = await req.json();
   const { dailyAiLimitOverride, isAdmin } = body;
 
-  if (id === user.id && isAdmin === false) {
+  // Ninguem pode alterar o proprio isAdmin — evita se trancar fora
+  if (id === user.id && isAdmin !== undefined) {
     return NextResponse.json(
-      { error: "Você não pode remover seu próprio acesso de admin por aqui." },
+      { error: "Você não pode alterar seu próprio acesso de admin por aqui." },
       { status: 400 }
     );
+  }
+
+  // Ninguem pode alterar o isAdmin do owner pela UI — nem outros admins.
+  // O owner so pode ser definido diretamente no banco via SQL/seed.
+  if (isAdmin !== undefined) {
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { isOwner: true },
+    });
+    if (target?.isOwner) {
+      return NextResponse.json(
+        { error: "O acesso de admin do dono da instância não pode ser alterado pela interface." },
+        { status: 400 }
+      );
+    }
   }
 
   if (

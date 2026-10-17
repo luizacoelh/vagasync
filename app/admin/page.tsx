@@ -93,7 +93,15 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  if (!session.user.isAdmin) {
+  // Re-valida no banco: com sessão JWT o isAdmin do cookie pode estar velho
+  // (admin revogado continua com isAdmin: true no cookie por até 30 dias).
+  // A API já faz isso em requireAdmin(); a página também precisa fazer, senão
+  // um admin revogado ainda enxergaria a lista de usuários e o consumo de IA.
+  const freshAdmin = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  });
+  if (!freshAdmin?.isAdmin) {
     notFound();
   }
 
@@ -106,6 +114,7 @@ export default async function AdminPage() {
         name: true,
         email: true,
         isAdmin: true,
+        isOwner: true,
         dailyAiLimitOverride: true,
         geminiCallCount: true,
         createdAt: true,

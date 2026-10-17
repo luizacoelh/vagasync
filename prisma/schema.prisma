@@ -34,6 +34,7 @@ model User {
   // deploy — ver /admin.
   dailyAiLimitOverride Int?
   isAdmin              Boolean @default(false)
+  isOwner              Boolean @default(false) // dono da instancia — imutavel pela UI, so via SQL/seed
 
   createdAt DateTime @default(now())
 }
