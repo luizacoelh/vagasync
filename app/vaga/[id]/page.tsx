@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { mapJob } from "@/lib/jobMapper";
 import { parseArray } from "@/lib/json";
-import GlassPanel from "@/components/ui/Glass";
 import BackButton from "@/components/ui/BackButton";
 import VagaContent from "@/components/job/VagaContent";
 
@@ -63,7 +61,10 @@ export default async function VagaDetalhesPage({
 
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center justify-between">
-          <BackButton href="/" />
+          <BackButton
+            href={data.job.status === "MONITORADA" ? "/monitoradas" : "/"}
+            label={data.job.status === "MONITORADA" ? "Monitoradas" : "Dashboard"}
+          />
         </div>
 
         {created === "true" && (

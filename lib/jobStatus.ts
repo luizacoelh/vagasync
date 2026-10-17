@@ -25,3 +25,10 @@ export const STATUS_ORDER: JobStatus[] = [
   "REPROVADA",
   "OFERTA",
 ];
+
+// Statuses exibidos no dashboard principal (contadores e filtro). MONITORADA
+// fica de fora de propósito: essas vagas moram na aba /monitoradas até o
+// usuário marcar "Tenho interesse".
+export const DASHBOARD_STATUSES: JobStatus[] = STATUS_ORDER.filter(
+  (status) => status !== "MONITORADA"
+);

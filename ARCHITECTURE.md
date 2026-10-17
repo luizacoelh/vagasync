@@ -15,6 +15,7 @@ vagasync/
     login/page.tsx               # Tela de login (Google/GitHub)
     perfil/page.tsx              # Perfil do usuário (onboarding + edição)
     admin/page.tsx                # Limites globais + gestão de usuários (admin only)
+    monitoradas/page.tsx         # Vagas coletadas pelo n8n (status MONITORADA): Tenho interesse / Descartar
     privacidade/page.tsx         # Política de Privacidade
     termos/page.tsx              # Termos de Uso
     nova-vaga/page.tsx          # Cadastro de vaga (Analisar → Confirmar → Salvar)
@@ -40,6 +41,7 @@ vagasync/
     auth/                       # UserMenu (avatar + link de perfil + admin + logout)
     profile/                    # ProfileForm
     admin/                      # AppSettingsForm, UsersTable
+    monitoradas/                # MonitoredJobList (feed de vagas do n8n com ações)
     README.md                   # Critério de organização usado acima
   lib/
     prisma.ts                   # Singleton do PrismaClient — escolhe adapter (local/Turso) automaticamente
@@ -141,6 +143,24 @@ vagasync/
 - **`requireAdmin()` responde 404 pra quem não é admin, não 403** — mesma
   lógica de "não confirmar a existência do recurso" já usada no resto do
   app (ver isolamento por usuário acima).
+- **Dono da instância (`User.isOwner`) é imutável pela interface.** Um admin
+  comum pode promover/rebaixar outros admins, mas nunca o dono:
+  `PATCH /api/admin/users/[id]` rejeita qualquer mudança de `isAdmin` num
+  usuário com `isOwner = true`, e a tabela mostra o selo "Dono" no lugar do
+  checkbox. O campo só é definido por script
+  (`node scripts/set-admin.mjs email --owner`) ou direto no banco — a rota
+  nunca lê `isOwner` do body. O próprio usuário também não altera o próprio
+  `isAdmin` (evita se trancar fora).
+- **`/admin` re-valida `isAdmin` no banco, não só no cookie.** Com sessão JWT
+  (30 dias), o `isAdmin` do cookie pode estar velho depois de uma revogação.
+  `requireAdmin()` já cobria a API; a página passou a consultar o banco
+  também, senão um admin revogado ainda veria a lista de usuários.
+- **Vagas `MONITORADA` ficam fora do dashboard principal.** Vagas coletadas
+  pelo n8n entram com esse status e só aparecem em `/monitoradas`.
+  "Tenho interesse" muda para `APLICADA` (com `appliedAt` = hoje) e a vaga
+  passa ao dashboard; "Descartar" exclui. O funil do dashboard usa
+  `DASHBOARD_STATUSES` (sem `MONITORADA`), então métricas como a taxa de
+  conversão só consideram vagas realmente candidatadas.
 
 ## Identidade visual — sistema "vidro" (Sprint 9)
 

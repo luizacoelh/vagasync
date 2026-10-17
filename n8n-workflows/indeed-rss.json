@@ -1,0 +1,197 @@
+{
+  "name": "VagaSync — Indeed RSS",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "A cada 2 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://br.indeed.com/rss?q={{ $vars.INDEED_KEYWORDS }}&l={{ $vars.INDEED_LOCATION }}&sort=date",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "fetch-rss",
+      "name": "Buscar RSS do Indeed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "notes": "Substitua INDEED_KEYWORDS e INDEED_LOCATION nas variáveis do workflow. Ex: q=desenvolvedor+react&l=Remoto"
+    },
+    {
+      "parameters": {
+        "operation": "parse",
+        "feedUrl": "={{ $json.data }}",
+        "options": {}
+      },
+      "id": "parse-rss",
+      "name": "Parsear RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "filter-recent",
+              "leftValue": "={{ $json.pubDate }}",
+              "rightValue": "={{ $now.minus(2, 'hours').toISO() }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ]
+        }
+      },
+      "id": "filter-recent",
+      "name": "Só vagas das últimas 2h",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai e limpa o texto da vaga do item RSS do Indeed\n// O Indeed coloca título + snippet no <description> do RSS\nconst item = $input.item.json;\n\nconst title = item.title ?? '';\nconst link = item.link ?? '';\nconst snippet = item.contentSnippet ?? item.content ?? item.description ?? '';\n\n// Remove tags HTML que possam vir no snippet\nconst cleanSnippet = snippet.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n\n// Monta o texto da descrição que vai para o Gemini\n// O snippet do Indeed é curto (~200 chars) mas suficiente para análise básica\nconst description = `${title}\\n\\n${cleanSnippet}\\n\\nFonte: Indeed\\nLink: ${link}`;\n\nreturn {\n  description,\n  url: link,\n  source: 'indeed',\n  title,\n};"
+      },
+      "id": "extract-text",
+      "name": "Extrair texto da vaga",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.VAGASYNC_WEBHOOK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $vars.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "description",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "source",
+              "value": "indeed"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "send-to-vagasync",
+      "name": "Enviar para VagaSync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "Vaga criada?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "A cada 2 horas": {
+      "main": [
+        [{ "node": "Buscar RSS do Indeed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar RSS do Indeed": {
+      "main": [
+        [{ "node": "Parsear RSS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsear RSS": {
+      "main": [
+        [{ "node": "Só vagas das últimas 2h", "type": "main", "index": 0 }]
+      ]
+    },
+    "Só vagas das últimas 2h": {
+      "main": [
+        [{ "node": "Extrair texto da vaga", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extrair texto da vaga": {
+      "main": [
+        [{ "node": "Enviar para VagaSync", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviar para VagaSync": {
+      "main": [
+        [{ "node": "Vaga criada?", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "vagasync-indeed-rss-v1"
+  }
+}

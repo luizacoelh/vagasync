@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { mapJob } from "@/lib/jobMapper";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import UserMenu from "@/components/auth/UserMenu";
+import MonitoredLink from "@/components/dashboard/MonitoredLink";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -16,12 +17,16 @@ export default async function DashboardPage() {
   // Com JWT, auth() nao toca o banco, entao o primeiro roundtrip ao Turso
   // acontece so aqui. As duas queries rodam simultaneamente em vez de
   // sequenciais, cortando o tempo de espera a metade.
-  const [profile, jobs] = await Promise.all([
+  // Vagas MONITORADAS (coletadas pelo n8n) ficam fora do dashboard principal —
+  // moram em /monitoradas até o usuário marcar "Tenho interesse". A contagem
+  // alimenta o botão de acesso no header. Três queries em paralelo.
+  const [profile, jobs, monitoredCount] = await Promise.all([
     prisma.userProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.job.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id, status: { not: "MONITORADA" } },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.job.count({ where: { userId: session.user.id, status: "MONITORADA" } }),
   ]);
 
   if (!profile) {
@@ -59,6 +64,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-3">
             {/* Exportar CSV movido para /perfil — ação pouco usada, fica
                 disponível como função extra na página de perfil */}
+            <MonitoredLink count={monitoredCount} />
             <Link
               href="/nova-vaga"
               className="inline-block w-fit rounded-xl px-4 py-2 text-sm font-semibold text-[#08131F] transition-shadow"

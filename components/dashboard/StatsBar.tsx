@@ -1,7 +1,6 @@
 import { Job } from "@/types/job";
 import { STATUS_LABELS } from "@/lib/jobStatus";
-import { JobStatus } from "@prisma/client";
-import { STATUS_ORDER } from "@/lib/jobStatus";
+import { DASHBOARD_STATUSES } from "@/lib/jobStatus";
 import GlassPanel from "@/components/ui/Glass";
 
 function topTechnologies(jobs: Job[], limit = 5): { name: string; count: number }[] {
@@ -18,7 +17,7 @@ function topTechnologies(jobs: Job[], limit = 5): { name: string; count: number 
 }
 
 export default function StatsBar({ jobs }: { jobs: Job[] }) {
-  const statusCounts = STATUS_ORDER.map((status) => ({
+  const statusCounts = DASHBOARD_STATUSES.map((status) => ({
     status,
     count: jobs.filter((j) => j.status === status).length,
   }));

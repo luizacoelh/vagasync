@@ -1,7 +1,7 @@
 "use client";
 
 import { JobStatus, JobLocation } from "@prisma/client";
-import { STATUS_LABELS } from "@/lib/jobStatus";
+import { STATUS_LABELS, DASHBOARD_STATUSES } from "@/lib/jobStatus";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 
 export interface FilterState {
@@ -65,7 +65,7 @@ export default function FilterBar({
           className="glass-input w-full rounded-xl px-3 py-2 text-xs font-mono text-[#C4C7D0] sm:w-auto"
         >
           <option value="TODOS">Todos os status</option>
-          {Object.values(JobStatus).map((s) => (
+          {DASHBOARD_STATUSES.map((s) => (
             <option key={s} value={s}>
               {STATUS_LABELS[s]}
             </option>
