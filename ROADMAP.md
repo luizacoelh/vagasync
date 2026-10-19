@@ -13,6 +13,19 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### fix(migrate-turso): script passa a registrar as migrations aplicadas
+- [x] `scripts/apply-turso-migrations.mjs` reexecutava **todas** as migrations a
+  cada rodada. As quatro que recriam `Job`/`User` (`CREATE new_X → INSERT…SELECT
+  → DROP → RENAME`) não falham numa segunda execução: reescrevem a tabela no
+  formato antigo e apagam colunas e dados (reproduzido em teste: `Job` perde
+  `userId`, `url`, `location`, `salary`, `appliedAt`; sobra a tabela `new_Job`).
+  Reproduzido num banco com dados antes da correção
+- [x] Agora: registra o que aplicou em `_turso_migrations`, executa só as
+  pendentes, recusa banco existente sem `--baseline`, recusa migration com
+  `DROP TABLE` sem `--allow-redefine`, e tem `--dry-run`
+- [x] `DEPLOY.md` corrigido (dizia "seguro rodar mais de uma vez") e novo
+  `docs/RECUPERACAO_TURSO.md` (diagnóstico + restauração PITR)
+
 ### feat(monitoradas) + fix(admin): aba de vagas monitoradas e dono imutável
 
 **feat/monitored-jobs-tab**
@@ -45,11 +58,14 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   só a API fazia isso, então um admin revogado ainda abria `/admin` com o
   cookie JWT antigo (até 30 dias) e via usuários e consumo de IA
 
-**Como aplicar:** (1) `npm run migrate:turso`; (2)
-`node scripts/set-admin.mjs seu-email --owner` (uma vez por ambiente); (3) deploy.
-Local: `npx prisma migrate deploy` + `npx prisma generate`. A migration precisa
-rodar no Turso **antes** do deploy: o Auth.js lê todas as colunas de `User` e,
-sem a coluna, o login quebra.
+**Como aplicar:** ~~`npm run migrate:turso`~~ — **não use essa forma num banco
+com dados** (ver correção abaixo). Use
+`npm run migrate:turso -- --baseline 20260919131927_add_admin_settings`
+(aplica só a migration do dono), depois
+`node scripts/set-admin.mjs seu-email --owner` (uma vez por ambiente) e o
+deploy. Local: `npx prisma migrate deploy` + `npx prisma generate`. A migration
+precisa rodar no Turso **antes** do deploy: o Auth.js lê todas as colunas de
+`User` e, sem a coluna, o login quebra.
 
 ### Sprint 21 — fix(gemini): modelo corrigido para alias estável
 - [x] `lib/gemini.ts`: modelo trocado para `gemini-flash-latest` — alias oficial
