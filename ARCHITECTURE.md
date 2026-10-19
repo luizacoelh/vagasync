@@ -60,7 +60,7 @@ vagasync/
     schema.prisma                # User/Account/Session/VerificationToken (Auth.js) + UserProfile + AiUsage + AppSettings + Job
     prisma.config.ts            # Config do CLI — sempre aponta para o SQLite local
   scripts/
-    apply-turso-migrations.mjs  # Aplica migrations no Turso sem precisar da CLI deles
+    apply-turso-migrations.mjs  # Aplica só as migrations pendentes no Turso (registra em _turso_migrations; sem CLI)
     fix-turso-job-table.mjs     # Referência: como corrigir uma tabela específica sem apagar as demais
     sync-turso-schema.mjs       # Referência: cria tabelas novas faltantes sem reaplicar o histórico inteiro
     set-admin.mjs                # Bootstrap: marca um e-mail como admin (local ou Turso)

@@ -27,21 +27,44 @@ desenvolvimento — só a aplicação em produção é diferente.
 Com `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` já preenchidas no seu `.env`:
 
 ```bash
-npm run migrate:turso
+npm run migrate:turso -- --dry-run   # só mostra o que seria aplicado (não altera nada)
+npm run migrate:turso                # aplica as migrations pendentes
 ```
 
 Isso executa `scripts/apply-turso-migrations.mjs`, que lê cada
 `prisma/migrations/*/migration.sql` em ordem cronológica e aplica statement
 por statement usando `@libsql/client` — sem depender da CLI do Turso (que
-exige WSL no Windows). É seguro rodar mais de uma vez: statements já
-aplicados antes são detectados e ignorados.
+exige WSL no Windows). O script **registra** o que já aplicou na tabela
+`_turso_migrations` e só executa as migrations **pendentes**.
 
-> Se a tabela `Job` (ou outra) ficar sem alguma coluna nova depois de uma
-> migration que adiciona um campo obrigatório numa tabela já populada, o
+**Banco novo e vazio:** rode com `--allow-redefine` (as migrations iniciais
+recriam tabelas, o que só é seguro sem dados).
+
+**Banco que já existia** (criado antes do registro existir): o script se
+recusa a rodar sem você dizer até onde ele já está atualizado:
+
+```bash
+npm run migrate:turso -- --baseline <pasta-da-ultima-migration-ja-aplicada>
+```
+
+O baseline marca tudo até essa pasta como aplicado, sem executar nada, e
+aplica só as seguintes.
+
+> **Por que isso existe (incidente de out/2026).** A versão anterior do script
+> reexecutava *todas* as migrations a cada rodada e dizia ser "segura para
+> rodar mais de uma vez". Não era: as migrations que recriam tabelas
+> (`CREATE new_X → INSERT…SELECT → DROP → RENAME`) não dão erro numa segunda
+> execução — reescrevem a tabela no formato antigo e apagam colunas e dados
+> (ex.: `Job.userId`, `url`, `salary`). Por isso o script agora recusa rodar
+> migrations com `DROP TABLE` sem `--allow-redefine`. Antes de qualquer
+> migration que mexa em tabela com dados, confirme o backup (PITR do Turso:
+> `docs/RECUPERACAO_TURSO.md`).
+
+> Se uma migration adicionar um campo obrigatório numa tabela já populada, o
 > SQLite rejeita a operação (não há valor padrão para linhas existentes).
-> Nesse caso, o caminho mais simples — para dados de teste, não produção real
-> com usuários — é derrubar e recriar só a tabela afetada. Veja
-> `scripts/fix-turso-job-table.mjs` como referência desse padrão.
+> Dê um `DEFAULT` ao campo na própria migration. `scripts/fix-turso-job-table.mjs`
+> e `scripts/sync-turso-schema.mjs` ficam como referência de correções
+> pontuais, mas não são a rotina normal.
 
 ## 3. Criar as credenciais OAuth de produção
 
