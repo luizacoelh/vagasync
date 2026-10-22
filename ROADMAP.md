@@ -36,12 +36,14 @@ Auditoria do export do Turso (`applylens.db`) depois do reparo manual. O banco e
 - [x] `DEPLOY.md` §2.1: rotina backup → ensaio na cópia → aplicar → `check:turso`
 - [x] Decidir as 3 colunas extras de `Job`: entram no `schema.prisma` com migration
   (se alguma feature vai usá-las) ou saem do banco
-- [ ] Opcional: reconstruir `Job` com FK `ON DELETE CASCADE` e sem o `DEFAULT` de
-  `userId` (exige ensaio na cópia; baixo risco enquanto o app não apaga usuários)
-- [ ] Aposentar `scripts/fix-turso-job-table.mjs` e `scripts/sync-turso-schema.mjs`
-  (foram a origem da divergência; o histórico do git os guarda)
-- [ ] CI no GitHub Actions: `tsc` + `eslint` + aplicar as migrations num banco vazio
-  e rodar o `check:turso` (com token somente-leitura em secret)
+- [ ] Aplicar migration `20261022180000_fix_job_fk_and_userid_default` no Turso:
+  reconstruir `Job` com FK `ON DELETE CASCADE` e sem o `DEFAULT` legado em `userId`.
+  Requer `--allow-redefine`. Fluxo: backup → ensaio na cópia → `--dry-run` → aplicar.
+  Em banco limpo (CI): 0 erros, 0 avisos. Ver SQL da migration para instruções completas.
+- [x] Aposentar `scripts/fix-turso-job-table.mjs` e `scripts/sync-turso-schema.mjs`
+  (foram a origem da divergência; removidos do repo — o histórico do git os guarda)
+- [x] CI no GitHub Actions (`.github/workflows/ci.yml`): lint + tsc + build + migrations
+  num banco vazio + `check:turso --file` — verifica que 0 erros/avisos em banco limpo
 - [ ] Recuperar `location`/`salary` a partir da `description` (que está intacta) —
   parcial: 34 de 49 mencionam "remoto", mas só 3 têm link, então `url` não volta
 
