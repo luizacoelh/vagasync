@@ -34,7 +34,7 @@ Auditoria do export do Turso (`applylens.db`) depois do reparo manual. O banco e
 - [x] `docs/REPARO_DADOS_2026-10.sql`: devolve `appliedAt` (= data de cadastro,
   aproximação) e a vaga do João; testado numa cópia do export
 - [x] `DEPLOY.md` §2.1: rotina backup → ensaio na cópia → aplicar → `check:turso`
-- [ ] Decidir as 3 colunas extras de `Job`: entram no `schema.prisma` com migration
+- [x] Decidir as 3 colunas extras de `Job`: entram no `schema.prisma` com migration
   (se alguma feature vai usá-las) ou saem do banco
 - [ ] Opcional: reconstruir `Job` com FK `ON DELETE CASCADE` e sem o `DEFAULT` de
   `userId` (exige ensaio na cópia; baixo risco enquanto o app não apaga usuários)
