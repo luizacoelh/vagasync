@@ -44,8 +44,9 @@ Auditoria do export do Turso (`applylens.db`) depois do reparo manual. O banco e
   (foram a origem da divergência; removidos do repo — o histórico do git os guarda)
 - [x] CI no GitHub Actions (`.github/workflows/ci.yml`): lint + tsc + build + migrations
   num banco vazio + `check:turso --file` — verifica que 0 erros/avisos em banco limpo
-- [ ] Recuperar `location`/`salary` a partir da `description` (que está intacta) —
-  parcial: 34 de 49 mencionam "remoto", mas só 3 têm link, então `url` não volta
+- [ ] Recuperar `location` a partir da `description` (que está intacta):
+  `scripts/recover-job-location.mjs` — dry-run por padrão, `--apply` executa.
+  `url` e `salary` considerados irrecuperáveis: <4 vagas têm link/valor na description
 
 ### fix(migrate-turso): script passa a registrar as migrations aplicadas
 - [x] `scripts/apply-turso-migrations.mjs` reexecutava **todas** as migrations a
