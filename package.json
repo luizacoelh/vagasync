@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "migrate:turso": "node scripts/apply-turso-migrations.mjs"
+    "migrate:turso": "node scripts/apply-turso-migrations.mjs",
+    "check:turso": "node scripts/check-turso-schema.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
