@@ -12,6 +12,7 @@
 //
 // Em ambos os casos o design é idêntico — o usuário não percebe a diferença.
 
+import { useContext } from "react";
 import { Job } from "@/types/job";
 import StatusSelect from "@/components/job/StatusSelect";
 import JobMetaEditor from "@/components/job/JobMetaEditor";

@@ -236,7 +236,6 @@ export default function ProfileForm({
                 Baixa todas as suas vagas em formato CSV.
               </p>
             </div>
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- rota de download de arquivo, não uma página Next.js */}
             <a
               href="/api/jobs/export"
               className="glass-btn shrink-0 rounded-xl px-4 py-2 text-xs font-medium text-[#C4C7D0]"

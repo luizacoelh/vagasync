@@ -167,11 +167,6 @@ model Job {
   questions    String?     // JSON stringificado (array)
   checklist    String?     // JSON stringificado (array de { text, done })
 
-  // Origem da vaga e campos gerados pela análise da IA (Gemini)
-  source           String   @default("manual") // "manual" | "n8n" — diferencia vagas manuais das coletadas automaticamente
-  recruiterProfile String?  // JSON stringificado — perfil do recrutador inferido pela IA
-  skillsToStudy    String?  // JSON stringificado (array) — habilidades para estudar sugeridas pela IA
-
   createdAt    DateTime    @default(now())
 
   @@index([userId])
