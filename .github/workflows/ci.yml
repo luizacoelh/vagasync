@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**", "fix/**", "chore/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-build:
+    name: Lint + TypeScript + Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+        env:
+          # Necessário para o build compilar sem erros de variável ausente.
+          # Valores falsos — só o TypeScript precisa compilar, não conectar.
+          DATABASE_URL: "file:./ci-check.db"
+          AUTH_SECRET: "ci-placeholder-not-used-in-build"
+          NEXTAUTH_URL: "http://localhost:3000"
+          GEMINI_API_KEY: "ci-placeholder"
+          N8N_WEBHOOK_SECRET: "ci-placeholder"
+          TURSO_DATABASE_URL: "libsql://placeholder.turso.io"
+          TURSO_AUTH_TOKEN: "ci-placeholder"
+
+  migrations:
+    name: Migrations em banco limpo + check:turso
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Aplicar migrations num banco SQLite limpo
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "file:./ci-fresh.db"
+
+      - name: check:turso contra banco local (sem credenciais Turso)
+        run: npm run check:turso -- --file ./ci-fresh.db
+        env:
+          DATABASE_URL: "file:./ci-fresh.db"
