@@ -66,6 +66,42 @@ aplica só as seguintes.
 > e `scripts/sync-turso-schema.mjs` ficam como referência de correções
 > pontuais, mas não são a rotina normal.
 
+### 2.1 Rotina antes de mexer no banco de produção
+
+O PITR do Turso no plano Free só volta **24 horas**. Quando algo dá errado, o
+que salva é o que você fez *antes*. Sempre, nesta ordem:
+
+1. **Backup.** Dashboard do Turso → seu banco → Overview → *Export Database →
+   Download SQLite File*. Guarde em `backups/` (a pasta está no `.gitignore`;
+   o repositório é público e o banco tem e-mails de usuários — **nunca** commite
+   um `.db`).
+2. **Ensaio numa cópia.** O script aceita um arquivo local no lugar do Turso:
+   ```bash
+   TURSO_DATABASE_URL=file:./backups/export.db TURSO_AUTH_TOKEN=x npm run migrate:turso -- --dry-run
+   TURSO_DATABASE_URL=file:./backups/export.db TURSO_AUTH_TOKEN=x npm run migrate:turso
+   npm run check:turso -- --file ./backups/export.db
+   ```
+   Se algo falhar aqui, o banco de verdade não foi tocado.
+3. **Aplicar no real:** `npm run migrate:turso -- --dry-run`, depois
+   `npm run migrate:turso`, e por fim `npm run check:turso`.
+4. **Regra de ouro: o schema só muda por migration.** Não altere tabelas pelo
+   Drizzle Studio nem pelo SQL console. Se uma emergência exigir, registre o
+   que foi feito numa migration em seguida e rode `npm run check:turso`.
+
+`npm run check:turso` só **lê** o banco (aceita token somente-leitura) e
+compara o schema real com o que as migrations produzem: falta de
+tabela/coluna/índice único é ERRO (sai com código 1); sobra de coluna, default
+diferente ou FK ausente é AVISO. Ele existe porque o banco de produção divergiu
+das migrations sem ninguém perceber (índices únicos ausentes, colunas fora do
+schema). Rode antes de cada deploy que mexe em schema.
+
+**Adotando no banco que já existe** (uma vez): o banco foi criado antes do
+registro de migrations, então informe até onde ele já está atualizado e deixe
+o script aplicar só o que falta:
+```bash
+npm run migrate:turso -- --baseline 20261013120000_add_user_owner
+```
+
 ## 3. Criar as credenciais OAuth de produção
 
 **Google** — reaproveita o mesmo app OAuth do dev, só adiciona uma segunda

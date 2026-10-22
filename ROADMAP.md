@@ -13,6 +13,38 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### fix(db-hardening): auditoria do banco de produção após o incidente de out/2026
+Auditoria do export do Turso (`applylens.db`) depois do reparo manual. O banco está
+íntegro (`integrity_check` ok), mas divergia das migrations:
+- **Índices únicos ausentes** em `User.email`, `Account(provider, providerAccountId)`,
+  `Session.sessionToken` e `VerificationToken` (sem duplicatas hoje; risco de
+  duplicar usuário/conta em corrida de login) e sem índice em `Job.userId`
+- `Job` reconstruído à mão: **sem chave estrangeira** para `User`, com `userId`
+  `DEFAULT` apontando para um id que não existe em `User`
+- **3 colunas fora do schema** em `Job` (`source`, `recruiterProfile`, `skillsToStudy`):
+  existem no banco, não estão no `schema.prisma` nem em nenhuma migration
+- Dados: as 49 vagas ficaram com `appliedAt` carimbado em `2026-10-17 03:03:16`; a
+  vaga de exemplo do João ficou no usuário dono; `url`, `location` e `salary` de todas
+  se perderam (fora da janela de 24 h do PITR)
+- [x] `prisma/migrations/20261019120000_add_missing_indexes`: recria os índices que
+  faltam, idempotente (no-op em banco criado pelas migrations; falha sem registrar se
+  houvesse duplicata)
+- [x] `scripts/check-turso-schema.mjs` (`npm run check:turso`): compara o schema real
+  com as migrations, só leitura, aceita `--file export.db`
+- [x] `docs/REPARO_DADOS_2026-10.sql`: devolve `appliedAt` (= data de cadastro,
+  aproximação) e a vaga do João; testado numa cópia do export
+- [x] `DEPLOY.md` §2.1: rotina backup → ensaio na cópia → aplicar → `check:turso`
+- [ ] Decidir as 3 colunas extras de `Job`: entram no `schema.prisma` com migration
+  (se alguma feature vai usá-las) ou saem do banco
+- [ ] Opcional: reconstruir `Job` com FK `ON DELETE CASCADE` e sem o `DEFAULT` de
+  `userId` (exige ensaio na cópia; baixo risco enquanto o app não apaga usuários)
+- [ ] Aposentar `scripts/fix-turso-job-table.mjs` e `scripts/sync-turso-schema.mjs`
+  (foram a origem da divergência; o histórico do git os guarda)
+- [ ] CI no GitHub Actions: `tsc` + `eslint` + aplicar as migrations num banco vazio
+  e rodar o `check:turso` (com token somente-leitura em secret)
+- [ ] Recuperar `location`/`salary` a partir da `description` (que está intacta) —
+  parcial: 34 de 49 mencionam "remoto", mas só 3 têm link, então `url` não volta
+
 ### fix(migrate-turso): script passa a registrar as migrations aplicadas
 - [x] `scripts/apply-turso-migrations.mjs` reexecutava **todas** as migrations a
   cada rodada. As quatro que recriam `Job`/`User` (`CREATE new_X → INSERT…SELECT
