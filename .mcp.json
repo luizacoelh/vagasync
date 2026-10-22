@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "n8n": {
+      "type": "http",
+      "url": "${N8N_MCP_URL}"
+    },
+    "turso-readonly": {
+      "command": "npx",
+      "args": ["-y", "mcp-turso"],
+      "env": {
+        "TURSO_DATABASE_URL": "${TURSO_RO_URL}",
+        "TURSO_AUTH_TOKEN": "${TURSO_RO_TOKEN}"
+      }
+    }
+  }
+}
