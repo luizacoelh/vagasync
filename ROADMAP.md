@@ -36,17 +36,17 @@ Auditoria do export do Turso (`applylens.db`) depois do reparo manual. O banco e
 - [x] `DEPLOY.md` §2.1: rotina backup → ensaio na cópia → aplicar → `check:turso`
 - [x] Decidir as 3 colunas extras de `Job`: entram no `schema.prisma` com migration
   (se alguma feature vai usá-las) ou saem do banco
-- [ ] Aplicar migration `20261022180000_fix_job_fk_and_userid_default` no Turso:
-  reconstruir `Job` com FK `ON DELETE CASCADE` e sem o `DEFAULT` legado em `userId`.
-  Requer `--allow-redefine`. Fluxo: backup → ensaio na cópia → `--dry-run` → aplicar.
-  Em banco limpo (CI): 0 erros, 0 avisos. Ver SQL da migration para instruções completas.
+- [x] Aplicar migration `20261022180000_fix_job_fk_and_userid_default` no Turso:
+  FK `ON DELETE CASCADE` restaurada, `DEFAULT` legado em `userId` removido.
+  `check:turso` passou de 3 para 1 aviso (só `UserProfile.updatedAt` default,
+  cosmético — `@updatedAt` do Prisma sobrescreve; não vale reconstrução de tabela)
 - [x] Aposentar `scripts/fix-turso-job-table.mjs` e `scripts/sync-turso-schema.mjs`
   (foram a origem da divergência; removidos do repo — o histórico do git os guarda)
 - [x] CI no GitHub Actions (`.github/workflows/ci.yml`): lint + tsc + build + migrations
   num banco vazio + `check:turso --file` — verifica que 0 erros/avisos em banco limpo
-- [ ] Recuperar `location` a partir da `description` (que está intacta):
-  `scripts/recover-job-location.mjs` — dry-run por padrão, `--apply` executa.
-  `url` e `salary` considerados irrecuperáveis: <4 vagas têm link/valor na description
+- [x] Recuperar `location` a partir da `description`: `scripts/recover-job-location.mjs`
+  aplicado — 23 vagas atualizadas (14 REMOTO, 9 HIBRIDO). 26 permanecem NAO_INFORMADO
+  por falta de sinal. `url` e `salary` irrecuperáveis (<4 vagas com dado na description)
 
 ### fix(migrate-turso): script passa a registrar as migrations aplicadas
 - [x] `scripts/apply-turso-migrations.mjs` reexecutava **todas** as migrations a
