@@ -7,6 +7,7 @@ import type { Job } from "@/types/job";
 import GlassPanel from "@/components/ui/Glass";
 import TechBadge from "@/components/ui/TechBadge";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
+import { markJobInterested, deleteJob } from "@/app/actions/jobs";
 
 export interface JobGroup {
   key: string; // dia no formato YYYY-MM-DD
@@ -26,14 +27,16 @@ export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function send(id: string, init: RequestInit, fallbackError: string) {
+  // As duas ações passam por Server Actions em vez de fetch na API: só elas
+  // invalidam o Client Router Cache, garantindo que o dashboard principal
+  // reflita a vaga movida sem esperar o staleTime expirar.
+  async function run(id: string, action: () => Promise<{ ok: true } | { error: string }>) {
     setError(null);
     setBusyId(id);
     try {
-      const res = await fetch(`/api/jobs/${id}`, init);
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? fallbackError);
+      const result = await action();
+      if ("error" in result) {
+        setError(result.error);
         return;
       }
       setHidden((prev) => new Set(prev).add(id));
@@ -46,23 +49,12 @@ export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
     }
   }
 
-  // "Tenho interesse" leva a vaga para o dashboard principal: status vira
-  // APLICADA e a data da candidatura passa a ser hoje (e não o dia em que o
-  // n8n coletou a vaga).
   function markInterested(id: string) {
-    return send(
-      id,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "APLICADA", appliedAt: new Date().toISOString() }),
-      },
-      "Não foi possível mover a vaga para o dashboard."
-    );
+    return run(id, () => markJobInterested(id));
   }
 
   function discard(id: string) {
-    return send(id, { method: "DELETE" }, "Não foi possível descartar a vaga.");
+    return run(id, () => deleteJob(id));
   }
 
   const visibleGroups = groups

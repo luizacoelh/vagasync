@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { JobAnalysis, JobLocation } from "@/types/job";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
+import { createJob } from "@/app/actions/jobs";
 import DetailSection from "@/components/ui/DetailSection";
 import TechBadge from "@/components/ui/TechBadge";
 import ChecklistItem from "@/components/job/ChecklistItem";
@@ -119,33 +120,27 @@ export default function NovaVagaPage() {
     setIsSaving(true);
 
     try {
-      const res = await fetch("/api/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description,
-          company,
-          title,
-          summary,
-          requirements: analysis.requirements,
-          technologies: analysis.technologies,
-          questions: analysis.questions,
-          checklist: analysis.checklist,
-          url: url.trim() === "" ? undefined : url.trim(),
-          location,
-          salary: salary.trim() === "" ? undefined : salary.trim(),
-          appliedAt,
-        }),
+      const result = await createJob({
+        description,
+        company,
+        title,
+        summary,
+        requirements: analysis.requirements,
+        technologies: analysis.technologies,
+        questions: analysis.questions,
+        checklist: analysis.checklist,
+        url: url.trim() === "" ? undefined : url.trim(),
+        location,
+        salary: salary.trim() === "" ? undefined : salary.trim(),
+        appliedAt,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Não foi possível salvar a vaga.");
+      if ("error" in result) {
+        setError(result.error);
         return;
       }
 
-      router.push(`/vaga/${data.id}?created=true`);
+      router.push(`/vaga/${result.id}?created=true`);
     } catch {
       setError("Falha de conexão. Tente novamente.");
     } finally {
