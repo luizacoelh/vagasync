@@ -65,8 +65,11 @@ export default async function DashboardPage() {
             {/* Exportar CSV movido para /perfil — ação pouco usada, fica
                 disponível como função extra na página de perfil */}
             <MonitoredLink count={monitoredCount} />
+            {/* prefetch completo: /nova-vaga não consulta o banco, então
+                pré-carregar a rota inteira é barato e elimina o skeleton. */}
             <Link
               href="/nova-vaga"
+              prefetch={true}
               className="inline-block w-fit rounded-xl px-4 py-2 text-sm font-semibold text-[#08131F] transition-shadow"
               style={{
                 fontFamily: "var(--font-outfit)",
