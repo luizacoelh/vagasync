@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { mapJob } from "@/lib/jobMapper";
 import { JobStatus, JobLocation, Prisma } from "@prisma/client";
@@ -104,6 +105,8 @@ export async function PATCH(
 
   try {
     const job = await prisma.job.update({ where: { id }, data });
+    revalidatePath("/");
+    revalidatePath("/monitoradas");
     return NextResponse.json(mapJob(job));
   } catch (error) {
     console.error("Erro ao atualizar vaga:", error);
@@ -126,6 +129,8 @@ export async function DELETE(
 
   try {
     await prisma.job.delete({ where: { id } });
+    revalidatePath("/");
+    revalidatePath("/monitoradas");
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Erro ao excluir vaga:", error);

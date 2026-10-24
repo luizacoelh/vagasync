@@ -18,7 +18,8 @@ export default async function NewJobFab() {
   }
 
   // Oculta onde não faz sentido contextualmente
-  if (pathname === "/nova-vaga" || pathname.startsWith("/admin")) return null;
+  const hiddenPaths = ["/nova-vaga", "/login", "/perfil", "/termos", "/privacidade"];
+  if (hiddenPaths.includes(pathname) || pathname.startsWith("/admin")) return null;
 
   return (
     <Link
