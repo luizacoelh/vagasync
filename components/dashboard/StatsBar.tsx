@@ -1,9 +1,9 @@
-import { Job } from "@/types/job";
+import { JobSummary } from "@/types/job";
 import { STATUS_LABELS } from "@/lib/jobStatus";
 import { DASHBOARD_STATUSES } from "@/lib/jobStatus";
 import GlassPanel from "@/components/ui/Glass";
 
-function topTechnologies(jobs: Job[], limit = 5): { name: string; count: number }[] {
+function topTechnologies(jobs: JobSummary[], limit = 5): { name: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const job of jobs) {
     for (const tech of job.technologies) {
@@ -16,7 +16,7 @@ function topTechnologies(jobs: Job[], limit = 5): { name: string; count: number 
     .slice(0, limit);
 }
 
-export default function StatsBar({ jobs }: { jobs: Job[] }) {
+export default function StatsBar({ jobs }: { jobs: JobSummary[] }) {
   const statusCounts = DASHBOARD_STATUSES.map((status) => ({
     status,
     count: jobs.filter((j) => j.status === status).length,

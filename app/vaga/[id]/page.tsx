@@ -6,8 +6,7 @@ import { parseArray } from "@/lib/json";
 import BackButton from "@/components/ui/BackButton";
 import VagaContent from "@/components/job/VagaContent";
 
-// Busca os dados da vaga no servidor — usada como fallback caso o contexto
-// client-side não tenha os dados (ex: acesso direto via URL, reload da página)
+// Busca a vaga completa e as skills do perfil em paralelo.
 async function getVagaData(id: string, userId: string) {
   const [rawJob, profile] = await Promise.all([
     prisma.job.findUnique({ where: { id } }),
@@ -40,10 +39,9 @@ export default async function VagaDetalhesPage({
   const { id } = await params;
   const { created } = await searchParams;
 
-  // Busca os dados no servidor. Com o Prisma connection cache corrigido
-  // e JWT ativo, isso é agora uma única conexão reutilizada + 1 roundtrip
-  // paralelo. Em navegações vindas do dashboard, VagaContent já mostra
-  // os dados do contexto client-side antes desta promise resolver.
+  // Com o Prisma connection cache e JWT ativo, isso é uma única conexão
+  // reutilizada + 1 roundtrip paralelo. Enquanto resolve, aparece o
+  // app/vaga/[id]/loading.tsx.
   const data = await getVagaData(id, session.user.id);
 
   if (!data) {
@@ -73,14 +71,7 @@ export default async function VagaDetalhesPage({
           </div>
         )}
 
-        {/*
-          VagaContent é um Client Component que:
-          1. Tenta ler do JobsContext (dados já em memória do dashboard) — instantâneo
-          2. Se não tiver no contexto (acesso direto, reload), usa os dados do servidor
-          O resultado: transições do dashboard para vaga não mostram skeleton nunca.
-        */}
         <VagaContent
-          jobId={id}
           serverJob={data.job}
           serverUserSkills={data.userSkills}
         />

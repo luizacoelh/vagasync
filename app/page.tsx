@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { mapJob } from "@/lib/jobMapper";
+import { JOB_SUMMARY_SELECT, mapJobSummary } from "@/lib/jobMapper";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import UserMenu from "@/components/auth/UserMenu";
 import MonitoredLink from "@/components/dashboard/MonitoredLink";
@@ -25,6 +25,7 @@ export default async function DashboardPage() {
     prisma.job.findMany({
       where: { userId: session.user.id, status: { not: "MONITORADA" } },
       orderBy: { createdAt: "desc" },
+      select: JOB_SUMMARY_SELECT,
     }),
     prisma.job.count({ where: { userId: session.user.id, status: "MONITORADA" } }),
   ]);
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
     redirect("/perfil?onboarding=true");
   }
 
-  const jobList = jobs.map(mapJob);
+  const jobList = jobs.map(mapJobSummary);
 
   return (
     <main className="min-h-screen text-[#E4E6EB] px-4 py-10">
@@ -65,8 +66,11 @@ export default async function DashboardPage() {
             {/* Exportar CSV movido para /perfil — ação pouco usada, fica
                 disponível como função extra na página de perfil */}
             <MonitoredLink count={monitoredCount} />
+            {/* prefetch completo: /nova-vaga não consulta o banco, então
+                pré-carregar a rota inteira é barato e elimina o skeleton. */}
             <Link
               href="/nova-vaga"
+              prefetch={true}
               className="inline-block w-fit rounded-xl px-4 py-2 text-sm font-semibold text-[#08131F] transition-shadow"
               style={{
                 fontFamily: "var(--font-outfit)",

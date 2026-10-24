@@ -12,6 +12,8 @@ export default function NewJobFabClient() {
   return (
     <Link
       href="/nova-vaga"
+      // Rota sem consulta ao banco: prefetch completo evita o skeleton.
+      prefetch={true}
       aria-label="Nova vaga"
       className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full text-[#08131F] shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 sm:h-auto sm:w-auto sm:rounded-2xl sm:px-5 sm:py-3"
       style={{

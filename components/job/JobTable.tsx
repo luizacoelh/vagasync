@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Job } from "@/types/job";
+import { JobSummary } from "@/types/job";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GlassPanel from "@/components/ui/Glass";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 
-export default function JobTable({ jobs }: { jobs: Job[] }) {
+export default function JobTable({ jobs }: { jobs: JobSummary[] }) {
   return (
     <GlassPanel plateClassName="overflow-x-auto" hotspots={false}>
       <table className="w-full min-w-[720px] border-collapse text-sm">

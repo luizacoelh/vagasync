@@ -52,7 +52,7 @@ vagasync/
     rateLimit.ts                # Limite diário de IA por usuário — atômico, sem condição de corrida
     ipRateLimit.ts              # Limite adicional de chamadas ao Gemini por IP
     aiUsage.ts                  # Registro de cada chamada à IA (tabela AiUsage)
-    jobMapper.ts                # Converte o registro do Prisma para o tipo Job da app
+    jobMapper.ts                # Converte o registro do Prisma para Job (detalhe) ou JobSummary (listagens)
     jobStatus.ts / jobLocation.ts / experienceLevel.ts  # Labels e estilos dos enums
     json.ts                     # parseArray/stringifyArray (campos JSON-em-string)
     skillGap.ts                 # Compara tecnologias da vaga com as skills do UserProfile
@@ -172,6 +172,21 @@ vagasync/
   "Tenho interesse" são todos Server Actions por esse motivo. Os Route
   Handlers em `app/api/jobs/` continuam existindo para consumo externo, mas
   nenhuma tela do app os usa para escrever.
+- **Listagens buscam só o recorte `JobSummary`; o detalhe busca a vaga
+  inteira.** Dashboard e `/monitoradas` usam `JOB_SUMMARY_SELECT`
+  (`lib/jobMapper.ts`) — sem descrição, requisitos, perguntas e checklist, que
+  dominavam o payload (~5 KB por vaga contra ~0,6 KB). `/vaga/[id]` busca a
+  vaga completa no servidor. O antigo `JobsContext`, que tentava reaproveitar
+  os dados do dashboard no detalhe, foi removido: o provider vivia dentro da
+  página do dashboard e nunca alcançava `/vaga/[id]` (rota irmã).
+- **Cada rota com dados tem o próprio `loading.tsx`.** O `app/loading.tsx`
+  da raiz cobre toda rota sem um mais específico; como tem o formato do
+  dashboard, `/vaga/[id]` e `/monitoradas` ganharam skeletons com o layout
+  delas para não "pular" de largura ao carregar.
+- **Links "+ Nova vaga" usam `prefetch={true}`.** `/nova-vaga` não consulta o
+  banco, então pré-carregar a rota inteira é barato e a navegação não passa
+  pelo skeleton. Os cards de vaga ficam com o prefetch padrão (parcial): um
+  prefetch completo renderizaria o detalhe de cada vaga visível no servidor.
 
 ## Identidade visual — sistema "vidro" (Sprint 9)
 

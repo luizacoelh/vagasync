@@ -36,6 +36,15 @@ export interface Job {
   createdAt: Date;
 }
 
+// Recorte da vaga usado nas listagens (dashboard e /monitoradas). Leva só o
+// que cards, tabela, estatísticas e filtros exibem: descrição, requisitos,
+// perguntas e checklist ficam para a página de detalhe, que busca a vaga
+// inteira. Isso mantém o payload da listagem pequeno conforme as vagas crescem.
+export type JobSummary = Pick<
+  Job,
+  "id" | "company" | "title" | "status" | "location" | "salary" | "appliedAt" | "summary" | "technologies"
+>;
+
 // Body esperado no POST /api/jobs (vaga já analisada, pronta pra salvar)
 export interface CreateJobRequest {
   description: string;

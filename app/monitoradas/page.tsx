@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { mapJob } from "@/lib/jobMapper";
+import { JOB_SUMMARY_SELECT, mapJobSummary } from "@/lib/jobMapper";
 import BackButton from "@/components/ui/BackButton";
 import MonitoredJobList, { type JobGroup } from "@/components/monitoradas/MonitoredJobList";
 
@@ -39,19 +39,21 @@ export default async function MonitoradasPage() {
     redirect("/login");
   }
 
-  const rawJobs = await prisma.job.findMany({
+  // createdAt só serve para agrupar por dia aqui no servidor; não vai para o cliente.
+  const rows = await prisma.job.findMany({
     where: { userId: session.user.id, status: "MONITORADA" },
     orderBy: { createdAt: "desc" },
+    select: { ...JOB_SUMMARY_SELECT, createdAt: true },
   });
-  const jobs = rawJobs.map(mapJob);
 
   const { todayKey, yesterdayKey } = getTodayAndYesterdayKeys();
 
   // A lista já vem da mais nova para a mais antiga, então basta agrupar
   // vagas consecutivas do mesmo dia.
   const groups: JobGroup[] = [];
-  for (const job of jobs) {
-    const key = dayKey(job.createdAt);
+  for (const { createdAt, ...row } of rows) {
+    const job = mapJobSummary(row);
+    const key = dayKey(createdAt);
     const last = groups[groups.length - 1];
     if (last && last.key === key) {
       last.jobs.push(job);
@@ -92,8 +94,8 @@ export default async function MonitoradasPage() {
         <p className="mb-8 text-sm text-[#7C8494]">
           Vagas encontradas automaticamente. Marque as que te interessam para levá-las ao seu
           dashboard e descarte o resto.
-          {jobs.length > 0 &&
-            ` ${jobs.length} ${jobs.length === 1 ? "vaga aguardando" : "vagas aguardando"} sua avaliação.`}
+          {rows.length > 0 &&
+            ` ${rows.length} ${rows.length === 1 ? "vaga aguardando" : "vagas aguardando"} sua avaliação.`}
         </p>
 
         <MonitoredJobList groups={groups} />
