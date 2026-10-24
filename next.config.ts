@@ -56,6 +56,16 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // staleTimes.dynamic controla o TTL do cache do lado do cliente para rotas
+    // dinâmicas com loading.tsx. O padrão é 0 (sem cache), o que faz o skeleton
+    // aparecer em cada navegação ao dashboard. Com 30s, navegações repetidas
+    // dentro desse janela são instantâneas. Mutações chamam revalidatePath para
+    // invalidar o cache imediatamente e garantir dados frescos após changes.
+    staleTimes: {
+      dynamic: 30,
+    },
+  },
   serverExternalPackages: [
     "better-sqlite3",
     "@prisma/adapter-better-sqlite3",
