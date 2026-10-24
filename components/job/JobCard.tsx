@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Job } from "@/types/job";
+import { JobSummary } from "@/types/job";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GlassPanel from "@/components/ui/Glass";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 
-export default function JobCard({ job }: { job: Job }) {
+export default function JobCard({ job }: { job: JobSummary }) {
   return (
     <Link href={`/vaga/${job.id}`} className="block transition-transform hover:-translate-y-0.5">
       <GlassPanel>

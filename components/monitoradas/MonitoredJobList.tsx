@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Job } from "@/types/job";
+import type { JobSummary } from "@/types/job";
 import GlassPanel from "@/components/ui/Glass";
 import TechBadge from "@/components/ui/TechBadge";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
@@ -12,7 +12,7 @@ import { markJobInterested, deleteJob } from "@/app/actions/jobs";
 export interface JobGroup {
   key: string; // dia no formato YYYY-MM-DD
   label: string; // "Hoje", "Ontem" ou dd/mm/aaaa
-  jobs: Job[];
+  jobs: JobSummary[];
 }
 
 const MAX_TECHS = 5;

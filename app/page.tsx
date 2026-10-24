@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { mapJob } from "@/lib/jobMapper";
+import { JOB_SUMMARY_SELECT, mapJobSummary } from "@/lib/jobMapper";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import UserMenu from "@/components/auth/UserMenu";
 import MonitoredLink from "@/components/dashboard/MonitoredLink";
@@ -25,6 +25,7 @@ export default async function DashboardPage() {
     prisma.job.findMany({
       where: { userId: session.user.id, status: { not: "MONITORADA" } },
       orderBy: { createdAt: "desc" },
+      select: JOB_SUMMARY_SELECT,
     }),
     prisma.job.count({ where: { userId: session.user.id, status: "MONITORADA" } }),
   ]);
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
     redirect("/perfil?onboarding=true");
   }
 
-  const jobList = jobs.map(mapJob);
+  const jobList = jobs.map(mapJobSummary);
 
   return (
     <main className="min-h-screen text-[#E4E6EB] px-4 py-10">

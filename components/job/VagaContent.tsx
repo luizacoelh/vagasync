@@ -1,16 +1,9 @@
 "use client";
 
-// VagaContent é o Client Component que exibe os detalhes de uma vaga.
-//
-// Estratégia de dados (por ordem de prioridade):
-// 1. JobsContext — se o usuário veio do dashboard, os dados já estão em
-//    memória. Nesse caso a página aparece INSTANTANEAMENTE, sem skeleton,
-//    sem roundtrip ao servidor. É o caso mais comum.
-// 2. serverJob (prop) — se o usuário acessou /vaga/[id] diretamente (URL
-//    direta, reload, link externo), o Server Component buscou os dados e
-//    os passou como prop. A página aparece normalmente após o carregamento.
-//
-// Em ambos os casos o design é idêntico — o usuário não percebe a diferença.
+// VagaContent é o Client Component que exibe os detalhes de uma vaga, com os
+// dados completos buscados pelo Server Component de app/vaga/[id]/page.tsx.
+// O dashboard só carrega o recorte JobSummary, então o detalhe sempre vem do
+// servidor (e fica no Router Cache para revisitas).
 
 import { Job } from "@/types/job";
 import StatusSelect from "@/components/job/StatusSelect";
@@ -22,31 +15,14 @@ import SkillCompatibility from "@/components/job/SkillCompatibility";
 import DeleteJobButton from "@/components/job/DeleteJobButton";
 import GlassPanel from "@/components/ui/Glass";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
-import { useJobs } from "@/lib/JobsContext";
-
-// Hook seguro — não lança se usado fora do provider (ex: acesso direto à URL)
-function useSafeJobsContext() {
-  try {
-    return useJobs();
-  } catch {
-    return null;
-  }
-}
 
 export default function VagaContent({
-  jobId,
-  serverJob,
-  serverUserSkills,
+  serverJob: job,
+  serverUserSkills: userSkills,
 }: {
-  jobId: string;
   serverJob: Job;
   serverUserSkills: string[];
 }) {
-  const ctx = useSafeJobsContext();
-
-  // Tenta o contexto primeiro (instantâneo), cai no dado do servidor
-  const job = ctx?.getJob(jobId) ?? serverJob;
-  const userSkills = serverUserSkills;
 
   return (
     <>
