@@ -161,6 +161,17 @@ vagasync/
   passa ao dashboard; "Descartar" exclui. O funil do dashboard usa
   `DASHBOARD_STATUSES` (sem `MONITORADA`), então métricas como a taxa de
   conversão só consideram vagas realmente candidatadas.
+- **Toda mutação de vaga passa por Server Action (`app/actions/jobs.ts`), não
+  por `fetch` na API.** O dashboard usa `experimental.staleTimes.dynamic: 300`
+  para que voltar a `/` seja instantâneo em vez de mostrar o skeleton a cada
+  navegação (o padrão é 0s quando existe `loading.tsx`). O preço disso é que
+  qualquer escrita precisa invalidar o Client Router Cache — e só Server
+  Actions fazem isso: `revalidatePath()` chamado de um Route Handler marca
+  apenas o Data Cache do servidor, então a página continuaria servindo a
+  versão cacheada por até 5 minutos. Criar, editar, mudar status, excluir e
+  "Tenho interesse" são todos Server Actions por esse motivo. Os Route
+  Handlers em `app/api/jobs/` continuam existindo para consumo externo, mas
+  nenhuma tela do app os usa para escrever.
 
 ## Identidade visual — sistema "vidro" (Sprint 9)
 
