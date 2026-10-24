@@ -59,11 +59,12 @@ const nextConfig: NextConfig = {
   experimental: {
     // staleTimes.dynamic controla o TTL do cache do lado do cliente para rotas
     // dinâmicas com loading.tsx. O padrão é 0 (sem cache), o que faz o skeleton
-    // aparecer em cada navegação ao dashboard. Com 30s, navegações repetidas
-    // dentro desse janela são instantâneas. Mutações chamam revalidatePath para
-    // invalidar o cache imediatamente e garantir dados frescos após changes.
+    // aparecer em cada navegação ao dashboard. Com 300s, navegações repetidas
+    // dentro desse janela são instantâneas. Mutações via Server Actions chamam
+    // revalidatePath, que invalida também o Client Router Cache — garantindo
+    // dados frescos após mudanças sem precisar aguardar o TTL expirar.
     staleTimes: {
-      dynamic: 30,
+      dynamic: 300,
     },
   },
   serverExternalPackages: [

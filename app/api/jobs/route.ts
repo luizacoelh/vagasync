@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { stringifyArray } from "@/lib/json";
 import { mapJob } from "@/lib/jobMapper";
@@ -95,8 +94,6 @@ export async function POST(req: NextRequest) {
     };
 
     const job = await prisma.job.create({ data });
-
-    revalidatePath("/");
     return NextResponse.json(mapJob(job), { status: 201 });
   } catch (error) {
     console.error("Erro ao salvar vaga:", error);
