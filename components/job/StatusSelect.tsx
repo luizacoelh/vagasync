@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { JobStatus } from "@prisma/client";
 import { STATUS_LABELS } from "@/lib/jobStatus";
+import { updateJobStatus } from "@/app/actions/jobs";
 
 export default function StatusSelect({ jobId, initialStatus }: { jobId: string; initialStatus: JobStatus }) {
   const router = useRouter();
@@ -18,23 +19,21 @@ export default function StatusSelect({ jobId, initialStatus }: { jobId: string; 
     setToast(null);
 
     try {
-      const res = await fetch(`/api/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      const result = await updateJobStatus(jobId, newStatus);
 
-      if (!res.ok) {
-        setToast("Não foi possível atualizar o status.");
+      if ("error" in result) {
+        setToast(result.error);
         setStatus(previousStatus);
         return;
       }
 
       setToast("Status atualizado.");
+      // router.refresh() recarrega o Server Component da página atual para que
+      // serverJob fique sincronizado em caso de reload ou acesso direto posterior.
       router.refresh();
       setTimeout(() => setToast(null), 2500);
     } catch {
-      setToast("Falha de conexão.");
+      setToast("Falha ao atualizar o status.");
       setStatus(previousStatus);
     } finally {
       setIsUpdating(false);

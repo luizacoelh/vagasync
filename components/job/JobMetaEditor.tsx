@@ -4,13 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { JobLocation } from "@prisma/client";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
-import { UpdateJobRequest } from "@/types/job";
+import { updateJobMeta } from "@/app/actions/jobs";
 
-// Sem wrapper de card próprio — vive dentro do GlassPanel compartilhado da
-// página de detalhes (app/vaga/[id]/page.tsx), junto com as outras seções.
-// Antes tinha um card + título embutido próprios, o que causava o bug de
-// "Detalhes da candidatura" duplicado (o DetailSection por fora já mostra
-// o título) — corrigido nesta sprint junto com o resto do visual.
 export default function JobMetaEditor({
   jobId,
   initialUrl,
@@ -40,19 +35,11 @@ export default function JobMetaEditor({
     setIsSaving(true);
     setToast(null);
 
-    const body: UpdateJobRequest = { url, location, salary, appliedAt };
-
     try {
-      const res = await fetch(`/api/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const result = await updateJobMeta(jobId, { url, location, salary, appliedAt });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setToast(data.error ?? "Não foi possível salvar.");
+      if ("error" in result) {
+        setToast(result.error);
         return;
       }
 
@@ -60,7 +47,7 @@ export default function JobMetaEditor({
       router.refresh();
       setTimeout(() => setToast(null), 2500);
     } catch {
-      setToast("Falha de conexão.");
+      setToast("Falha ao salvar.");
     } finally {
       setIsSaving(false);
     }
