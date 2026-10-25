@@ -106,6 +106,9 @@ export default function NovaVagaPage() {
       setCompany(data.company);
       setTitle(data.title);
       setSummary(data.summary);
+      // Pré-preenche com o que a IA achou no texto — continua editável.
+      setSalary(data.salary ?? "");
+      setLocation(data.location ?? "NAO_INFORMADO");
       setStep("preview");
     } catch {
       setError("Falha de conexão. Tente novamente.");
@@ -126,6 +129,7 @@ export default function NovaVagaPage() {
         title,
         summary,
         requirements: analysis.requirements,
+        differentials: analysis.differentials,
         technologies: analysis.technologies,
         questions: analysis.questions,
         checklist: analysis.checklist,
@@ -344,7 +348,7 @@ export default function NovaVagaPage() {
                     className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
                     style={{ fontFamily: "var(--font-outfit)" }}
                   >
-                    Salário
+                    Salário / bolsa
                   </label>
                   <input
                     id="salary"
@@ -391,6 +395,19 @@ export default function NovaVagaPage() {
                   ))}
                 </ul>
               </DetailSection>
+
+              {analysis.differentials.length > 0 && (
+                <DetailSection label="Diferenciais">
+                  <ul className="space-y-1 text-sm text-[#C4C7D0]">
+                    {analysis.differentials.map((item, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-[#4ADE80]">+</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </DetailSection>
+              )}
 
               <DetailSection label="Perguntas prováveis">
                 <ul className="space-y-1 text-sm text-[#C4C7D0]">

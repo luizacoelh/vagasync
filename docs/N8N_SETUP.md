@@ -77,7 +77,7 @@ No n8n, vá em **Settings → Variables** e crie:
 ## 4. Importar o workflow do Indeed
 
 1. No n8n, clique em **Add workflow → Import from file**
-2. Selecione o arquivo `n8n-workflows/indeed-rss.json`
+2. Selecione o arquivo `n8n-workflows/weworkremotely-rss.json` (o fluxo em uso; `indeed-rss.json` é o template antigo)
 3. Ative o workflow com o toggle no canto superior direito
 4. Clique em **Execute workflow** para testar imediatamente
 
@@ -159,17 +159,16 @@ No n8n, vá em **Settings → Variables** e crie:
 
 ## 6. Evitar vagas duplicadas
 
-O webhook atual não verifica duplicatas — se a mesma vaga aparecer no RSS
-duas vezes (o Indeed mantém vagas por dias), ela pode ser cadastrada de novo.
+O webhook deduplica por URL: se já existe uma vaga do usuário com a mesma
+`url`, ele responde `200` com `{ "duplicate": true, "id": "..." }` **sem chamar
+o Gemini** e sem criar nada. Vaga enviada sem `url` não é deduplicada.
 
-**Solução simples a implementar no n8n:**
-Adicionar um nó **n8n-nodes-base.filter** antes do envio que verifica se a URL
-já foi processada. O n8n tem um nó nativo de deduplicação:
-`n8n-nodes-base.removeDuplicates` — usar com o campo `url` como chave.
+A comparação é exata (só remove espaços nas pontas). Se uma fonte coloca
+parâmetros de rastreio variáveis no link (`utm_*` etc.), limpe a URL no nó
+Code antes de enviar.
 
-**Solução robusta (futura sprint no VagaSync):**
-Adicionar campo `sourceUrl` no modelo `Job` do Prisma e fazer o webhook
-verificar `prisma.job.findFirst({ where: { url: jobUrl } })` antes de criar.
+Fontes aceitas em `source`: `indeed`, `weworkremotely`, `gupy`, `infojobs`,
+`catho`, `gmail`, `manual` (outro valor vira `manual`).
 
 ---
 

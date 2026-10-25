@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { stringifyArray } from "@/lib/json";
+import { parseArray, parseIndexArray, stringifyArray } from "@/lib/json";
 import { JobStatus, JobLocation } from "@prisma/client";
 import type { CreateJobRequest } from "@/types/job";
 
@@ -65,6 +65,7 @@ export async function createJob(
         title,
         summary: input.summary ?? null,
         requirements: stringifyArray(input.requirements),
+        differentials: stringifyArray(input.differentials ?? []),
         technologies: stringifyArray(input.technologies),
         questions: stringifyArray(input.questions),
         checklist: stringifyArray(input.checklist),
@@ -177,6 +178,38 @@ export async function updateJobMeta(
     return { ok: true };
   } catch {
     return { error: "Não foi possível salvar." };
+  }
+}
+
+// Marca/desmarca um item do checklist. Lê o estado atual do banco e altera só
+// o índice pedido, então dois cliques rápidos em itens diferentes não se
+// sobrescrevem com uma lista inteira desatualizada vinda do cliente.
+export async function toggleChecklistItem(
+  jobId: string,
+  index: number,
+  done: boolean
+): Promise<{ ok: true } | { error: string }> {
+  const job = await requireOwnership(jobId);
+  if (!job) return { error: "Vaga não encontrada." };
+
+  const total = parseArray(job.checklist).length;
+  if (!Number.isInteger(index) || index < 0 || index >= total) {
+    return { error: "Item do checklist inválido." };
+  }
+
+  const current = new Set(parseIndexArray(job.checklistDone));
+  if (done) current.add(index);
+  else current.delete(index);
+
+  try {
+    await prisma.job.update({
+      where: { id: jobId },
+      data: { checklistDone: stringifyArray([...current].sort((a, b) => a - b)) },
+    });
+    revalidatePath(`/vaga/${jobId}`);
+    return { ok: true };
+  } catch {
+    return { error: "Não foi possível salvar o checklist." };
   }
 }
 

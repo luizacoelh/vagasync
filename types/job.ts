@@ -10,9 +10,13 @@ export interface JobAnalysis {
   title: string;
   summary: string;
   requirements: string[];
+  differentials: string[];
   technologies: string[];
   questions: string[];
   checklist: string[];
+  // Extraídos do texto quando a vaga informa; null/NAO_INFORMADO quando não.
+  salary: string | null;
+  location: JobLocation;
 }
 
 // Modelo utilizado pela aplicação.
@@ -30,9 +34,11 @@ export interface Job {
   appliedAt: Date;
   summary: string | null;
   requirements: string[];
+  differentials: string[];
   technologies: string[];
   questions: string[];
   checklist: string[];
+  checklistDone: number[]; // índices de checklist marcados como feitos
   createdAt: Date;
 }
 
@@ -52,6 +58,7 @@ export interface CreateJobRequest {
   title: string;
   summary?: string;
   requirements: string[];
+  differentials?: string[];
   technologies: string[];
   questions: string[];
   checklist: string[];

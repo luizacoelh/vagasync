@@ -13,6 +13,35 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(vaga): diferenciais, salário pela IA, checklist marcável, sinônimos de skills e dedup no webhook
+- [x] Migration `20261025120000_add_job_differentials`: coluna `Job.differentials`
+  (JSON array, opcional — vagas antigas só não mostram a seção)
+- [x] `lib/gemini.ts`: prompt pede `differentials`, `salary` e `location`;
+  `normalizeExtras` deixa os três tolerantes a resposta incompleta
+- [x] `/nova-vaga`: salário/bolsa e local já vêm preenchidos (editáveis) e a
+  prévia mostra os diferenciais; `/vaga/[id]` ganha a seção "Diferenciais"
+- [x] Webhook n8n grava diferenciais, salário e modalidade nas monitoradas
+- [x] Checklist marcável (antigo próximo passo #3): migration
+  `20261025130000_add_job_checklist_done` (`Job.checklistDone`, JSON de
+  índices); `components/job/JobChecklist.tsx` com atualização otimista e a
+  server action `toggleChecklistItem` (altera só o índice pedido, valida o
+  limite do checklist)
+- [x] Sinônimos de skills (antigo próximo passo #4): `lib/skillAliases.ts` +
+  `skillKey()` em `lib/skillGap.ts` — "JS" = "JavaScript", "Node.js" = "NodeJS",
+  "Postgres" = "PostgreSQL", "APIs REST" = "REST API" etc.
+- [x] Webhook (antigo próximo passo #5): deduplica por URL **antes** do Gemini
+  (responde 200 `{ duplicate: true }`) e aceita a fonte `weworkremotely`
+
+**Como aplicar:** backup do Turso → `npm run migrate:turso -- --dry-run`
+(deve listar as duas migrations) → `npm run migrate:turso` →
+`npm run check:turso` → deploy. ✅ Aplicado no Turso em 2026-10-25 (backup
+feito antes; `check:turso` voltou a 0 erros, 1 aviso cosmético).
+- [x] Workflow real do n8n versionado em `n8n-workflows/weworkremotely-rss.json`
+  (exportado pela CLI, sem metadados da instância). Fonte passa a ser
+  `weworkremotely` (estava fixa como `indeed` no nó Code **e** no corpo do
+  HTTP, que agora usa `{{ $json.source }}`), e o filtro "Só vagas das últimas
+  2h" teve o "Always Output Data" desligado, como manda o CLAUDE.md
+
 ### fix(db-hardening): auditoria do banco de produção após o incidente de out/2026
 Auditoria do export do Turso (`applylens.db`) depois do reparo manual. O banco está
 íntegro (`integrity_check` ok), mas divergia das migrations:
@@ -240,42 +269,26 @@ Hoje o onboarding é só texto em `/perfil`. Tornar mais visual:
   `hasSeenOnboarding` no `UserProfile`)
 - Não bloqueia o uso — pode ser pulado
 
-### 3. Checklist com itens marcáveis persistidos
-Hoje o checklist é só leitura. Adicionar campo `checklistDone` (`String`,
-array JSON de índices marcados) no modelo `Job`. O `ChecklistItem` vira
-um Client Component com checkbox que chama `PATCH /api/jobs/[id]`.
-
-### 4. Refinar comparação de skills
-Hoje é match exato normalizado — não entende "JS" = "JavaScript" ou
-"React.js" = "React". Solução: tabela de aliases em `lib/skillAliases.ts`
-(`{ "js": "javascript", "react.js": "react", ... }`), aplicada antes do
-match em `SkillCompatibility`.
-
-### 5. Finalizar a automação n8n
+### 3. Finalizar a automação n8n
 Funcionando ponta a ponta em teste (We Work Remotely RSS → webhook →
 `/monitoradas`). Falta:
 - Publicar o workflow e hospedar o n8n 24/7 (Railway/Render) — local só roda
   com o Docker ligado
 - Outras fontes: Gupy, InfoJobs, Catho, Gmail (ver `docs/N8N_SETUP.md`)
-- Deduplicar vagas por URL (hoje a mesma vaga pode entrar duas vezes)
-- Adicionar `weworkremotely` em `VALID_SOURCES` do webhook (o fluxo hoje manda
-  `indeed`, então o consumo de IA fica rotulado com a fonte errada)
 - Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
   outros usuários cada conta precisaria da própria config (palavras-chave e
   fontes)
-- Versionar o workflow real: exportar do n8n (⋯ → Download) em vez de usar o
-  template `indeed-rss.json`, que ficou defasado
 
-### 6. Screenshots reais no README
+### 4. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.
 Sugestão: dashboard com vagas reais, tela de análise preenchida, mobile.
 
-### 7. Monitoramento básico em produção
+### 5. Monitoramento básico em produção
 Log estruturado quando `/api/analyze` falhar repetidamente.
 Opção simples: Vercel Analytics (já incluso no plano) + alerta por email
 via Resend quando `error.tsx` for renderizado N vezes em X minutos.
 
-### 8. Verificar o `JobsProvider` (perf)
+### 6. Verificar o `JobsProvider` (perf)
 Em `components/dashboard/DashboardClient.tsx` o `JobsProvider` fica dentro da
 página, e páginas desmontam ao navegar para `/vaga/[id]` — pela estrutura do
 código, o contexto provavelmente não chega na página da vaga, que acaba usando
@@ -295,7 +308,6 @@ Só executar quando houver decisão de monetizar.
 - Usuário expirado: banner de renovação, acesso leitura mantido
 
 ### Outras ideias documentadas
-- Checklist de itens marcáveis com persistência (ver próximos passos #3)
 - Extensão de navegador para capturar vagas sem copiar texto
 - Integração direta com Gmail/Notion
 - Scraping automático a partir de URL de vaga

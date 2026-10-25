@@ -106,12 +106,27 @@ vagasync/
 - **Webhook n8n precisa de `N8N_TARGET_USER_ID`.** Como toda vaga pertence a
   um usuário e o webhook é uma chamada servidor-a-servidor (sem sessão de
   navegador), ele precisa saber a quem atribuir a vaga criada.
-- **Campos array (`technologies`, `requirements`, `questions`, `checklist`,
+- **Campos array (`technologies`, `requirements`, `differentials`, `questions`, `checklist`,
   `UserProfile.skills`) são salvos como JSON-string no SQLite**, não em
   tabelas relacionadas. Decisão temporária do MVP — ver `lib/json.ts`. V2:
   normalizar em tabelas próprias.
-- **Checklist é somente leitura.** Persistir o estado "concluído" por item
-  exigiria mudar o schema — fora do escopo atual.
+- **Diferenciais, salário e modalidade vêm da mesma chamada ao Gemini.** O
+  prompt separa `requirements` (obrigatório) de `differentials` (desejável) e
+  extrai `salary`/`location` do texto. Esses três campos são tolerantes em
+  `lib/gemini.ts` (`normalizeExtras`): se faltarem ou vierem fora do formato,
+  viram `[]`/`null`/`NAO_INFORMADO` em vez de derrubar a análise. Salário sem
+  nenhum dígito ("compatível com o mercado") é descartado. Na nova vaga eles
+  só pré-preenchem o formulário; no webhook n8n são gravados direto.
+- **Checklist marcável guarda só os índices.** `Job.checklist` continua o array
+  de strings da IA; `Job.checklistDone` guarda os índices marcados. A server
+  action `toggleChecklistItem` lê o estado do banco e muda um índice por vez,
+  para cliques rápidos não se sobrescreverem. Como o checklist não é editável,
+  os índices não ficam desalinhados.
+- **Comparação de skills usa sinônimos.** `lib/skillGap.ts` compara por
+  `skillKey()` (sem caixa, acento, espaço, ponto e hífen) resolvida em
+  `lib/skillAliases.ts`. Sinônimo novo entra nesse mapa.
+- **Webhook deduplica por URL antes de chamar a IA.** Mesma `url` para o mesmo
+  usuário → 200 `{ duplicate: true }`, sem gastar Gemini.
 - **Limites globais (`AppSettings`) em vez de constantes no código.** Antes,
   `DAILY_LIMIT`, `IP_LIMIT` e `MAX_DESCRIPTION_LENGTH` eram números fixos —
   mudar qualquer um exigia editar código e fazer deploy. Agora ficam numa

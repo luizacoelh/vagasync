@@ -10,7 +10,7 @@ import StatusSelect from "@/components/job/StatusSelect";
 import JobMetaEditor from "@/components/job/JobMetaEditor";
 import DetailSection from "@/components/ui/DetailSection";
 import TechBadge from "@/components/ui/TechBadge";
-import ChecklistItem from "@/components/job/ChecklistItem";
+import JobChecklist from "@/components/job/JobChecklist";
 import SkillCompatibility from "@/components/job/SkillCompatibility";
 import DeleteJobButton from "@/components/job/DeleteJobButton";
 import GlassPanel from "@/components/ui/Glass";
@@ -90,6 +90,19 @@ export default function VagaContent({
           </DetailSection>
         )}
 
+        {job.differentials.length > 0 && (
+          <DetailSection label="Diferenciais">
+            <ul className="space-y-1 text-sm text-[#C4C7D0]">
+              {job.differentials.map((item, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="text-[#4ADE80]">+</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </DetailSection>
+        )}
+
         {job.questions.length > 0 && (
           <DetailSection label="Perguntas prováveis">
             <ul className="space-y-1 text-sm text-[#C4C7D0]">
@@ -105,11 +118,7 @@ export default function VagaContent({
 
         {job.checklist.length > 0 && (
           <DetailSection label="Checklist">
-            <ul className="space-y-1">
-              {job.checklist.map((item, i) => (
-                <ChecklistItem key={i} text={item} />
-              ))}
-            </ul>
+            <JobChecklist jobId={job.id} items={job.checklist} initialDone={job.checklistDone} />
           </DetailSection>
         )}
 

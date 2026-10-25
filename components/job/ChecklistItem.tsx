@@ -1,6 +1,6 @@
-// Item de checklist somente leitura. Persistir o estado "concluído" por item
-// exigiria mudar o schema (checklist deixaria de ser um array simples de
-// strings) — deixado como próximo passo natural, fora do escopo atual do MVP.
+// Item de checklist somente leitura — usado na prévia de /nova-vaga, onde a
+// vaga ainda não existe. Na página da vaga o checklist é marcável
+// (components/job/JobChecklist.tsx).
 export default function ChecklistItem({ text }: { text: string }) {
   return (
     <li className="flex gap-3 text-sm text-[#C4C7D0] py-0.5">
