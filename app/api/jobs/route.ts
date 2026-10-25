@@ -22,7 +22,8 @@ export async function GET() {
   if (!user) return response;
 
   const jobs = await prisma.job.findMany({
-    where: { userId: user.id },
+    // DESCARTADA só existe para a deduplicação do webhook; não é vaga do usuário.
+    where: { userId: user.id, status: { not: "DESCARTADA" } },
     orderBy: { createdAt: "desc" },
   });
 

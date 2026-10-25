@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { JobSummary } from "@/types/job";
 import GlassPanel from "@/components/ui/Glass";
 import TechBadge from "@/components/ui/TechBadge";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
-import { markJobInterested, deleteJob } from "@/app/actions/jobs";
+import { markJobInterested, discardJob, restoreDiscardedJob } from "@/app/actions/jobs";
 
 export interface JobGroup {
   key: string; // dia no formato YYYY-MM-DD
@@ -17,61 +16,112 @@ export interface JobGroup {
 
 const MAX_TECHS = 5;
 const OUTFIT = { fontFamily: "var(--font-outfit)" } as const;
+const UNDO_MS = 8000;
 
 export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
-  const router = useRouter();
-  // Esconde a vaga na hora (sem esperar o router.refresh terminar), pra a
-  // lista responder de imediato ao clique.
+  // Atualização otimista: a vaga some no clique, antes de a Server Action
+  // responder, e volta se o servidor recusar. A resposta da action já traz a
+  // lista re-renderizada (revalidatePath), então não há router.refresh().
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Última vaga descartada, para o aviso com "Desfazer". Descartar não apaga
+  // (vira DESCARTADA), por isso dispensa confirmação.
+  const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
 
-  // As duas ações passam por Server Actions em vez de fetch na API: só elas
-  // invalidam o Client Router Cache, garantindo que o dashboard principal
-  // reflita a vaga movida sem esperar o staleTime expirar.
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+
+  function setVisible(id: string, visible: boolean) {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (visible) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   async function run(id: string, action: () => Promise<{ ok: true } | { error: string }>) {
     setError(null);
-    setBusyId(id);
+    setVisible(id, false);
     try {
       const result = await action();
       if ("error" in result) {
+        setVisible(id, true);
         setError(result.error);
-        return;
+        return false;
       }
-      setHidden((prev) => new Set(prev).add(id));
-      router.refresh();
+      return true;
     } catch {
+      setVisible(id, true);
       setError("Falha de conexão. Tente novamente.");
-    } finally {
-      setBusyId(null);
-      setConfirmingId(null);
+      return false;
     }
   }
 
   function markInterested(id: string) {
+    if (undo?.id === id) setUndo(null);
     return run(id, () => markJobInterested(id));
   }
 
-  function discard(id: string) {
-    return run(id, () => deleteJob(id));
+  async function discard(job: JobSummary) {
+    setUndo({ id: job.id, title: job.title });
+    const ok = await run(job.id, () => discardJob(job.id));
+    if (!ok) setUndo((current) => (current?.id === job.id ? null : current));
+  }
+
+  async function restore(id: string) {
+    setUndo(null);
+    setError(null);
+    try {
+      const result = await restoreDiscardedJob(id);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setVisible(id, true);
+    } catch {
+      setError("Falha de conexão. Tente novamente.");
+    }
   }
 
   const visibleGroups = groups
     .map((group) => ({ ...group, jobs: group.jobs.filter((job) => !hidden.has(job.id)) }))
     .filter((group) => group.jobs.length > 0);
 
+  const undoToast = undo && (
+    <div
+      role="status"
+      className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-md items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#12151b]/95 px-4 py-3 text-sm shadow-lg sm:bottom-6"
+      style={OUTFIT}
+    >
+      <span className="min-w-0 truncate text-[#C4C7D0]">Vaga descartada: {undo.title}</span>
+      <button
+        type="button"
+        onClick={() => restore(undo.id)}
+        className="shrink-0 font-semibold text-[#85B7EB] hover:underline"
+      >
+        Desfazer
+      </button>
+    </div>
+  );
+
   if (visibleGroups.length === 0) {
     return (
-      <GlassPanel plateClassName="p-8 text-center">
-        <p className="text-lg font-medium" style={OUTFIT}>
-          Nenhuma vaga monitorada por enquanto.
-        </p>
-        <p className="mt-2 text-sm text-[#7C8494]">
-          Quando o monitoramento automático encontrar vagas novas, elas aparecem aqui para você
-          avaliar.
-        </p>
-      </GlassPanel>
+      <>
+        <GlassPanel plateClassName="p-8 text-center">
+          <p className="text-lg font-medium" style={OUTFIT}>
+            Nenhuma vaga monitorada por enquanto.
+          </p>
+          <p className="mt-2 text-sm text-[#7C8494]">
+            Quando o monitoramento automático encontrar vagas novas, elas aparecem aqui para você
+            avaliar.
+          </p>
+        </GlassPanel>
+        {undoToast}
+      </>
     );
   }
 
@@ -96,7 +146,6 @@ export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
               dezenas de itens e cada painel carrega o filtro de refração. */}
           <GlassPanel plateClassName="divide-y divide-white/8">
             {group.jobs.map((job) => {
-              const busy = busyId === job.id;
               const extraTechs = job.technologies.length - MAX_TECHS;
 
               return (
@@ -137,8 +186,7 @@ export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
                     <button
                       type="button"
                       onClick={() => markInterested(job.id)}
-                      disabled={busy}
-                      className="rounded-xl px-4 py-2 text-sm font-semibold text-[#08131F] transition-shadow disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-xl px-4 py-2 text-sm font-semibold text-[#08131F] transition-shadow"
                       style={{
                         ...OUTFIT,
                         background: "linear-gradient(155deg, #85B7EB, #378ADD)",
@@ -146,39 +194,17 @@ export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
                           "0 0 0 1px rgba(255,255,255,0.25) inset, 0 8px 20px -8px rgba(55,138,221,0.6)",
                       }}
                     >
-                      {busy ? "Aguarde..." : "Tenho interesse"}
+                      Tenho interesse
                     </button>
 
-                    {confirmingId === job.id ? (
-                      <span className="flex items-center gap-3 text-xs" style={OUTFIT}>
-                        <span className="text-[#7C8494]">Descartar esta vaga?</span>
-                        <button
-                          type="button"
-                          onClick={() => discard(job.id)}
-                          disabled={busy}
-                          className="text-[#E5534B] hover:underline disabled:opacity-50"
-                        >
-                          Sim, descartar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingId(null)}
-                          className="text-[#7C8494] transition-colors hover:text-[#C4C7D0]"
-                        >
-                          Cancelar
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmingId(job.id)}
-                        disabled={busy}
-                        className="glass-btn rounded-xl px-3.5 py-2 text-sm text-[#C4C7D0] disabled:opacity-50"
-                        style={OUTFIT}
-                      >
-                        Descartar
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => discard(job)}
+                      className="glass-btn rounded-xl px-3.5 py-2 text-sm text-[#C4C7D0]"
+                      style={OUTFIT}
+                    >
+                      Descartar
+                    </button>
                   </div>
                 </div>
               );
@@ -186,6 +212,7 @@ export default function MonitoredJobList({ groups }: { groups: JobGroup[] }) {
           </GlassPanel>
         </section>
       ))}
+      {undoToast}
     </div>
   );
 }

@@ -60,8 +60,8 @@ export default async function VagaDetalhesPage({
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center justify-between">
           <BackButton
-            href={data.job.status === "MONITORADA" ? "/monitoradas" : "/"}
-            label={data.job.status === "MONITORADA" ? "Monitoradas" : "Dashboard"}
+            href={data.job.status === "MONITORADA" || data.job.status === "DESCARTADA" ? "/monitoradas" : "/"}
+            label={data.job.status === "MONITORADA" || data.job.status === "DESCARTADA" ? "Monitoradas" : "Dashboard"}
           />
         </div>
 

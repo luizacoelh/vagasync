@@ -4,16 +4,22 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parseArray, parseIndexArray, stringifyArray } from "@/lib/json";
-import { JobStatus, JobLocation } from "@prisma/client";
+import { JobStatus, JobLocation, Prisma } from "@prisma/client";
 import type { CreateJobRequest } from "@/types/job";
 
-async function requireOwnership(jobId: string) {
+async function requireUserId(): Promise<string> {
   const session = await auth();
-  if (!session?.user) throw new Error("Não autenticado.");
+  if (!session?.user?.id) throw new Error("Não autenticado.");
+  return session.user.id;
+}
 
-  const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job || job.userId !== session.user.id) return null;
-  return job;
+// Atualiza a vaga só se ela for do usuário logado, numa ida ao banco: o dono
+// vai no WHERE em vez de um findUnique antes. Retorna false se a vaga não
+// existe ou é de outra pessoa (as duas respondem igual, sem vazar qual).
+async function updateOwnJob(jobId: string, data: Prisma.JobUpdateManyMutationInput): Promise<boolean> {
+  const userId = await requireUserId();
+  const { count } = await prisma.job.updateMany({ where: { id: jobId, userId }, data });
+  return count > 0;
 }
 
 function isValidUrl(value: string): boolean {
@@ -89,14 +95,9 @@ export async function createJob(
 export async function markJobInterested(
   jobId: string
 ): Promise<{ ok: true } | { error: string }> {
-  const job = await requireOwnership(jobId);
-  if (!job) return { error: "Vaga não encontrada." };
-
   try {
-    await prisma.job.update({
-      where: { id: jobId },
-      data: { status: JobStatus.APLICADA, appliedAt: new Date() },
-    });
+    const updated = await updateOwnJob(jobId, { status: JobStatus.APLICADA, appliedAt: new Date() });
+    if (!updated) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath("/monitoradas");
     return { ok: true };
@@ -113,13 +114,12 @@ export async function updateJobStatus(
     return { error: "Status inválido." };
   }
 
-  const job = await requireOwnership(jobId);
-  if (!job) return { error: "Vaga não encontrada." };
-
   try {
-    await prisma.job.update({ where: { id: jobId }, data: { status: status as JobStatus } });
+    const updated = await updateOwnJob(jobId, { status: status as JobStatus });
+    if (!updated) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath("/monitoradas");
+    revalidatePath(`/vaga/${jobId}`);
     return { ok: true };
   } catch {
     return { error: "Não foi possível atualizar o status." };
@@ -130,9 +130,6 @@ export async function updateJobMeta(
   jobId: string,
   data: { url?: string; location?: string; salary?: string; appliedAt?: string }
 ): Promise<{ ok: true } | { error: string }> {
-  const job = await requireOwnership(jobId);
-  if (!job) return { error: "Vaga não encontrada." };
-
   const update: {
     url?: string | null;
     location?: JobLocation;
@@ -173,8 +170,10 @@ export async function updateJobMeta(
   }
 
   try {
-    await prisma.job.update({ where: { id: jobId }, data: update });
+    const updated = await updateOwnJob(jobId, update);
+    if (!updated) return { error: "Vaga não encontrada." };
     revalidatePath("/");
+    revalidatePath(`/vaga/${jobId}`);
     return { ok: true };
   } catch {
     return { error: "Não foi possível salvar." };
@@ -189,7 +188,11 @@ export async function toggleChecklistItem(
   index: number,
   done: boolean
 ): Promise<{ ok: true } | { error: string }> {
-  const job = await requireOwnership(jobId);
+  const userId = await requireUserId();
+  const job = await prisma.job.findFirst({
+    where: { id: jobId, userId },
+    select: { checklist: true, checklistDone: true },
+  });
   if (!job) return { error: "Vaga não encontrada." };
 
   const total = parseArray(job.checklist).length;
@@ -216,15 +219,57 @@ export async function toggleChecklistItem(
 export async function deleteJob(
   jobId: string
 ): Promise<{ ok: true } | { error: string }> {
-  const job = await requireOwnership(jobId);
-  if (!job) return { error: "Vaga não encontrada." };
+  const userId = await requireUserId();
 
   try {
-    await prisma.job.delete({ where: { id: jobId } });
+    const { count } = await prisma.job.deleteMany({ where: { id: jobId, userId } });
+    if (count === 0) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath("/monitoradas");
     return { ok: true };
   } catch {
     return { error: "Não foi possível excluir a vaga." };
+  }
+}
+
+// "Descartar" em /monitoradas: não apaga. A vaga fica no banco como
+// DESCARTADA para a deduplicação por URL do webhook continuar reconhecendo
+// e o n8n não a recriar na próxima rodada. Só vale para vagas MONITORADAS.
+export async function discardJob(
+  jobId: string
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await requireUserId();
+
+  try {
+    const { count } = await prisma.job.updateMany({
+      where: { id: jobId, userId, status: JobStatus.MONITORADA },
+      data: { status: JobStatus.DESCARTADA },
+    });
+    if (count === 0) return { error: "Vaga não encontrada." };
+    revalidatePath("/monitoradas");
+    revalidatePath("/");
+    return { ok: true };
+  } catch {
+    return { error: "Não foi possível descartar a vaga." };
+  }
+}
+
+// "Desfazer" do descarte: devolve a vaga para /monitoradas.
+export async function restoreDiscardedJob(
+  jobId: string
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await requireUserId();
+
+  try {
+    const { count } = await prisma.job.updateMany({
+      where: { id: jobId, userId, status: JobStatus.DESCARTADA },
+      data: { status: JobStatus.MONITORADA },
+    });
+    if (count === 0) return { error: "Vaga não encontrada." };
+    revalidatePath("/monitoradas");
+    revalidatePath("/");
+    return { ok: true };
+  } catch {
+    return { error: "Não foi possível restaurar a vaga." };
   }
 }

@@ -174,9 +174,14 @@ vagasync/
 - **Vagas `MONITORADA` ficam fora do dashboard principal.** Vagas coletadas
   pelo n8n entram com esse status e só aparecem em `/monitoradas`.
   "Tenho interesse" muda para `APLICADA` (com `appliedAt` = hoje) e a vaga
-  passa ao dashboard; "Descartar" exclui. O funil do dashboard usa
-  `DASHBOARD_STATUSES` (sem `MONITORADA`), então métricas como a taxa de
-  conversão só consideram vagas realmente candidatadas.
+  passa ao dashboard. "Descartar" não apaga: muda para `DESCARTADA`, que não
+  aparece em tela nenhuma (nem no CSV) e existe só para a deduplicação por URL
+  do webhook não recriar a vaga na próxima rodada do n8n. Sem confirmação —
+  é reversível pelo "Desfazer" do aviso. O funil do dashboard usa
+  `DASHBOARD_STATUSES` (sem `MONITORADA` e `DESCARTADA`, ver
+  `HIDDEN_FROM_DASHBOARD`), então métricas como a taxa de conversão só
+  consideram vagas realmente candidatadas. Status novo no enum não exige SQL:
+  no SQLite/Turso a coluna é `TEXT` sem CHECK (o `prisma migrate diff` sai vazio).
 - **Toda mutação de vaga passa por Server Action (`app/actions/jobs.ts`), não
   por `fetch` na API.** O dashboard usa `experimental.staleTimes.dynamic: 300`
   para que voltar a `/` seja instantâneo em vez de mostrar o skeleton a cada
@@ -188,6 +193,12 @@ vagasync/
   "Tenho interesse" são todos Server Actions por esse motivo. Os Route
   Handlers em `app/api/jobs/` continuam existindo para consumo externo, mas
   nenhuma tela do app os usa para escrever.
+- **Sem `router.refresh()` depois de Server Action.** Quando a action chama
+  `revalidatePath`, o Next já devolve a página atual re-renderizada na mesma
+  resposta; um `router.refresh()` em seguida era uma segunda ida ao servidor
+  (e ao Turso) por clique. Só sobra em `ProfileForm`, que salva via `fetch`.
+  As actions também checam o dono no `WHERE` (`updateMany`/`deleteMany` com
+  `userId`) em vez de um `findUnique` antes: uma consulta em vez de duas.
 - **Banco escolhido por `DATABASE_TARGET`, nunca por `NODE_ENV`.** Antes,
   `NODE_ENV=production` + `TURSO_DATABASE_URL` bastavam para usar o Turso — e
   `next start` local roda com `NODE_ENV=production`, então um teste local

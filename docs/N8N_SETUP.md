@@ -262,7 +262,9 @@ do dashboard, com contador), agrupada por dia de chegada:
 
 - **Tenho interesse** → status vira `APLICADA`, a data da candidatura passa a
   ser hoje e a vaga vai para o dashboard principal
-- **Descartar** → exclui a vaga (com confirmação)
+- **Descartar** → a vaga some na hora e vira `DESCARTADA` (não é apagada, então o
+  webhook continua reconhecendo a URL e não a recria). Um aviso com "Desfazer"
+  fica 8 s na tela
 
 Hoje todas as vagas do n8n vão para a conta definida em `N8N_TARGET_USER_ID`.
 Outros usuários não recebem vagas automáticas até existir configuração de
