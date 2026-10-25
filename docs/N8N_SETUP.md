@@ -74,18 +74,81 @@ No n8n, vá em **Settings → Variables** e crie:
 
 ---
 
-## 4. Importar o workflow do Indeed
+## 4. Importar o workflow
 
-1. No n8n, clique em **Add workflow → Import from file**
-2. Selecione o arquivo `n8n-workflows/weworkremotely-rss.json` (o fluxo em uso; `indeed-rss.json` é o template antigo)
-3. Ative o workflow com o toggle no canto superior direito
-4. Clique em **Execute workflow** para testar imediatamente
+O fluxo em uso é `n8n-workflows/vagas-br.json` ("VagaSync — Vagas BR"):
+
+```
+A cada 2h ─┐
+Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Enviar para VagaSync
+```
+
+- **Fontes**: lista de URLs — busca do Remotar (`estágio`, `júnior`,
+  `trainee`), issues abertas de `frontendbr/vagas`, `backend-br/vagas` e
+  `react-brasil/vagas` (GitHub, sem token: 60 req/h) e a busca do Himalayas.
+- **Montar vagas**: normaliza os três formatos, pega as publicadas nos
+  últimos 7 dias, aplica o filtro de perfil e manda no máximo 40 por rodada,
+  intercalando as fontes. O perfil fica nas constantes do topo do código:
+  `NIVEL_OK`/`NIVEL_FORA` (estágio–júnior), `AREA_TI`, `EXIGE_INGLES`,
+  `EXIGE_ANOS` (2+ anos), `CATEGORIAS_REMOTAR` e o teste de português.
+- **Enviar para VagaSync**: 1 vaga a cada 8s (abaixo do limite por minuto
+  do Gemini), autenticado pela credencial *Header Auth* (`x-webhook-secret`).
+  Erro numa vaga não para as outras; ela é tentada de novo na próxima rodada
+  (o webhook deduplica pela URL).
+
+Importar/atualizar pela CLI (o arquivo tem `id` fixo, então reimportar
+substitui o mesmo workflow):
+
+```bash
+docker cp n8n-workflows/vagas-br.json n8n:/tmp/vagas-br.json
+docker exec n8n n8n import:workflow --input=/tmp/vagas-br.json
+docker exec n8n n8n publish:workflow --id=qNi4pLxpKJ1N6moj
+docker restart n8n   # publish pela CLI só vale depois de reiniciar
+```
+
+Rodar uma vez na hora, sem esperar o agendamento (a porta extra evita
+conflito com o task broker do n8n que já está rodando):
+
+```bash
+docker exec -e N8N_RUNNERS_BROKER_PORT=5690 n8n n8n execute --id=qNi4pLxpKJ1N6moj
+```
+
+A credencial *Header Auth account* precisa existir no n8n com o header
+`x-webhook-secret` = `N8N_WEBHOOK_SECRET`. A aba **Variables** do n8n é
+recurso pago — não use `$vars` para o segredo.
+
+`weworkremotely-rss.json` (desativado): o feed do We Work Remotely parou de
+atualizar em 06/10/2026. `indeed-rss.json` é o template antigo.
 
 ---
 
 ## 5. Fontes disponíveis
 
-### ✅ Indeed (implementado — `indeed-rss.json`)
+### ✅ Remotar (implementado — `vagas-br.json`)
+API pública `https://api.remotar.com.br/jobs?search=TERMO` (50 por página).
+Vagas remotas/híbridas brasileiras com tags de nível ("Estágio", "Júnior",
+"Sênior"), de idioma e categorias ("Programação", "QA", "DevOps"...) — a
+fonte principal para estágio/júnior. URL da vaga: `remotar.com.br/job/ID`.
+
+### ✅ GitHub — repositórios de vagas BR (implementado — `vagas-br.json`)
+Volume medido em out/2026: ~10 vagas/semana somando `frontendbr`, `backend-br`
+e `react-brasil`. Outros repositórios (`qa-brasil`, `phpdevbr`,
+`androiddevbr`, `datascience-br`) estão quase parados.
+
+### ✅ Himalayas (implementado — `vagas-br.json`)
+API pública `https://himalayas.app/jobs/api/search` (`q`, `country`,
+`sort=recent`; `seniority=Entry-level` também funciona). Maioria internacional
+e em inglês: o filtro só aceita vagas com `Brazil` em `locationRestrictions`
+e texto em português, o que deixa poucas.
+
+### ⛔ Trampos.co
+API pública existe, mas só tem marketing, design e comercial.
+
+### ⚠️ Gupy
+Os endpoints públicos (`portal.api.gupy.io`, `employability-portal.gupy.io`)
+respondem 404 desde out/2026 — sem API aberta, só scraping.
+
+### ⛔ Indeed (template antigo — `indeed-rss.json`)
 - **Método:** RSS feed público
 - **URL:** `https://br.indeed.com/rss?q=KEYWORDS&l=LOCATION&sort=date`
 - **Autenticação:** nenhuma
