@@ -1,14 +1,16 @@
 import { Prisma, Job as PrismaJob } from "@prisma/client";
-import { parseArray } from "@/lib/json";
+import { parseArray, parseIndexArray } from "@/lib/json";
 import { Job, JobSummary } from "@/types/job";
 
 export function mapJob(job: PrismaJob): Job {
   return {
     ...job,
     requirements: parseArray(job.requirements),
+    differentials: parseArray(job.differentials),
     technologies: parseArray(job.technologies),
     questions: parseArray(job.questions),
     checklist: parseArray(job.checklist),
+    checklistDone: parseIndexArray(job.checklistDone),
   };
 }
 

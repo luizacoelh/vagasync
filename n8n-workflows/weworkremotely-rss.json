@@ -1,0 +1,285 @@
+{
+  "name": "VagaSync — Indeed RSS",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "3a81da70-faf0-4419-b7df-2d039c5e79ba",
+      "name": "A cada 2 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": "={{ false }}",
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "3b4de87e-73a6-4cac-9c17-f19adf571cb5",
+      "name": "Buscar RSS do Indeed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "notes": "Substitua INDEED_KEYWORDS e INDEED_LOCATION nas variáveis do workflow. Ex: q=desenvolvedor+react&l=Remoto"
+    },
+    {
+      "parameters": {
+        "url": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        "options": {}
+      },
+      "id": "32838037-61cc-4de6-8d57-3f71b339c64a",
+      "name": "Parsear RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "filter-recent",
+              "leftValue": "={{ $json.pubDate }}",
+              "rightValue": "={{ $now.minus(2, 'hours').toISO() }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6f96c502-8ad1-4e32-ab90-5e70316a85f7",
+      "name": "Só vagas das últimas 2h",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  \n  const title = data.title ?? '';\n  const link = data.link ?? '';\n  const snippet = data.contentSnippet ?? data.content ?? '';\n\n  if (!title || !link) continue;\n  // Remove HTML residual e normaliza espaços\n  const clean = snippet\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const description = `${title}\\n\\n${clean}\\n\\nFonte: We Work Remotely\\nLink: ${link}`;\n\n  results.push({\n    json: {\n      description,\n      url: link,\n      source: 'weworkremotely',\n      title,\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "7d14c120-9ab5-42d5-b64e-2a901cca78fa",
+      "name": "Extrair texto da vaga",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://vagasync.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $vars.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "description",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json.source }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d89be309-c4d4-4595-9b38-8716aa65b026",
+      "name": "Enviar para VagaSync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        0
+      ],
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4hKzRl0IGwT4zRJf",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "faa9b2a6-bfa9-43a1-8c08-28ad801f7f9e",
+      "name": "Vaga criada?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "A cada 2 horas": {
+      "main": [
+        [
+          {
+            "node": "Buscar RSS do Indeed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar RSS do Indeed": {
+      "main": [
+        [
+          {
+            "node": "Parsear RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear RSS": {
+      "main": [
+        [
+          {
+            "node": "Só vagas das últimas 2h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Só vagas das últimas 2h": {
+      "main": [
+        [
+          {
+            "node": "Extrair texto da vaga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair texto da vaga": {
+      "main": [
+        [
+          {
+            "node": "Enviar para VagaSync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar para VagaSync": {
+      "main": [
+        [
+          {
+            "node": "Vaga criada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "pinData": {},
+  "tags": []
+}

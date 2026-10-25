@@ -27,7 +27,7 @@ function isValidAnalysis(data: unknown): data is JobAnalysis {
 
 // Fontes suportadas pelo n8n — usadas só para rastreabilidade no banco.
 // Não afeta o comportamento da análise.
-const VALID_SOURCES = ["indeed", "gupy", "infojobs", "catho", "gmail", "manual"] as const;
+const VALID_SOURCES = ["indeed", "weworkremotely", "gupy", "infojobs", "catho", "gmail", "manual"] as const;
 type JobSource = typeof VALID_SOURCES[number];
 
 export async function POST(req: NextRequest) {
@@ -101,6 +101,22 @@ export async function POST(req: NextRequest) {
     // Valida source se fornecido
     const validSource = source && VALID_SOURCES.includes(source) ? source : "manual";
 
+    // Deduplicação por URL, antes do Gemini: a mesma vaga reaparece no feed
+    // entre execuções do n8n e cada nova análise gastaria IA à toa. Responde
+    // 200 (não erro) para o n8n não tratar como falha. Vaga sem URL não tem
+    // como ser comparada e segue normalmente.
+    const normalizedUrl = typeof url === "string" && url.trim() !== "" ? url.trim() : undefined;
+    if (normalizedUrl) {
+      const existing = await prisma.job.findFirst({
+        where: { userId: targetUser.id, url: normalizedUrl },
+        select: { id: true },
+      });
+      if (existing) {
+        console.log(`[webhook] vaga duplicada ignorada (${validSource}): ${normalizedUrl}`);
+        return NextResponse.json({ duplicate: true, id: existing.id }, { status: 200 });
+      }
+    }
+
     const analysis = await analyzeJobWithGemini(description);
 
     if (!isValidAnalysis(analysis)) {
@@ -125,12 +141,15 @@ export async function POST(req: NextRequest) {
         title: analysis.title,
         summary: analysis.summary,
         requirements: stringifyArray(analysis.requirements),
+        differentials: stringifyArray(analysis.differentials),
         technologies: stringifyArray(analysis.technologies),
         questions: stringifyArray(analysis.questions),
         checklist: stringifyArray(analysis.checklist),
         // Vagas do n8n entram como MONITORADA — ainda não candidatadas
         status: "MONITORADA",
-        ...(url ? { url } : {}),
+        location: analysis.location,
+        salary: analysis.salary,
+        ...(normalizedUrl ? { url: normalizedUrl } : {}),
       },
     });
 

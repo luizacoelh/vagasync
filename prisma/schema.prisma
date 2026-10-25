@@ -163,9 +163,11 @@ model Job {
 
   summary      String?
   requirements String?     // JSON stringificado (array) — decisão temporária do MVP, ver README
+  differentials String?    // JSON stringificado (array) — diferenciais/desejáveis, separados dos requisitos
   technologies String?     // JSON stringificado (array)
   questions    String?     // JSON stringificado (array)
-  checklist    String?     // JSON stringificado (array de { text, done })
+  checklist    String?     // JSON stringificado (array de strings)
+  checklistDone String?    // JSON stringificado (array de índices de checklist marcados)
 
   // Origem da vaga e campos gerados pela análise da IA (Gemini)
   source           String   @default("manual") // "manual" | "n8n" — diferencia vagas manuais das coletadas automaticamente

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
-import { JobAnalysis } from "@/types/job";
+import { JobAnalysis, JobLocation } from "@/types/job";
 
 // gemini-3.5-flash-lite — versão menor e mais rápida, ideal para JSON estruturado.
 // Se a qualidade das análises cair, trocar de volta para "gemini-3.5-flash".
@@ -28,9 +28,9 @@ function getClient(): GoogleGenerativeAI {
 const PROMPT_TEMPLATE = (jobText: string) => `Analise a vaga abaixo e retorne APENAS JSON válido, sem markdown.
 
 Formato obrigatório:
-{"company":"string","title":"string","summary":"string (2-3 frases)","requirements":["string"],"technologies":["nome da tech"],"questions":["pergunta"],"checklist":["ação"]}
+{"company":"string","title":"string","summary":"string (2-3 frases)","requirements":["string"],"differentials":["string"],"technologies":["nome da tech"],"questions":["pergunta"],"checklist":["ação"],"salary":"string ou null","location":"REMOTO|HIBRIDO|PRESENCIAL|NAO_INFORMADO"}
 
-Regras: technologies = só nomes (Java, Docker, SQL). questions = 3 a 5 perguntas de entrevista. checklist = 3 a 5 ações de preparo. Responda em português.
+Regras: requirements = só o obrigatório. differentials = o que a vaga lista como diferencial, desejável ou "plus" ([] se não houver; não repita requisitos). technologies = só nomes (Java, Docker, SQL). questions = 3 a 5 perguntas de entrevista. checklist = 3 a 5 ações de preparo. salary = valor de salário ou bolsa-auxílio exatamente como a vaga informa, curto (ex: "R$ 1.800/mês", "R$ 4.000 a R$ 5.500 CLT"); null se não houver valor numérico ("compatível com o mercado" = null). location = modalidade de trabalho; NAO_INFORMADO se não estiver claro. Responda em português.
 
 Vaga:
 """
@@ -101,6 +101,29 @@ function isValidAnalysis(data: unknown): data is JobAnalysis {
   if (arr.checklist.length > 10) return false;
 
   return true;
+}
+
+const LOCATIONS: readonly JobLocation[] = ["REMOTO", "HIBRIDO", "PRESENCIAL", "NAO_INFORMADO"];
+
+// Campos novos (differentials, salary, location) são tolerantes: se o modelo
+// omitir ou mandar algo fora do formato, caem no valor neutro em vez de
+// derrubar a análise inteira — são complementares, não o núcleo dela.
+function normalizeExtras(d: JobAnalysis): JobAnalysis {
+  const raw = d as unknown as Record<string, unknown>;
+
+  const differentials = Array.isArray(raw.differentials)
+    ? raw.differentials.filter((x): x is string => typeof x === "string" && x.trim() !== "").slice(0, 15)
+    : [];
+
+  const salaryText = typeof raw.salary === "string" ? raw.salary.trim() : "";
+  // Precisa de ao menos um dígito: descarta "a combinar", "compatível com o mercado" etc.
+  const salary = salaryText && /\d/.test(salaryText) ? salaryText.slice(0, 100) : null;
+
+  const location = LOCATIONS.includes(raw.location as JobLocation)
+    ? (raw.location as JobLocation)
+    : "NAO_INFORMADO";
+
+  return { ...d, differentials, salary, location };
 }
 
 // Espera N ms antes de continuar — usado entre tentativas de retry
@@ -182,5 +205,5 @@ export async function analyzeJobWithGemini(jobText: string): Promise<JobAnalysis
     throw new Error("A IA retornou um formato inesperado. Tente novamente.");
   }
 
-  return parsed;
+  return normalizeExtras(parsed);
 }
