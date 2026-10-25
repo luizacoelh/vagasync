@@ -22,9 +22,10 @@
 //       permite rodar migrations que recriam tabelas (têm DROP TABLE). Só use
 //       em banco vazio/novo ou depois de confirmar que há backup/PITR.
 //
-// Lê TURSO_DATABASE_URL e TURSO_AUTH_TOKEN do .env.
-import "dotenv/config";
+// Lê TURSO_DATABASE_URL, TURSO_AUTH_TOKEN e DATABASE_TARGET=turso do
+// .env.turso (nunca do .env) — ver scripts/lib/turso-env.mjs.
 import { createClient } from "@libsql/client";
+import { requireTursoWrite } from "./lib/turso-env.mjs";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,15 +44,7 @@ if (baselineIdx >= 0 && (!baseline || baseline.startsWith("--"))) {
   process.exit(1);
 }
 
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-if (!url || !authToken) {
-  console.error(
-    "TURSO_DATABASE_URL e/ou TURSO_AUTH_TOKEN não encontradas no .env. Preencha as duas antes de rodar este script."
-  );
-  process.exit(1);
-}
+const { url, authToken } = requireTursoWrite();
 
 // Remove comentários de linha (-- ...) e de bloco (/* ... */), depois separa
 // em statements individuais por ";". Seguro aqui porque as migrations deste
@@ -226,6 +219,6 @@ async function recordBaseline(client, folders) {
 }
 
 main().catch((error) => {
-  console.error("Erro:", error);
+  console.error("Erro:", error?.message ?? String(error)); // sem o objeto: ele traz o hostname do banco
   process.exit(1);
 });

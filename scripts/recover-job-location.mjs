@@ -13,17 +13,17 @@
 //
 // Sempre mostra o SQL antes de perguntar confirmação. Seguro rodar várias vezes
 // (idempotente: só toca vagas ainda com NAO_INFORMADO).
+//
+// Roda contra o Turso de produção: exige o .env.turso com DATABASE_TARGET=turso
+// (ver scripts/lib/turso-env.mjs), inclusive no dry-run.
 
-import "dotenv/config";
 import { createClient } from "@libsql/client";
 import { createInterface } from "node:readline";
+import { requireTursoWrite } from "./lib/turso-env.mjs";
 
 const APPLY = process.argv.includes("--apply");
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+const client = createClient(requireTursoWrite());
 
 // Padrões de detecção (case-insensitive)
 const HIBRIDO    = /\bh[ií]brid[oa]\b/i;
