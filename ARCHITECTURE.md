@@ -63,7 +63,8 @@ vagasync/
     apply-turso-migrations.mjs  # Aplica só as migrations pendentes no Turso (registra em _turso_migrations; sem CLI)
     fix-turso-job-table.mjs     # Referência: como corrigir uma tabela específica sem apagar as demais
     sync-turso-schema.mjs       # Referência: cria tabelas novas faltantes sem reaplicar o histórico inteiro
-    set-admin.mjs                # Bootstrap: marca um e-mail como admin (local ou Turso)
+    set-admin.mjs                # Bootstrap: marca um e-mail como admin (local; Turso só com --turso)
+    lib/turso-env.mjs           # Carrega .env.turso e exige escolha explícita (escrita) ou token read-only (leitura)
   types/
     job.ts / profile.ts
     next-auth.d.ts              # Adiciona `id` e `isAdmin` ao tipo Session.user
@@ -172,6 +173,18 @@ vagasync/
   "Tenho interesse" são todos Server Actions por esse motivo. Os Route
   Handlers em `app/api/jobs/` continuam existindo para consumo externo, mas
   nenhuma tela do app os usa para escrever.
+- **Banco escolhido por `DATABASE_TARGET`, nunca por `NODE_ENV`.** Antes,
+  `NODE_ENV=production` + `TURSO_DATABASE_URL` bastavam para usar o Turso — e
+  `next start` local roda com `NODE_ENV=production`, então um teste local
+  chegou a ler o banco de produção. Agora só `DATABASE_TARGET=turso` (definida
+  apenas na Vercel, Production) liga o Turso; sem ela, as variáveis do Turso
+  são ignoradas. Configuração errada falha em vez de cair noutro banco:
+  valor inválido, `turso` sem credenciais, `DATABASE_URL` não-`file:`,
+  `NODE_ENV=test` com Turso e deploy de Production sem a variável (a checagem
+  roda no build, então o deploy é barrado antes de ir ao ar). As credenciais
+  locais do Turso ficam em `.env.turso`, que o Next não carrega; só os
+  scripts o leem, e o `check:turso` usa exclusivamente um token
+  somente-leitura.
 - **Listagens buscam só o recorte `JobSummary`; o detalhe busca a vaga
   inteira.** Dashboard e `/monitoradas` usam `JOB_SUMMARY_SELECT`
   (`lib/jobMapper.ts`) — sem descrição, requisitos, perguntas e checklist, que

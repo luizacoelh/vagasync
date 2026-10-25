@@ -31,7 +31,12 @@ Deploy na Vercel. Repo público: nunca commitar segredos nem `*.db`.
 
 ## Segredos
 - Nunca ler, imprimir ou colar `.env*`, tokens do Turso, `AUTH_SECRET`, `GEMINI_API_KEY` ou `N8N_WEBHOOK_SECRET`.
-- O `.env` local usa SQLite local. O token de escrita do Turso fica fora do repo (ver `docs/CLAUDE_CODE.md`).
+- Banco escolhido só por `DATABASE_TARGET` (`lib/prisma.ts`): sem ela, dev/build/start usam o SQLite local;
+  `turso` só na Vercel (Production). Nunca definir `DATABASE_TARGET=turso` para rodar o app localmente.
+- Credenciais do Turso ficam em `.env.turso` (o Next não carrega), lido só pelos scripts
+  (`scripts/lib/turso-env.mjs`). `check:turso` usa só `TURSO_READONLY_AUTH_TOKEN`; escrita exige `DATABASE_TARGET=turso`.
+- `set-admin.mjs` escreve no SQLite local; produção só com `--turso`.
+- Testes: SQLite descartável (`DATABASE_URL=file:./test.db`); `NODE_ENV=test` recusa o Turso.
 
 ## Comandos
 `npm run dev` · `npm run lint` · `npm run build` · `npm run check:turso` · `npm run migrate:turso -- --dry-run`
