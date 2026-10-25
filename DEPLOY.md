@@ -65,6 +65,30 @@ token **somente-leitura** para o `check:turso` (`TURSO_READONLY_AUTH_TOKEN`):
 pela CLI, `turso db tokens create <banco> --read-only`; no painel, a opção de
 permissão *Read-Only* ao criar o token.
 
+**Região: banco e função juntos.** No Turso a região é do **grupo**, não do
+banco (crie o grupo em *Create Group* e depois o banco dentro dele). A função
+da Vercel deste projeto roda em São Paulo (`gru1`), então o banco fica no grupo
+`sao-paulo` (`aws-sa-east-1`). Banco em outro continente custa ~175 ms em
+**cada** consulta — foi o caso até out/2026 (banco `applylens` na Irlanda).
+
+### Trocar o banco de região (feito em 25/10/2026: `applylens` → `vagasync`)
+1. Pausar o n8n (`docker stop n8n`) para não entrar escrita no meio.
+2. Backup: *Download SQLite File* do banco atual.
+3. Criar o grupo na região nova e o banco com *Upload SQLite File* (nome novo:
+   o nome do banco é único na conta).
+4. Gerar os tokens do banco novo (completo e *Read-Only*) e pôr o read-only no
+   `.env.turso` como `TURSO_NEW_DATABASE_URL`/`TURSO_NEW_READONLY_AUTH_TOKEN`.
+   Valores sem aspas, parênteses ou espaços.
+5. Comparar os dois bancos só lendo: estrutura (`sqlite_master`) e, por
+   tabela, contagem + hash de todas as linhas. Só seguir com tudo idêntico.
+6. Vercel (Production): trocar `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` e
+   fazer **Redeploy** (variável nova só vale em deploy novo).
+7. Conferir: páginas que consultam o banco devem responder no mesmo tempo que
+   `/login`. Depois trocar as variáveis principais do `.env.turso`, rodar
+   `npm run check:turso` e religar o n8n.
+8. Manter o banco antigo alguns dias como reserva (rollback = voltar as
+   variáveis na Vercel + redeploy); depois apagar.
+
 ## 2. Aplicar as migrations no Turso
 
 O `prisma migrate dev` não funciona diretamente contra o Turso (limitação
