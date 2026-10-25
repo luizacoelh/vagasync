@@ -13,6 +13,23 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(monitoradas): busca, seleção em lote e ações dentro da vaga
+- `/monitoradas`: o quadro inteiro da vaga abre a página (link "esticado"),
+  busca sem acento por empresa/cargo/tecnologia/resumo e modo **Selecionar**
+  para "Tenho interesse"/"Descartar" em várias vagas de uma vez (com "Desfazer")
+- Página de uma vaga MONITORADA: troca status, "Excluir" e "Detalhes da
+  candidatura" (o "Salvar" que confundia) por **Tenho interesse** e
+  **Descartar**. Depois de agir, volta para `/monitoradas` no mesmo ponto da
+  rolagem e com a mesma busca (`lib/monitoredView.ts`, sessionStorage), com o
+  aviso na tela
+- Dashboard: modo **Selecionar** (cards e tabela) para excluir várias vagas;
+  como apaga de vez, pede um "Sim, excluir N" na própria barra
+- Actions em lote: `markJobsInterested`, `discardJobs`, `restoreDiscardedJobs`,
+  `deleteJobs` (ids validados, teto de 200, dono no `WHERE`)
+- Diagnóstico de lentidão: a função da Vercel roda em `gru1` (São Paulo) e o
+  banco Turso está em `aws-eu-west-1` (Irlanda) — ~170–180 ms por consulta.
+  Ver "Próximos passos"
+
 ### feat(monitoradas): descartar sem apagar + menos idas ao servidor
 - Status `DESCARTADA`: "Descartar" em `/monitoradas` não apaga mais a vaga, só
   muda o status. Ela some de todas as telas (dashboard, filtros, estatísticas,
@@ -289,6 +306,18 @@ Proximas fontes a implementar (workflows pendentes):
 ---
 
 ## Próximos passos
+
+### 0. Latência: banco e função em continentes diferentes (maior ganho de fluidez)
+Medido em 25/10/2026: função na Vercel em `gru1` (São Paulo), Turso em
+`aws-eu-west-1` (Irlanda), ~170–180 ms por consulta (>1 s na conexão fria).
+Toda página e toda ação pagam isso pelo menos uma vez.
+- Opção A (simples, reversível): `vercel.json` com `"regions": ["dub1"]` — a
+  função fica ao lado do banco (~1–2 ms por consulta); o navegador passa a ir
+  até Dublin uma vez por requisição. Bom porque a maioria das telas faz mais
+  de uma consulta
+- Opção B (melhor resultado, mais trabalho): recriar o banco Turso numa região
+  nas Américas e alinhar a região da Vercel com ela. Exige backup, novo banco,
+  troca de URL/token na Vercel — operação de produção, planejar com calma
 
 ### 1. Magic Link por e-mail (próxima sprint recomendada)
 Auth.js já tem suporte nativo. Falta escolher provedor de envio:

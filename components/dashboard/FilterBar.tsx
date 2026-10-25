@@ -17,12 +17,16 @@ export default function FilterBar({
   availableTechs,
   view,
   onViewChange,
+  selecting,
+  onToggleSelecting,
 }: {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
   availableTechs: string[];
   view: "cards" | "table";
   onViewChange: (view: "cards" | "table") => void;
+  selecting: boolean;
+  onToggleSelecting: () => void;
 }) {
   const hasActiveFilters =
     filters.search !== "" || filters.status !== "TODOS" || filters.location !== "TODOS" || filters.tech !== "TODAS";
@@ -106,6 +110,17 @@ export default function FilterBar({
             Limpar filtros
           </button>
         )}
+
+        {/* Modo de seleção em lote (excluir várias vagas) — ver DashboardClient. */}
+        <button
+          type="button"
+          onClick={onToggleSelecting}
+          className={`glass-btn col-span-2 rounded-xl px-3 py-2 text-xs font-mono sm:col-span-1 sm:ml-auto ${
+            selecting ? "text-[#85B7EB]" : "text-[#C4C7D0]"
+          }`}
+        >
+          {selecting ? "Concluir" : "Selecionar"}
+        </button>
       </div>
     </div>
   );

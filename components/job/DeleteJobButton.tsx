@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteJob } from "@/app/actions/jobs";
+import { deleteJobs } from "@/app/actions/jobs";
 
 export default function DeleteJobButton({ jobId }: { jobId: string }) {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function DeleteJobButton({ jobId }: { jobId: string }) {
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      const result = await deleteJob(jobId);
+      const result = await deleteJobs([jobId]);
       if ("ok" in result) {
         router.push("/");
       } else {

@@ -265,6 +265,8 @@ do dashboard, com contador), agrupada por dia de chegada:
 - **Descartar** → a vaga some na hora e vira `DESCARTADA` (não é apagada, então o
   webhook continua reconhecendo a URL e não a recria). Um aviso com "Desfazer"
   fica 8 s na tela
+- Os dois botões também existem dentro da página da vaga e em lote (botão
+  **Selecionar**); a aba tem busca por empresa, cargo ou tecnologia
 
 Hoje todas as vagas do n8n vão para a conta definida em `N8N_TARGET_USER_ID`.
 Outros usuários não recebem vagas automáticas até existir configuração de

@@ -193,6 +193,15 @@ vagasync/
   "Tenho interesse" são todos Server Actions por esse motivo. Os Route
   Handlers em `app/api/jobs/` continuam existindo para consumo externo, mas
   nenhuma tela do app os usa para escrever.
+- **Ações em lote e volta para `/monitoradas` no mesmo ponto.** As actions de
+  vaga recebem listas de ids (`markJobsInterested`, `discardJobs`,
+  `restoreDiscardedJobs`, `deleteJobs`): a seleção em lote e o botão de uma
+  vaga só usam o mesmo caminho. Os ids vêm do cliente, então são validados
+  (strings, sem repetição, até 200) e o dono vai no `WHERE`. Ao abrir uma vaga
+  a partir de `/monitoradas`, a busca e a rolagem ficam em `sessionStorage`
+  (`lib/monitoredView.ts`) e são restauradas na volta; descartar/marcar
+  interesse dentro da vaga volta com `?descartada=<id>`/`?interesse=1`, que a
+  página transforma em aviso e tira da URL.
 - **Sem `router.refresh()` depois de Server Action.** Quando a action chama
   `revalidatePath`, o Next já devolve a página atual re-renderizada na mesma
   resposta; um `router.refresh()` em seguida era uma segunda ida ao servidor

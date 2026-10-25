@@ -3,13 +3,26 @@ import { JobSummary } from "@/types/job";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GlassPanel from "@/components/ui/Glass";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
+import { SelectBox } from "@/components/ui/SelectionBar";
 
-export default function JobTable({ jobs }: { jobs: JobSummary[] }) {
+// No modo de seleção a linha inteira marca/desmarca e ganha uma coluna de caixinhas.
+export default function JobTable({
+  jobs,
+  selecting = false,
+  selected,
+  onToggle,
+}: {
+  jobs: JobSummary[];
+  selecting?: boolean;
+  selected?: Set<string>;
+  onToggle?: (id: string) => void;
+}) {
   return (
     <GlassPanel plateClassName="overflow-x-auto" hotspots={false}>
       <table className="w-full min-w-[720px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-white/10 bg-white/[0.03] text-left font-mono text-xs uppercase tracking-wide text-[#7C8494]">
+            {selecting && <th className="w-10 px-4 py-3" aria-label="Selecionar" />}
             <th className="px-4 py-3 font-medium">Empresa</th>
             <th className="px-4 py-3 font-medium">Cargo</th>
             <th className="px-4 py-3 font-medium">Status</th>
@@ -20,11 +33,26 @@ export default function JobTable({ jobs }: { jobs: JobSummary[] }) {
         </thead>
         <tbody>
           {jobs.map((job) => (
-            <tr key={job.id} className="border-b border-white/10 last:border-0 hover:bg-white/[0.04]">
+            <tr
+              key={job.id}
+              onClick={selecting ? () => onToggle?.(job.id) : undefined}
+              className={`border-b border-white/10 last:border-0 hover:bg-white/[0.04] ${
+                selecting ? "cursor-pointer" : ""
+              } ${selecting && selected?.has(job.id) ? "bg-[#378ADD]/[0.08]" : ""}`}
+            >
+              {selecting && (
+                <td className="px-4 py-3">
+                  <SelectBox checked={selected?.has(job.id) ?? false} />
+                </td>
+              )}
               <td className="px-4 py-3">
-                <Link href={`/vaga/${job.id}`} className="block text-[#E4E6EB] hover:text-[#378ADD]">
-                  {job.company}
-                </Link>
+                {selecting ? (
+                  <span className="text-[#E4E6EB]">{job.company}</span>
+                ) : (
+                  <Link href={`/vaga/${job.id}`} className="block text-[#E4E6EB] hover:text-[#378ADD]">
+                    {job.company}
+                  </Link>
+                )}
               </td>
               <td className="px-4 py-3 text-[#C4C7D0]">{job.title}</td>
               <td className="px-4 py-3">

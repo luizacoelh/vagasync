@@ -13,6 +13,7 @@ import TechBadge from "@/components/ui/TechBadge";
 import JobChecklist from "@/components/job/JobChecklist";
 import SkillCompatibility from "@/components/job/SkillCompatibility";
 import DeleteJobButton from "@/components/job/DeleteJobButton";
+import MonitoredJobActions from "@/components/job/MonitoredJobActions";
 import GlassPanel from "@/components/ui/Glass";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 
@@ -23,6 +24,10 @@ export default function VagaContent({
   serverJob: Job;
   serverUserSkills: string[];
 }) {
+  // Vaga MONITORADA ainda não é candidatura: em vez de status, exclusão e
+  // dados da candidatura, mostra as ações de /monitoradas (Tenho interesse /
+  // Descartar). O resto (análise da IA) é igual.
+  const monitored = job.status === "MONITORADA";
 
   return (
     <>
@@ -47,11 +52,11 @@ export default function VagaContent({
             {job.salary && ` · ${job.salary}`}
           </p>
         </div>
-        <StatusSelect jobId={job.id} initialStatus={job.status} />
+        {!monitored && <StatusSelect jobId={job.id} initialStatus={job.status} />}
       </div>
 
       <div className="mt-4 flex justify-end">
-        <DeleteJobButton jobId={job.id} />
+        {monitored ? <MonitoredJobActions jobId={job.id} /> : <DeleteJobButton jobId={job.id} />}
       </div>
 
       <GlassPanel className="mt-6" plateClassName="p-6 space-y-6">
@@ -122,15 +127,17 @@ export default function VagaContent({
           </DetailSection>
         )}
 
-        <DetailSection label="Detalhes da candidatura">
-          <JobMetaEditor
-            jobId={job.id}
-            initialUrl={job.url}
-            initialLocation={job.location}
-            initialSalary={job.salary}
-            initialAppliedAt={job.appliedAt}
-          />
-        </DetailSection>
+        {!monitored && (
+          <DetailSection label="Detalhes da candidatura">
+            <JobMetaEditor
+              jobId={job.id}
+              initialUrl={job.url}
+              initialLocation={job.location}
+              initialSalary={job.salary}
+              initialAppliedAt={job.appliedAt}
+            />
+          </DetailSection>
+        )}
       </GlassPanel>
     </>
   );
