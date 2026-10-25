@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { JobStatus } from "@prisma/client";
 import { STATUS_LABELS } from "@/lib/jobStatus";
 import { updateJobStatus } from "@/app/actions/jobs";
 
 export default function StatusSelect({ jobId, initialStatus }: { jobId: string; initialStatus: JobStatus }) {
-  const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [toast, setToast] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -27,10 +25,9 @@ export default function StatusSelect({ jobId, initialStatus }: { jobId: string; 
         return;
       }
 
+      // Sem router.refresh(): o revalidatePath da Server Action já devolve a
+      // página re-renderizada na mesma resposta (uma ida ao servidor, não duas).
       setToast("Status atualizado.");
-      // router.refresh() recarrega o Server Component da página atual para que
-      // serverJob fique sincronizado em caso de reload ou acesso direto posterior.
-      router.refresh();
       setTimeout(() => setToast(null), 2500);
     } catch {
       setToast("Falha ao atualizar o status.");
@@ -48,7 +45,8 @@ export default function StatusSelect({ jobId, initialStatus }: { jobId: string; 
         onChange={(e) => handleChange(e.target.value as JobStatus)}
         className="glass-input rounded-xl px-3 py-2 text-sm font-mono text-[#E4E6EB] disabled:opacity-50"
       >
-        {Object.values(JobStatus).map((s) => (
+        {/* DESCARTADA não é opção manual: quem descarta é /monitoradas. */}
+        {Object.values(JobStatus).filter((s) => s !== "DESCARTADA" || s === status).map((s) => (
           <option key={s} value={s}>
             {STATUS_LABELS[s]}
           </option>

@@ -13,6 +13,22 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(monitoradas): descartar sem apagar + menos idas ao servidor
+- Status `DESCARTADA`: "Descartar" em `/monitoradas` não apaga mais a vaga, só
+  muda o status. Ela some de todas as telas (dashboard, filtros, estatísticas,
+  CSV, `GET /api/jobs`), mas a deduplicação por URL do webhook continua
+  reconhecendo — o n8n não recria vaga descartada. Sem SQL: o enum é `TEXT` no
+  SQLite/Turso (`prisma migrate diff` vazio), nada a aplicar no Turso
+- Sem confirmação: a vaga some no clique (otimista) e aparece um aviso com
+  "Desfazer" por 8 s (`restoreDiscardedJob`). "Tenho interesse" também ficou
+  otimista; se o servidor recusar, a vaga volta e o erro aparece
+- Fluidez: removido o `router.refresh()` depois das Server Actions
+  (`StatusSelect`, `JobMetaEditor`, `/monitoradas`) — o `revalidatePath` já
+  devolve a página atualizada na mesma resposta, então era uma segunda ida ao
+  servidor por clique. As actions checam o dono no `WHERE`
+  (`updateMany`/`deleteMany` com `userId`), uma consulta em vez de duas
+- Removido do roadmap o item do `JobsProvider`: ele não existe mais no código
+
 ### feat(n8n): fontes de vagas BR (GitHub + Himalayas)
 Diagnóstico: nenhuma vaga chegava porque (1) o workflow estava desativado,
 (2) o feed do We Work Remotely parou em 06/10/2026, então o filtro de 2h
@@ -300,39 +316,22 @@ Funcionando ponta a ponta em teste (We Work Remotely RSS → webhook →
   outros usuários cada conta precisaria da própria config (palavras-chave e
   fontes)
 
-### 4. Descartar vaga monitorada: sem apagar e sem atrito
-Hoje "Descartar" em `/monitoradas` chama `deleteJob` e apaga a vaga. Como o
-webhook deduplica pela URL, uma vaga descartada que ainda passa no filtro do
-n8n é criada de novo na próxima rodada (janela de 7 dias).
-- Status novo `DESCARTADA` no enum `JobStatus` (migration); "Descartar" só
-  muda o status e a vaga some de `/monitoradas` e do dashboard
-- Webhook: a deduplicação por URL já cobre — a vaga descartada continua no
-  banco, então volta como `{ duplicate: true }` sem gastar IA
-- Fora do funil: `DESCARTADA` não entra em `DASHBOARD_STATUSES`, estatísticas
-  nem filtros (`lib/jobStatus.ts`)
-- UX do botão em `components/monitoradas/MonitoredJobList.tsx`: tirar a
-  confirmação inline ("Descartar esta vaga?") — descartar vira reversível,
-  então basta um toast com "Desfazer"; e esconder a vaga **antes** de esperar
-  a Server Action (hoje o `run()` só esconde depois que o servidor responde,
-  por isso demora)
-- Opcional: limpeza periódica de `DESCARTADA` antigas (> 30 dias), mantendo
-  só a URL para a deduplicação
-
-### 5. Screenshots reais no README
+### 4. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.
 Sugestão: dashboard com vagas reais, tela de análise preenchida, mobile.
 
-### 6. Monitoramento básico em produção
+### 5. Monitoramento básico em produção
 Log estruturado quando `/api/analyze` falhar repetidamente.
 Opção simples: Vercel Analytics (já incluso no plano) + alerta por email
 via Resend quando `error.tsx` for renderizado N vezes em X minutos.
 
-### 7. Verificar o `JobsProvider` (perf)
-Em `components/dashboard/DashboardClient.tsx` o `JobsProvider` fica dentro da
-página, e páginas desmontam ao navegar para `/vaga/[id]` — pela estrutura do
-código, o contexto provavelmente não chega na página da vaga, que acaba usando
-sempre os dados do servidor. Confirmar medindo; se for isso, mover o provider
-para o `layout.tsx`.
+### 6. Fluidez: vidro dos cards (só se ainda travar)
+Cada `JobCard` do dashboard é um `GlassPanel` com `backdrop-filter` + filtro SVG
+`#glass-distort`; com muitas vagas o scroll pode pesar em celular. A versão
+"vidro leve" nos cards foi testada e **recusada** (perde o efeito). Só voltar a
+isso se a fluidez ainda incomodar depois das melhorias de Server Action — e
+buscando alternativas que mantenham o visual (ex: `content-visibility: auto`
+nos cards fora da tela).
 
 ---
 

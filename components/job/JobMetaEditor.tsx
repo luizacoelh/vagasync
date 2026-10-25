@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { JobLocation } from "@prisma/client";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 import { updateJobMeta } from "@/app/actions/jobs";
@@ -19,7 +18,6 @@ export default function JobMetaEditor({
   initialSalary: string | null;
   initialAppliedAt: Date;
 }) {
-  const router = useRouter();
   const [url, setUrl] = useState(initialUrl ?? "");
   const [location, setLocation] = useState<JobLocation>(initialLocation);
   const [salary, setSalary] = useState(initialSalary ?? "");
@@ -43,8 +41,8 @@ export default function JobMetaEditor({
         return;
       }
 
+      // revalidatePath na Server Action já atualiza a página; sem router.refresh().
       setToast("Salvo.");
-      router.refresh();
       setTimeout(() => setToast(null), 2500);
     } catch {
       setToast("Falha ao salvar.");

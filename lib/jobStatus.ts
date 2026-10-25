@@ -6,6 +6,7 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   ENTREVISTA: "Entrevista",
   REPROVADA: "Reprovada",
   OFERTA: "Oferta",
+  DESCARTADA: "Descartada",
 };
 
 export const STATUS_STYLES: Record<JobStatus, string> = {
@@ -15,6 +16,7 @@ export const STATUS_STYLES: Record<JobStatus, string> = {
   ENTREVISTA: "border-[#F0B429]/40 bg-[#F0B429]/10 text-[#F0B429]",
   REPROVADA:  "border-[#E5534B]/40 bg-[#E5534B]/10 text-[#E5534B]",
   OFERTA:     "border-[#3FB950]/40 bg-[#3FB950]/10 text-[#3FB950]",
+  DESCARTADA: "border-white/15 bg-white/5 text-[#7C8494]",
 };
 
 // Ordem visual do funil — MONITORADA fica antes de APLICADA
@@ -26,9 +28,12 @@ export const STATUS_ORDER: JobStatus[] = [
   "OFERTA",
 ];
 
-// Statuses exibidos no dashboard principal (contadores e filtro). MONITORADA
-// fica de fora de propósito: essas vagas moram na aba /monitoradas até o
-// usuário marcar "Tenho interesse".
+// Fora do dashboard principal (lista, contadores e filtro). MONITORADA mora
+// em /monitoradas até o usuário marcar "Tenho interesse"; DESCARTADA não
+// aparece em lugar nenhum — fica no banco só para a deduplicação por URL do
+// webhook não recriar a vaga.
+export const HIDDEN_FROM_DASHBOARD: JobStatus[] = ["MONITORADA", "DESCARTADA"];
+
 export const DASHBOARD_STATUSES: JobStatus[] = STATUS_ORDER.filter(
-  (status) => status !== "MONITORADA"
+  (status) => !HIDDEN_FROM_DASHBOARD.includes(status)
 );

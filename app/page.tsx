@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { JOB_SUMMARY_SELECT, mapJobSummary } from "@/lib/jobMapper";
+import { HIDDEN_FROM_DASHBOARD } from "@/lib/jobStatus";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import UserMenu from "@/components/auth/UserMenu";
 import MonitoredLink from "@/components/dashboard/MonitoredLink";
@@ -19,11 +20,12 @@ export default async function DashboardPage() {
   // sequenciais, cortando o tempo de espera a metade.
   // Vagas MONITORADAS (coletadas pelo n8n) ficam fora do dashboard principal —
   // moram em /monitoradas até o usuário marcar "Tenho interesse". A contagem
-  // alimenta o botão de acesso no header. Três queries em paralelo.
+  // alimenta o botão de acesso no header. DESCARTADAS não aparecem em lugar
+  // nenhum. Três queries em paralelo.
   const [profile, jobs, monitoredCount] = await Promise.all([
     prisma.userProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.job.findMany({
-      where: { userId: session.user.id, status: { not: "MONITORADA" } },
+      where: { userId: session.user.id, status: { notIn: HIDDEN_FROM_DASHBOARD } },
       orderBy: { createdAt: "desc" },
       select: JOB_SUMMARY_SELECT,
     }),
