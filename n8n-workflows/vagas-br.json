@@ -1,0 +1,225 @@
+{
+  "id": "qNi4pLxpKJ1N6moj",
+  "name": "VagaSync — Vagas BR (estágio/júnior)",
+  "nodes": [
+    {
+      "id": "b94195ad-cabd-4d02-9b50-7f1e22a285a6",
+      "name": "A cada 2 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "60412e6d-7290-4f3b-8a0a-82df4ec8b709",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        480
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "808ca2da-dabb-4f7b-8166-3dd67062b8dd",
+      "name": "Fontes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Uma URL por item; o nó seguinte busca todas. Para adicionar fonte, inclua\n// a URL aqui e trate o formato da resposta em \"Montar vagas\".\nconst REMOTAR = ['estágio', 'estagio', 'júnior', 'junior', 'trainee'];\nconst GITHUB = ['frontendbr/vagas', 'backend-br/vagas', 'react-brasil/vagas'];\nconst HIMALAYAS = [\n  'q=desenvolvedor&sort=recent',\n  'q=estagio&sort=recent',\n  'q=developer&country=Brazil&seniority=Entry-level&sort=recent',\n];\n\nreturn [\n  ...REMOTAR.map((q) => ({ json: { url: `https://api.remotar.com.br/jobs?search=${encodeURIComponent(q)}` } })),\n  ...GITHUB.map((repo) => ({\n    json: { url: `https://api.github.com/repos/${repo}/issues?state=open&per_page=50&sort=created&direction=desc` },\n  })),\n  ...HIMALAYAS.map((q) => ({ json: { url: `https://himalayas.app/jobs/api/search?${q}` } })),\n];"
+      }
+    },
+    {
+      "id": "92fae901-a497-4922-af1e-5849bc16d81b",
+      "name": "Buscar vagas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "VagaSync-n8n"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "7ae517fd-3fab-4034-aba9-dc2fd922fcc5",
+      "name": "Montar vagas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Recebe as respostas de todas as fontes e devolve vagas no formato do webhook\r\n// do VagaSync: { description, url, source, title }.\r\n//\r\n// Perfil buscado: estágio/trainee/júnior, área de tecnologia, vaga brasileira\r\n// em português que não exige inglês nem anos de experiência. Ajuste as\r\n// constantes abaixo para mudar o perfil.\r\n//\r\n// O webhook deduplica por URL antes de chamar a IA: vaga já cadastrada volta\r\n// como { duplicate: true } sem custo de IA.\r\n\r\nconst JANELA_HORAS = 168;        // só vagas publicadas nos últimos 7 dias\r\nconst MAX_POR_EXECUCAO = 40;     // teto de envios por rodada (duplicadas contam, mas não gastam IA)\r\nconst MAX_DESCRICAO = 7500;      // o VagaSync recusa acima de 8000 caracteres\r\n\r\nconst NIVEL_OK = /est[aá]gi|trainee|aprendiz|j[uú]nior|\\bjr\\.?\\b|entry[- ]level|sem experi[eê]ncia|primeiro emprego/i;\r\nconst NIVEL_FORA = /s[eê]nior|\\bsr\\.?\\b|pleno|\\bmid[- ]level|especialista|\\blead\\b|l[ií]der|staff|principal|coordenad|gerente|head\\b|arquitet/i;\r\nconst AREA_TI = /desenvolv|developer|\\bdev\\b|programa|software|front[- ]?end|back[- ]?end|full[- ]?stack|mobile|web|dados|data|analytics|\\bbi\\b|\\bqa\\b|qualidade de software|teste|devops|cloud|infra|sysadmin|suporte t[eé]cnico|\\bti\\b|tecnologia|sistemas|python|java|react|node|\\.net|php|sql|rpa|ciberseguran|seguran[cç]a da informa/i;\r\nconst EXIGE_INGLES = /ingl[eê]s (fluente|avan[cç]ado|intermedi)|fluent english|advanced english|english (fluency|proficiency|is required)|fluency in english/i;\r\n// \"2 anos de experiência\", \"3+ anos\", \"mínimo de 2 anos\" — 1 ano ainda passa\r\nconst EXIGE_ANOS = /\\b([2-9]|\\d{2})\\s*\\+?\\s*anos?\\s+(de\\s+)?(experi|atua)|m[ií]nimo\\s+de\\s+([2-9]|\\d{2})\\s+anos/i;\r\n// Cadastro em banco de talentos não é vaga\r\nconst NAO_E_VAGA = /cadastre-se|banco de talentos|talent pool|n[aã]o encontrou (a sua|sua) vaga/i;\r\nconst CATEGORIAS_REMOTAR = ['Programação', 'Programação Mobile', 'Data Science / Analytics', 'DevOps', 'QA', 'SysAdmin'];\r\nconst TAGS_REMOTAR_FORA = /s[eê]nior|pleno|ingl[eê]s|internacional|espanhol/i;\r\n\r\n// Português: conta palavras comuns; vaga em inglês/espanhol fica com 0-2.\r\nconst PALAVRAS_PT = /\\b(voc[eê]|vaga|experi[eê]ncia|conhecimentos?|requisitos|benef[ií]cios|atividades|responsabilidades|empresa|nossa|nosso|trabalhar|desenvolvimento|desej[aá]vel|diferenciais)\\b/gi;\r\nconst emPortugues = (texto) => (String(texto).match(PALAVRAS_PT) || []).length >= 4;\r\n\r\nconst agora = Date.now();\r\nconst limite = agora - JANELA_HORAS * 3600 * 1000;\r\n\r\nconst limpar = (html) =>\r\n  String(html ?? '')\r\n    .replace(/<\\/(p|li|h\\d|div)>/gi, '\\n')\r\n    .replace(/<br\\s*\\/?>/gi, '\\n')\r\n    .replace(/<[^>]+>/g, ' ')\r\n    .replace(/&nbsp;/g, ' ')\r\n    .replace(/&amp;/g, '&')\r\n    .replace(/&lt;/g, '<')\r\n    .replace(/&gt;/g, '>')\r\n    .replace(/&#39;|&apos;/g, \"'\")\r\n    .replace(/&quot;/g, '\"')\r\n    .replace(/[ \\t]+/g, ' ')\r\n    .replace(/\\n\\s*\\n\\s*\\n+/g, '\\n\\n')\r\n    .trim();\r\n\r\nconst vagas = [];\r\n\r\nfor (const item of $input.all()) {\r\n  const data = item.json;\r\n\r\n  // Remotar: { meta, data: [...] }\r\n  if (data.meta && Array.isArray(data.data)) {\r\n    for (const j of data.data) {\r\n      const publicada = Date.parse(j.createdAt);\r\n      if (!j.title || !j.id || !(publicada >= limite) || j.expired || j.active === false) continue;\r\n\r\n      const tags = (j.jobTags ?? []).map((t) => t.tag?.name ?? '').filter(Boolean);\r\n      const categorias = (j.jobCategories ?? []).map((c) => c.category?.name ?? '');\r\n      if (tags.some((t) => TAGS_REMOTAR_FORA.test(t))) continue;\r\n      if (!categorias.some((c) => CATEGORIAS_REMOTAR.includes(c))) continue;\r\n\r\n      const salario = j.jobSalary\r\n        ? [j.jobSalary.from, j.jobSalary.to].filter(Boolean).join(' a ')\r\n        : '';\r\n      const corpo = limpar([j.subtitle, j.description, j.moreInfos].filter(Boolean).join('\\n\\n'));\r\n\r\n      vagas.push({\r\n        publicada,\r\n        title: j.title,\r\n        url: `https://remotar.com.br/job/${j.id}`,\r\n        source: 'remotar',\r\n        nivel: `${j.title} ${tags.join(' ')}`,\r\n        description:\r\n          [\r\n            `${j.title} — ${j.companyDisplayName ?? j.company?.name ?? ''}`,\r\n            `Tags: ${tags.map((t) => t.replace(/^[^\\p{L}]+/u, '')).join(', ')}`,\r\n            `Área: ${categorias.join(', ')}`,\r\n            salario && `Salário: R$ ${salario}`,\r\n          ].filter(Boolean).join('\\n') + '\\n\\n' + corpo,\r\n      });\r\n    }\r\n    continue;\r\n  }\r\n\r\n  // Himalayas: { jobs: [...] } — só vagas abertas ao Brasil\r\n  if (Array.isArray(data.jobs)) {\r\n    for (const j of data.jobs) {\r\n      const publicada = Number(j.pubDate) * 1000;\r\n      const url = j.applicationLink || j.guid;\r\n      const paises = j.locationRestrictions ?? [];\r\n      if (!j.title || !url || !(publicada >= limite)) continue;\r\n      if (!paises.includes('Brazil')) continue;\r\n\r\n      const nivel = (j.seniority ?? []).join(', ');\r\n      vagas.push({\r\n        publicada,\r\n        title: j.title,\r\n        url,\r\n        source: 'himalayas',\r\n        nivel: `${j.title} ${nivel}`,\r\n        description:\r\n          [\r\n            `${j.title} — ${j.companyName ?? ''}`,\r\n            `Nível: ${nivel || 'não informado'}`,\r\n            `Modalidade: remoto (${paises.join(', ')})`,\r\n          ].join('\\n') + '\\n\\n' + limpar(j.description || j.excerpt),\r\n      });\r\n    }\r\n    continue;\r\n  }\r\n\r\n  // GitHub (frontendbr/vagas, backend-br/vagas...): uma issue por item\r\n  if (data.html_url && data.title && !data.pull_request) {\r\n    const publicada = Date.parse(data.created_at);\r\n    if (!(publicada >= limite)) continue;\r\n\r\n    const labels = (data.labels ?? []).map((l) => l.name).join(', ');\r\n    vagas.push({\r\n      publicada,\r\n      title: data.title,\r\n      url: data.html_url,\r\n      source: 'github',\r\n      nivel: `${data.title} ${labels}`,\r\n      description: [data.title, labels && `Tags: ${labels}`].filter(Boolean).join('\\n') + '\\n\\n' + limpar(data.body),\r\n    });\r\n  }\r\n}\r\n\r\n// Regras comuns a todas as fontes. O título manda no nível: \"Júnior\" no\r\n// título com \"pleno\" só no texto (ex: \"você vai trabalhar com devs plenos\")\r\n// continua valendo.\r\nconst passa = (v) =>\r\n  NIVEL_OK.test(v.nivel) &&\r\n  !NAO_E_VAGA.test(v.title) &&\r\n  !NIVEL_FORA.test(v.title) &&\r\n  AREA_TI.test(`${v.title} ${v.description.slice(0, 600)}`) &&\r\n  emPortugues(v.description) &&\r\n  !EXIGE_INGLES.test(v.description) &&\r\n  !EXIGE_ANOS.test(v.description);\r\n\r\n// Mais novas primeiro, intercalando as fontes para nenhuma ocupar a rodada toda.\r\nconst porFonte = {};\r\nconst vistas = new Set();\r\nfor (const v of vagas.sort((a, b) => b.publicada - a.publicada)) {\r\n  if (vistas.has(v.url)) continue;\r\n  vistas.add(v.url);\r\n  // mesmo guard do fluxo antigo: nunca mandar item vazio para o webhook\r\n  if (!v.title || !v.url || v.description.length < 20) continue;\r\n  if (!passa(v)) continue;\r\n  (porFonte[v.source] ??= []).push(v);\r\n}\r\n\r\nconst filas = Object.values(porFonte);\r\nconst results = [];\r\nwhile (results.length < MAX_POR_EXECUCAO && filas.some((f) => f.length)) {\r\n  for (const fila of filas) {\r\n    const v = fila.shift();\r\n    if (!v || results.length >= MAX_POR_EXECUCAO) continue;\r\n    results.push({\r\n      json: { description: v.description.slice(0, MAX_DESCRICAO), url: v.url, source: v.source, title: v.title },\r\n    });\r\n  }\r\n}\r\n\r\nreturn results;"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://vagasync.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "description",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json.source }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 8000
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "id": "ebd06980-0915-4d58-bed2-473f21930ad9",
+      "name": "Enviar para VagaSync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4hKzRl0IGwT4zRJf",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "A cada 2 horas": {
+      "main": [
+        [
+          {
+            "node": "Fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fontes": {
+      "main": [
+        [
+          {
+            "node": "Buscar vagas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar vagas": {
+      "main": [
+        [
+          {
+            "node": "Montar vagas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar vagas": {
+      "main": [
+        [
+          {
+            "node": "Enviar para VagaSync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -27,7 +27,7 @@ function isValidAnalysis(data: unknown): data is JobAnalysis {
 
 // Fontes suportadas pelo n8n — usadas só para rastreabilidade no banco.
 // Não afeta o comportamento da análise.
-const VALID_SOURCES = ["indeed", "weworkremotely", "gupy", "infojobs", "catho", "gmail", "manual"] as const;
+const VALID_SOURCES = ["indeed", "weworkremotely", "github", "himalayas", "remotar", "gupy", "infojobs", "catho", "gmail", "manual"] as const;
 type JobSource = typeof VALID_SOURCES[number];
 
 export async function POST(req: NextRequest) {

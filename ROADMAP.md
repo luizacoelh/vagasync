@@ -13,6 +13,25 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(n8n): fontes de vagas BR (GitHub + Himalayas)
+Diagnóstico: nenhuma vaga chegava porque (1) o workflow estava desativado,
+(2) o feed do We Work Remotely parou em 06/10/2026, então o filtro de 2h
+nunca deixava nada passar, e (3) o segredo vinha de `$vars`, recurso pago do
+n8n (a tabela estava vazia; a credencial Header Auth é que autenticava).
+- [x] `n8n-workflows/vagas-br.json`: Remotar (vagas remotas BR) + GitHub
+  (`frontendbr`, `backend-br`, `react-brasil`) + Himalayas, janela de 7 dias,
+  fontes intercaladas, até 40 por rodada, 1 envio a cada 8s, erro numa vaga
+  não derruba as outras
+- [x] Filtro de perfil no nó "Montar vagas", igual para todas as fontes:
+  estágio/trainee/júnior (sem pleno/sênior no título), área de TI, texto em
+  português, sem exigir inglês nem 2+ anos de experiência, sem "banco de
+  talentos"; no Himalayas só vagas abertas ao Brasil. A primeira carga sem
+  esse filtro trouxe vagas sênior e internacionais (removidas pela tela)
+- [x] Webhook aceita `remotar`, `github` e `himalayas` em `VALID_SOURCES`
+- [x] Ativado no n8n local. Volume medido com o filtro: ~12 vagas/semana
+- [x] `docs/N8N_SETUP.md`: fluxo novo, comandos de import/publish/execute
+  pela CLI, fontes medidas (Gupy sem API pública)
+
 ### feat(vaga): diferenciais, salário pela IA, checklist marcável, sinônimos de skills e dedup no webhook
 - [x] Migration `20261025120000_add_job_differentials`: coluna `Job.differentials`
   (JSON array, opcional — vagas antigas só não mostram a seção)
@@ -274,21 +293,41 @@ Funcionando ponta a ponta em teste (We Work Remotely RSS → webhook →
 `/monitoradas`). Falta:
 - Publicar o workflow e hospedar o n8n 24/7 (Railway/Render) — local só roda
   com o Docker ligado
-- Outras fontes: Gupy, InfoJobs, Catho, Gmail (ver `docs/N8N_SETUP.md`)
+- Outras fontes: InfoJobs, Catho, Gmail (Gupy não tem mais API pública)
+- Mais vagas de estágio presencial/híbrido: hoje as fontes são quase todas
+  remotas (Remotar, Himalayas); vagas locais exigiriam outra fonte
 - Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
   outros usuários cada conta precisaria da própria config (palavras-chave e
   fontes)
 
-### 4. Screenshots reais no README
+### 4. Descartar vaga monitorada: sem apagar e sem atrito
+Hoje "Descartar" em `/monitoradas` chama `deleteJob` e apaga a vaga. Como o
+webhook deduplica pela URL, uma vaga descartada que ainda passa no filtro do
+n8n é criada de novo na próxima rodada (janela de 7 dias).
+- Status novo `DESCARTADA` no enum `JobStatus` (migration); "Descartar" só
+  muda o status e a vaga some de `/monitoradas` e do dashboard
+- Webhook: a deduplicação por URL já cobre — a vaga descartada continua no
+  banco, então volta como `{ duplicate: true }` sem gastar IA
+- Fora do funil: `DESCARTADA` não entra em `DASHBOARD_STATUSES`, estatísticas
+  nem filtros (`lib/jobStatus.ts`)
+- UX do botão em `components/monitoradas/MonitoredJobList.tsx`: tirar a
+  confirmação inline ("Descartar esta vaga?") — descartar vira reversível,
+  então basta um toast com "Desfazer"; e esconder a vaga **antes** de esperar
+  a Server Action (hoje o `run()` só esconde depois que o servidor responde,
+  por isso demora)
+- Opcional: limpeza periódica de `DESCARTADA` antigas (> 30 dias), mantendo
+  só a URL para a deduplicação
+
+### 5. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.
 Sugestão: dashboard com vagas reais, tela de análise preenchida, mobile.
 
-### 5. Monitoramento básico em produção
+### 6. Monitoramento básico em produção
 Log estruturado quando `/api/analyze` falhar repetidamente.
 Opção simples: Vercel Analytics (já incluso no plano) + alerta por email
 via Resend quando `error.tsx` for renderizado N vezes em X minutos.
 
-### 6. Verificar o `JobsProvider` (perf)
+### 7. Verificar o `JobsProvider` (perf)
 Em `components/dashboard/DashboardClient.tsx` o `JobsProvider` fica dentro da
 página, e páginas desmontam ao navegar para `/vaga/[id]` — pela estrutura do
 código, o contexto provavelmente não chega na página da vaga, que acaba usando
