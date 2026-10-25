@@ -3,7 +3,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { JOB_SUMMARY_SELECT, mapJobSummary } from "@/lib/jobMapper";
 import BackButton from "@/components/ui/BackButton";
-import MonitoredJobList, { type JobGroup } from "@/components/monitoradas/MonitoredJobList";
+import MonitoredJobList, {
+  type JobGroup,
+  type MonitoredNotice,
+} from "@/components/monitoradas/MonitoredJobList";
 
 // Fuso usado só para agrupar por dia e escrever "Hoje"/"Ontem". Fixo em
 // Brasília por enquanto; se o app ganhar usuários em outros fusos, o ideal é
@@ -33,13 +36,27 @@ function getTodayAndYesterdayKeys(): { todayKey: string; yesterdayKey: string } 
   };
 }
 
-export default async function MonitoradasPage() {
+// Aviso de quem volta da página da vaga: ?descartada=<id> (com "Desfazer")
+// ou ?interesse=1. O id só é usado para desfazer, e a action confere o dono.
+function parseNotice(params: { descartada?: string; interesse?: string }): MonitoredNotice | null {
+  if (params.descartada) return { kind: "discarded", id: params.descartada };
+  if (params.interesse) return { kind: "interested" };
+  return null;
+}
+
+export default async function MonitoradasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ descartada?: string; interesse?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login");
   }
 
   // createdAt só serve para agrupar por dia aqui no servidor; não vai para o cliente.
+  const notice = parseNotice(await searchParams);
+
   const rows = await prisma.job.findMany({
     where: { userId: session.user.id, status: "MONITORADA" },
     orderBy: { createdAt: "desc" },
@@ -98,7 +115,7 @@ export default async function MonitoradasPage() {
             ` ${rows.length} ${rows.length === 1 ? "vaga aguardando" : "vagas aguardando"} sua avaliação.`}
         </p>
 
-        <MonitoredJobList groups={groups} />
+        <MonitoredJobList groups={groups} notice={notice} />
       </div>
     </main>
   );

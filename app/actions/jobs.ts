@@ -22,6 +22,15 @@ async function updateOwnJob(jobId: string, data: Prisma.JobUpdateManyMutationInp
   return count > 0;
 }
 
+// Seleção em lote vem do cliente: aceita só strings, sem repetição e com teto,
+// para uma chamada forjada não virar um UPDATE/DELETE gigante.
+const MAX_BATCH = 200;
+function cleanIds(jobIds: unknown): string[] | null {
+  if (!Array.isArray(jobIds) || jobIds.length === 0 || jobIds.length > MAX_BATCH) return null;
+  if (!jobIds.every((id) => typeof id === "string" && id.length > 0 && id.length <= 64)) return null;
+  return [...new Set(jobIds as string[])];
+}
+
 function isValidUrl(value: string): boolean {
   try {
     new URL(value);
@@ -90,19 +99,28 @@ export async function createJob(
   }
 }
 
-// "Tenho interesse" em /monitoradas: move a vaga para o dashboard principal.
-// appliedAt passa a ser hoje — e não o dia em que o n8n coletou a vaga.
-export async function markJobInterested(
-  jobId: string
-): Promise<{ ok: true } | { error: string }> {
+// "Tenho interesse" em /monitoradas (uma ou várias vagas): move para o
+// dashboard principal. appliedAt passa a ser hoje — e não o dia em que o n8n
+// coletou a vaga. Só vale para vagas MONITORADAS.
+export async function markJobsInterested(
+  jobIds: string[]
+): Promise<{ ok: true; count: number } | { error: string }> {
+  const ids = cleanIds(jobIds);
+  if (!ids) return { error: "Seleção inválida." };
+  const userId = await requireUserId();
+
   try {
-    const updated = await updateOwnJob(jobId, { status: JobStatus.APLICADA, appliedAt: new Date() });
-    if (!updated) return { error: "Vaga não encontrada." };
+    const { count } = await prisma.job.updateMany({
+      where: { id: { in: ids }, userId, status: JobStatus.MONITORADA },
+      data: { status: JobStatus.APLICADA, appliedAt: new Date() },
+    });
+    if (count === 0) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath("/monitoradas");
-    return { ok: true };
+    for (const id of ids) revalidatePath(`/vaga/${id}`);
+    return { ok: true, count };
   } catch {
-    return { error: "Não foi possível mover a vaga para o dashboard." };
+    return { error: "Não foi possível mover para o dashboard." };
   }
 }
 
@@ -216,60 +234,62 @@ export async function toggleChecklistItem(
   }
 }
 
-export async function deleteJob(
-  jobId: string
-): Promise<{ ok: true } | { error: string }> {
+// Exclusão definitiva (uma ou várias vagas). Usada no dashboard e na página
+// da vaga; em /monitoradas o caminho é descartar, que não apaga.
+export async function deleteJobs(
+  jobIds: string[]
+): Promise<{ ok: true; count: number } | { error: string }> {
+  const ids = cleanIds(jobIds);
+  if (!ids) return { error: "Seleção inválida." };
   const userId = await requireUserId();
 
   try {
-    const { count } = await prisma.job.deleteMany({ where: { id: jobId, userId } });
+    const { count } = await prisma.job.deleteMany({ where: { id: { in: ids }, userId } });
     if (count === 0) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath("/monitoradas");
-    return { ok: true };
+    return { ok: true, count };
   } catch {
-    return { error: "Não foi possível excluir a vaga." };
+    return { error: "Não foi possível excluir." };
   }
 }
 
-// "Descartar" em /monitoradas: não apaga. A vaga fica no banco como
-// DESCARTADA para a deduplicação por URL do webhook continuar reconhecendo
-// e o n8n não a recriar na próxima rodada. Só vale para vagas MONITORADAS.
-export async function discardJob(
-  jobId: string
-): Promise<{ ok: true } | { error: string }> {
+// "Descartar" em /monitoradas (uma ou várias vagas): não apaga. A vaga fica
+// no banco como DESCARTADA para a deduplicação por URL do webhook continuar
+// reconhecendo e o n8n não a recriar na próxima rodada. Só vale para MONITORADAS.
+export async function discardJobs(
+  jobIds: string[]
+): Promise<{ ok: true; count: number } | { error: string }> {
+  return moveStatus(jobIds, JobStatus.MONITORADA, JobStatus.DESCARTADA, "Não foi possível descartar.");
+}
+
+// "Desfazer" do descarte: devolve as vagas para /monitoradas.
+export async function restoreDiscardedJobs(
+  jobIds: string[]
+): Promise<{ ok: true; count: number } | { error: string }> {
+  return moveStatus(jobIds, JobStatus.DESCARTADA, JobStatus.MONITORADA, "Não foi possível restaurar.");
+}
+
+async function moveStatus(
+  jobIds: string[],
+  from: JobStatus,
+  to: JobStatus,
+  failMessage: string
+): Promise<{ ok: true; count: number } | { error: string }> {
+  const ids = cleanIds(jobIds);
+  if (!ids) return { error: "Seleção inválida." };
   const userId = await requireUserId();
 
   try {
     const { count } = await prisma.job.updateMany({
-      where: { id: jobId, userId, status: JobStatus.MONITORADA },
-      data: { status: JobStatus.DESCARTADA },
+      where: { id: { in: ids }, userId, status: from },
+      data: { status: to },
     });
     if (count === 0) return { error: "Vaga não encontrada." };
     revalidatePath("/monitoradas");
     revalidatePath("/");
-    return { ok: true };
+    return { ok: true, count };
   } catch {
-    return { error: "Não foi possível descartar a vaga." };
-  }
-}
-
-// "Desfazer" do descarte: devolve a vaga para /monitoradas.
-export async function restoreDiscardedJob(
-  jobId: string
-): Promise<{ ok: true } | { error: string }> {
-  const userId = await requireUserId();
-
-  try {
-    const { count } = await prisma.job.updateMany({
-      where: { id: jobId, userId, status: JobStatus.DESCARTADA },
-      data: { status: JobStatus.MONITORADA },
-    });
-    if (count === 0) return { error: "Vaga não encontrada." };
-    revalidatePath("/monitoradas");
-    revalidatePath("/");
-    return { ok: true };
-  } catch {
-    return { error: "Não foi possível restaurar a vaga." };
+    return { error: failMessage };
   }
 }
