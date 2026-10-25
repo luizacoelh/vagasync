@@ -136,8 +136,10 @@ Preencha:
   https://github.com/settings/developers, com callback URL
   `http://localhost:3000/api/auth/callback/github`
 
-Deixe `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` vazias — em dev local a app
-usa SQLite local automaticamente (ver `lib/prisma.ts`).
+Não coloque credenciais do Turso no `.env` nem defina `DATABASE_TARGET` — sem
+ela, `npm run dev`, `build` e `start` usam sempre o SQLite de `DATABASE_URL`
+(ver `lib/prisma.ts`). Quem precisa mexer em produção guarda as credenciais
+em `.env.turso`, que só os scripts leem (ver `DEPLOY.md`, passo 0).
 
 ### 3. Banco de dados
 

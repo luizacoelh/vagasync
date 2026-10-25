@@ -3,17 +3,21 @@
 // Existe porque o banco de produção já divergiu das migrations (alterações
 // feitas à mão e um script que reescreveu tabela) sem ninguém perceber.
 //
-// Só LÊ o banco — não altera nada. Pode rodar com token somente-leitura.
+// Só LÊ o banco — não altera nada. Contra o Turso usa EXCLUSIVAMENTE o token
+// somente-leitura (TURSO_READONLY_AUTH_TOKEN); sem ele, não roda (não cai no
+// token de escrita). Todo comando enviado ao banco é um SELECT — inclusive a
+// introspecção, feita pelas funções pragma_*() em vez de PRAGMA, para não
+// depender de como o servidor classifica PRAGMAs num token read-only.
 //
 // Uso:
-//   npm run check:turso                         (usa TURSO_DATABASE_URL/TURSO_AUTH_TOKEN do .env)
+//   npm run check:turso                         (TURSO_DATABASE_URL + TURSO_READONLY_AUTH_TOKEN do .env.turso)
 //   npm run check:turso -- --file ./export.db   (confere um export baixado do Turso, sem credenciais)
 //
 // Severidade:
 //   ERRO  — falta tabela, coluna ou índice ÚNICO (integridade/funcionamento em risco). Sai com código 1.
 //   AVISO — sobra coluna/tabela, default/tipo diferente, falta FK ou índice comum (não quebra o app).
-import "dotenv/config";
 import { createClient } from "@libsql/client";
+import { requireTursoReadOnly, TURSO_LABEL } from "./lib/turso-env.mjs";
 import { readdirSync, readFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, resolve } from "node:path";
@@ -47,7 +51,7 @@ async function describe(client) {
   const schema = {};
   for (const table of tableNames) {
     const columns = {};
-    for (const r of (await client.execute(`PRAGMA table_info("${table}")`)).rows) {
+    for (const r of (await client.execute({ sql: `SELECT * FROM pragma_table_info(?)`, args: [table] })).rows) {
       columns[String(r.name)] = {
         type: String(r.type).toUpperCase(),
         notnull: Number(r.notnull),
@@ -59,14 +63,16 @@ async function describe(client) {
     // Índices: compara pelo conjunto de colunas + se é único (o nome pode variar:
     // UNIQUE embutido na tabela vira "sqlite_autoindex_..."). A PK é ignorada.
     const indexes = [];
-    for (const idx of (await client.execute(`PRAGMA index_list("${table}")`)).rows) {
+    for (const idx of (await client.execute({ sql: `SELECT * FROM pragma_index_list(?)`, args: [table] })).rows) {
       if (String(idx.origin) === "pk") continue;
-      const cols = (await client.execute(`PRAGMA index_info("${idx.name}")`)).rows.map((r) => String(r.name));
+      const cols = (
+        await client.execute({ sql: `SELECT * FROM pragma_index_info(?) ORDER BY seqno`, args: [String(idx.name)] })
+      ).rows.map((r) => String(r.name));
       indexes.push({ unique: Number(idx.unique) === 1, cols: cols.join(", "), name: String(idx.name) });
     }
 
     const fkMap = new Map();
-    for (const r of (await client.execute(`PRAGMA foreign_key_list("${table}")`)).rows) {
+    for (const r of (await client.execute({ sql: `SELECT * FROM pragma_foreign_key_list(?)`, args: [table] })).rows) {
       const key = Number(r.id);
       const fk = fkMap.get(key) ?? { table: String(r.table), from: [], to: [], onDelete: String(r.on_delete) };
       fk.from.push(String(r.from));
@@ -158,14 +164,9 @@ async function main() {
     client = createClient({ url: `file:${resolve(filePath)}` });
     label = filePath;
   } else {
-    const url = process.env.TURSO_DATABASE_URL;
-    const authToken = process.env.TURSO_AUTH_TOKEN;
-    if (!url || !authToken) {
-      console.error("TURSO_DATABASE_URL e/ou TURSO_AUTH_TOKEN não encontradas no .env (ou use --file <export.db>).");
-      process.exit(1);
-    }
+    const { url, authToken } = requireTursoReadOnly();
     client = createClient({ url, authToken });
-    label = url;
+    label = `${TURSO_LABEL}, token somente-leitura`;
   }
 
   console.log(`Conferindo ${label} contra prisma/migrations...\n`);
@@ -184,7 +185,8 @@ async function main() {
   process.exit(errors.length > 0 ? 1 : 0);
 }
 
+// Só a mensagem: o objeto de erro do libSQL traz o hostname do banco.
 main().catch((error) => {
-  console.error("Erro:", error);
+  console.error("Erro:", error?.message ?? String(error));
   process.exit(1);
 });

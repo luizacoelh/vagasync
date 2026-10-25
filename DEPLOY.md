@@ -11,11 +11,59 @@ confiável entre requisições — cada invocação pode rodar numa instância
 diferente. Por isso o banco de produção é o Turso (SQLite hospedado,
 compatível com esse ambiente).
 
+## 0. Qual banco cada ambiente usa
+
+A escolha é **explícita**, pela variável `DATABASE_TARGET` (`lib/prisma.ts`).
+`NODE_ENV` não participa: `next start` local roda com `NODE_ENV=production`
+e, antes, isso bastava para conectar no Turso de produção.
+
+| Onde | `DATABASE_TARGET` | Banco |
+|---|---|---|
+| Vercel — Production | `turso` | Turso de produção |
+| Vercel — Preview | não definir | nenhum (ver passo 6) |
+| `npm run dev` / `build` / `start` local | não definir | SQLite de `DATABASE_URL` (`file:./dev.db`) |
+| Testes | não definir; `NODE_ENV=test` recusa `turso` | SQLite descartável, ex.: `DATABASE_URL=file:./test.db` |
+| Scripts de produção | `turso`, no `.env.turso` | Turso de produção |
+
+Travas (o app não sobe): `turso` sem URL/token; valor desconhecido;
+`DATABASE_URL` que não seja `file:`; e **deploy de Production sem
+`DATABASE_TARGET=turso`** — como a checagem também roda no build, o deploy
+falha e a Vercel mantém a versão anterior no ar. Sem `DATABASE_TARGET`, as
+variáveis do Turso são ignoradas (com aviso no log).
+
+### Credenciais do Turso na sua máquina: `.env.turso`
+
+Ficam num arquivo próprio, **fora do `.env`**. O Next.js só carrega `.env`,
+`.env.local`, `.env.development*` e `.env.production*`; o `.env.turso` é lido
+apenas pelos scripts de `scripts/` (via `scripts/lib/turso-env.mjs`). Está no
+`.gitignore` (regra `.env*`).
+
+```bash
+# .env.turso — nunca commitar
+DATABASE_TARGET=turso                 # exigido pelos scripts que ESCREVEM
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...                  # escrita: migrate:turso, set-admin --turso, recover-job-location
+TURSO_READONLY_AUTH_TOKEN=...         # somente-leitura: check:turso
+```
+
+`check:turso` usa **só** `TURSO_READONLY_AUTH_TOKEN` — se ele faltar, o script
+para; não cai no token de escrita. O token de escrita pode ficar fora do
+arquivo e ser incluído só quando for migrar.
+
+**Como confirmar que o local usa só o banco de desenvolvimento:**
+- `npm run dev`/`start` sem `DATABASE_TARGET` mostram `[prisma] TURSO_DATABASE_URL
+  ignorada...` se ainda houver variável do Turso no `.env` — tire-a de lá.
+- O dashboard local mostra as vagas do `dev.db`, não as de produção.
+- `npm run check:turso -- --file ./dev.db` confere o banco local sem credenciais.
+
 ## 1. Criar o banco no Turso
 
 Pode ser feito pela CLI ou pelo painel em https://app.turso.tech (o painel
 funciona bem no Windows, sem precisar de WSL). Guarde a URL de conexão e o
-token gerados — são `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`.
+token gerados — são `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`. Gere também um
+token **somente-leitura** para o `check:turso` (`TURSO_READONLY_AUTH_TOKEN`):
+pela CLI, `turso db tokens create <banco> --read-only`; no painel, a opção de
+permissão *Read-Only* ao criar o token.
 
 ## 2. Aplicar as migrations no Turso
 
@@ -24,7 +72,8 @@ conhecida do Prisma com libSQL remoto). As migrations continuam sendo
 geradas localmente, contra o SQLite local, como no dia a dia de
 desenvolvimento — só a aplicação em produção é diferente.
 
-Com `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` já preenchidas no seu `.env`:
+Com `DATABASE_TARGET=turso`, `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`
+preenchidas no `.env.turso` (passo 0):
 
 ```bash
 npm run migrate:turso -- --dry-run   # só mostra o que seria aplicado (não altera nada)
@@ -75,10 +124,11 @@ que salva é o que você fez *antes*. Sempre, nesta ordem:
    Download SQLite File*. Guarde em `backups/` (a pasta está no `.gitignore`;
    o repositório é público e o banco tem e-mails de usuários — **nunca** commite
    um `.db`).
-2. **Ensaio numa cópia.** O script aceita um arquivo local no lugar do Turso:
+2. **Ensaio numa cópia.** O script aceita um arquivo local no lugar do Turso
+   (variáveis passadas na linha de comando têm prioridade sobre o `.env.turso`):
    ```bash
-   TURSO_DATABASE_URL=file:./backups/export.db TURSO_AUTH_TOKEN=x npm run migrate:turso -- --dry-run
-   TURSO_DATABASE_URL=file:./backups/export.db TURSO_AUTH_TOKEN=x npm run migrate:turso
+   DATABASE_TARGET=turso TURSO_DATABASE_URL=file:./backups/export.db TURSO_AUTH_TOKEN=x npm run migrate:turso -- --dry-run
+   DATABASE_TARGET=turso TURSO_DATABASE_URL=file:./backups/export.db TURSO_AUTH_TOKEN=x npm run migrate:turso
    npm run check:turso -- --file ./backups/export.db
    ```
    Se algo falhar aqui, o banco de verdade não foi tocado.
@@ -88,7 +138,9 @@ que salva é o que você fez *antes*. Sempre, nesta ordem:
    Drizzle Studio nem pelo SQL console. Se uma emergência exigir, registre o
    que foi feito numa migration em seguida e rode `npm run check:turso`.
 
-`npm run check:turso` só **lê** o banco (aceita token somente-leitura) e
+`npm run check:turso` só **lê** o banco — todo comando é um `SELECT`, inclusive
+a introspecção (`pragma_table_info()` etc.), então funciona com o token
+somente-leitura (`TURSO_READONLY_AUTH_TOKEN`, o único que ele aceita) — e
 compara o schema real com o que as migrations produzem: falta de
 tabela/coluna/índice único é ERRO (sai com código 1); sobra de coluna, default
 diferente ou FK ausente é AVISO. Ele existe porque o banco de produção divergiu
@@ -134,8 +186,9 @@ Em *Project Settings → Environment Variables*, ambiente **Production**:
 
 | Variável | Valor |
 |---|---|
+| `DATABASE_TARGET` | `turso` |
 | `TURSO_DATABASE_URL` | do passo 1 |
-| `TURSO_AUTH_TOKEN` | do passo 1 |
+| `TURSO_AUTH_TOKEN` | do passo 1 (o de escrita — o app grava) |
 | `AUTH_SECRET` | gere um valor **diferente** do de dev |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | do passo 3 |
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | do app novo do passo 3 |
@@ -143,9 +196,10 @@ Em *Project Settings → Environment Variables*, ambiente **Production**:
 | `GEMINI_API_KEY` | sua chave do Gemini |
 | `N8N_WEBHOOK_SECRET` / `N8N_TARGET_USER_ID` | opcional — só se for usar o webhook |
 
-**Não** defina `DATABASE_URL` na Vercel — sua ausência, combinada com
-`TURSO_DATABASE_URL` presente, é o que faz `lib/prisma.ts` escolher o
-adapter do Turso automaticamente (só em `NODE_ENV=production`).
+**Não** defina `DATABASE_URL` na Vercel. Quem escolhe o Turso é
+`DATABASE_TARGET=turso`; sem ela o deploy de Production falha de propósito
+(passo 0). Marque essas três variáveis **só** em Production: não as replique em
+Preview nem em Development.
 
 ## 6. Deploy
 
@@ -158,19 +212,27 @@ Preview tem uma URL com hash aleatório, que não bate com nenhuma callback
 URL cadastrada no Google/GitHub. Isso é esperado; teste login sempre no
 domínio de Production.
 
+**Preview não usa o banco de produção.** Sem `DATABASE_TARGET`/credenciais do
+Turso em Preview, o deploy builda mas as páginas que consultam o banco dão
+erro. Isso é intencional: antes, se as variáveis do Turso estivessem marcadas
+também para Preview, todo push de branch publicava um deploy lendo e
+escrevendo em produção. Se um dia quiser Preview funcional, crie um banco
+Turso separado e use as credenciais dele (com `DATABASE_TARGET=turso`) só em
+Preview.
+
 ## 7. Virar admin (uma vez, depois do primeiro login)
 
 Não existe cadastro de admin pela interface de propósito — evita
 autopromoção. Depois de logar pela primeira vez em produção:
 
 ```bash
-node scripts/set-admin.mjs seu-email@exemplo.com
+node scripts/set-admin.mjs seu-email@exemplo.com --turso
 ```
 
-Com `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` preenchidos no `.env`, o script
-detecta automaticamente que deve mexer no banco do Turso (produção), não no
-SQLite local. Depois disso, `/admin` fica acessível, e outras contas podem
-ser promovidas direto pelo painel.
+O `--turso` é obrigatório para mexer em produção e exige o `.env.turso` com
+`DATABASE_TARGET=turso` (passo 0). Sem a flag, o script escreve no SQLite
+local, mesmo que haja variáveis do Turso no ambiente. Depois disso, `/admin`
+fica acessível, e outras contas podem ser promovidas direto pelo painel.
 
 ## Sobre o tempo de execução da análise por IA
 
@@ -185,6 +247,8 @@ que 60s é suficiente no seu plano.
 - [ ] Banco criado no Turso e migrations aplicadas (passos 1–2)
 - [ ] Apps OAuth de produção criados com as URLs de callback corretas (passo 3)
 - [ ] Projeto importado na Vercel (passo 4)
-- [ ] Variáveis de ambiente configuradas na Vercel (passo 5)
-- [ ] `.env` local nunca commitado (já garantido pelo `.gitignore`)
+- [ ] Variáveis de ambiente configuradas na Vercel (passo 5), incluindo
+      `DATABASE_TARGET=turso` — só em Production
+- [ ] Credenciais do Turso só no `.env.turso`, nunca no `.env` (passo 0)
+- [ ] `.env*` local nunca commitado (já garantido pelo `.gitignore`)
 - [ ] Testado no domínio de Production, não num link de Preview

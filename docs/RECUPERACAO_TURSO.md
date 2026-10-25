@@ -51,7 +51,8 @@ Repita as consultas do passo 1 **no banco restaurado**. `Job` precisa ter
 
 1. Vercel → Settings → Environment Variables: troque `TURSO_DATABASE_URL` e
    `TURSO_AUTH_TOKEN` (Production) pelos valores do banco novo e faça **Redeploy**.
-2. Faça o mesmo no `.env` local.
+2. Faça o mesmo no `.env.turso` local (nunca no `.env` — ver `DEPLOY.md`, passo 0),
+   inclusive gerando um novo `TURSO_READONLY_AUTH_TOKEN` para o banco novo.
 3. Se faltar a migration mais recente, aplique **sem reexecutar o histórico**:
    `npm run migrate:turso -- --baseline <pasta-da-ultima-migration-que-o-banco-ja-tem>`
    (use `--dry-run` primeiro).
