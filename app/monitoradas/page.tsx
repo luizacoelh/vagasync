@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { JOB_SUMMARY_SELECT, mapJobSummary } from "@/lib/jobMapper";
@@ -7,6 +6,8 @@ import MonitoredJobList, {
   type JobGroup,
   type MonitoredNotice,
 } from "@/components/monitoradas/MonitoredJobList";
+import DemoBanner from "@/components/onboarding/DemoBanner";
+import { getDemoMonitoredRows } from "@/lib/demoJobs";
 
 // Fuso usado só para agrupar por dia e escrever "Hoje"/"Ontem". Fixo em
 // Brasília por enquanto; se o app ganhar usuários em outros fusos, o ideal é
@@ -50,26 +51,28 @@ export default async function MonitoradasPage({
   searchParams: Promise<{ descartada?: string; interesse?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/login");
-  }
+  const guest = !session?.user;
 
   // createdAt só serve para agrupar por dia aqui no servidor; não vai para o cliente.
   const notice = parseNotice(await searchParams);
 
-  const rows = await prisma.job.findMany({
-    where: { userId: session.user.id, status: "MONITORADA" },
-    orderBy: { createdAt: "desc" },
-    select: { ...JOB_SUMMARY_SELECT, createdAt: true },
-  });
+  // Visitante vê vagas de exemplo (lib/demoJobs.ts), já no formato de JobSummary.
+  const rows = guest
+    ? getDemoMonitoredRows()
+    : (
+        await prisma.job.findMany({
+          where: { userId: session.user.id, status: "MONITORADA" },
+          orderBy: { createdAt: "desc" },
+          select: { ...JOB_SUMMARY_SELECT, createdAt: true },
+        })
+      ).map(({ createdAt, ...row }) => ({ ...mapJobSummary(row), createdAt }));
 
   const { todayKey, yesterdayKey } = getTodayAndYesterdayKeys();
 
   // A lista já vem da mais nova para a mais antiga, então basta agrupar
   // vagas consecutivas do mesmo dia.
   const groups: JobGroup[] = [];
-  for (const { createdAt, ...row } of rows) {
-    const job = mapJobSummary(row);
+  for (const { createdAt, ...job } of rows) {
     const key = dayKey(createdAt);
     const last = groups[groups.length - 1];
     if (last && last.key === key) {
@@ -115,7 +118,11 @@ export default async function MonitoradasPage({
             ` ${rows.length} ${rows.length === 1 ? "vaga aguardando" : "vagas aguardando"} sua avaliação.`}
         </p>
 
-        <MonitoredJobList groups={groups} notice={notice} />
+        {guest && (
+          <DemoBanner text="Exemplo: o VagaSync busca vagas de estágio e júnior automaticamente e elas chegam aqui para você avaliar." />
+        )}
+
+        <MonitoredJobList groups={groups} notice={guest ? null : notice} />
       </div>
     </main>
   );

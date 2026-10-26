@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toggleChecklistItem } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 // Checklist marcável da página da vaga. Atualização otimista: o item muda na
 // hora e volta ao estado anterior se o servidor recusar.
@@ -17,6 +18,7 @@ export default function JobChecklist({
   const [done, setDone] = useState(() => new Set(initialDone));
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const { requireLogin } = useLoginGate();
 
   function setItem(index: number, value: boolean) {
     setDone((prev) => {
@@ -28,6 +30,7 @@ export default function JobChecklist({
   }
 
   function toggle(index: number) {
+    if (requireLogin("Entre para marcar o que já estudou em cada vaga.")) return;
     const value = !done.has(index);
     setItem(index, value);
     setError(null);

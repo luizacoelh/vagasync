@@ -10,6 +10,8 @@ import SelectionBar, { SelectBox } from "@/components/ui/SelectionBar";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 import { saveMonitoredView, takeMonitoredView } from "@/lib/monitoredView";
 import { markJobsInterested, discardJobs, restoreDiscardedJobs } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
+import { MONITORED_LOGIN_MESSAGE } from "@/components/job/MonitoredJobActions";
 
 export interface JobGroup {
   key: string; // dia no formato YYYY-MM-DD
@@ -59,6 +61,7 @@ export default function MonitoredJobList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const closeToast = useCallback(() => setToast(null), []);
+  const { requireLogin } = useLoginGate();
 
   // Volta da página da vaga: restaura busca e rolagem, e tira o aviso da URL
   // para um F5 não repetir o "Vaga descartada".
@@ -104,6 +107,7 @@ export default function MonitoredJobList({
   }
 
   async function markInterested(ids: string[]) {
+    if (requireLogin(MONITORED_LOGIN_MESSAGE)) return;
     setToast({ message: plural(ids.length, "Vaga movida para suas candidaturas", "vagas movidas para suas candidaturas") });
     const ok = await run(ids, () => markJobsInterested(ids));
     if (!ok) setToast(null);
@@ -112,6 +116,7 @@ export default function MonitoredJobList({
   // Descartar não apaga (vira DESCARTADA), por isso dispensa confirmação:
   // o aviso traz "Desfazer".
   async function discard(ids: string[]) {
+    if (requireLogin(MONITORED_LOGIN_MESSAGE)) return;
     setToast({ message: plural(ids.length, "Vaga descartada", "vagas descartadas"), undoIds: ids });
     const ok = await run(ids, () => discardJobs(ids));
     if (!ok) setToast(null);

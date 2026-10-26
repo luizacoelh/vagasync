@@ -4,6 +4,7 @@ import { useState } from "react";
 import { JobLocation } from "@prisma/client";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
 import { updateJobMeta } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 export default function JobMetaEditor({
   jobId,
@@ -24,12 +25,14 @@ export default function JobMetaEditor({
   const [appliedAt, setAppliedAt] = useState(toDateInputValue(initialAppliedAt));
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const { requireLogin } = useLoginGate();
 
   function toDateInputValue(date: Date): string {
     return new Date(date).toISOString().slice(0, 10);
   }
 
   async function handleSave() {
+    if (requireLogin()) return;
     setIsSaving(true);
     setToast(null);
 

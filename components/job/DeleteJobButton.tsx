@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteJobs } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 export default function DeleteJobButton({ jobId }: { jobId: string }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { requireLogin } = useLoginGate();
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -28,7 +30,7 @@ export default function DeleteJobButton({ jobId }: { jobId: string }) {
   if (!confirming) {
     return (
       <button
-        onClick={() => setConfirming(true)}
+        onClick={() => !requireLogin("Entre para gerenciar as suas vagas.") && setConfirming(true)}
         className="text-xs text-[#7C8494] hover:text-[#E5534B] transition-colors"
         style={{ fontFamily: "var(--font-outfit)" }}
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { JobAnalysis, JobLocation } from "@/types/job";
 import { LOCATION_LABELS } from "@/lib/jobLocation";
@@ -10,6 +10,8 @@ import TechBadge from "@/components/ui/TechBadge";
 import ChecklistItem from "@/components/job/ChecklistItem";
 import GlassPanel from "@/components/ui/Glass";
 import BackButton from "@/components/ui/BackButton";
+import { useLoginGate } from "@/components/auth/LoginGate";
+import { EXAMPLE_ANALYSIS, EXAMPLE_JOB } from "@/lib/demoJobs";
 
 type Step = "input" | "preview";
 
@@ -17,39 +19,9 @@ type Step = "input" | "preview";
 // pra dar feedback imediato, o servidor sempre revalida.
 const MAX_DESCRIPTION_LENGTH = 8000;
 
-// Vaga de exemplo para quem quer testar sem ter uma vaga em mãos.
-// Texto realista de uma vaga de estágio em desenvolvimento web.
-const EXAMPLE_JOB = `Estágio em Desenvolvimento Web — Empresa Exemplo Tecnologia
-
-Sobre a vaga:
-Buscamos estudantes de TI, Ciência da Computação, Engenharia de Software ou áreas relacionadas para integrar nosso time de produto como estagiário(a) de desenvolvimento web.
-
-Responsabilidades:
-- Desenvolver e manter funcionalidades no frontend e backend das nossas aplicações
-- Participar de code reviews e reuniões de planejamento de sprint
-- Colaborar com o time de design para implementar interfaces responsivas
-- Escrever testes automatizados para as funcionalidades desenvolvidas
-
-Requisitos:
-- Cursando graduação em área de TI (a partir do 3º semestre)
-- Conhecimento em HTML, CSS e JavaScript
-- Noções de React ou outro framework frontend
-- Familiaridade com Git e fluxo de trabalho em equipe
-
-Diferenciais:
-- Experiência com TypeScript
-- Conhecimento em Node.js ou Python no backend
-- Experiência com banco de dados SQL
-
-O que oferecemos:
-- Bolsa-auxílio compatível com o mercado
-- Vale-refeição e vale-transporte
-- Modelo híbrido (2x presencial por semana)
-- Mentoria com desenvolvedores seniores
-- Possibilidade de efetivação
-
-Carga horária: 30h semanais
-Local: São Paulo, SP (híbrido)`;
+// Texto digitado por um visitante que clicou em Analisar/Salvar: o login sai
+// do site (Google/GitHub), então o texto fica guardado na aba e volta aqui.
+const DRAFT_KEY = "vagasync:nova-vaga-rascunho";
 
 function todayInputValue(): string {
   return new Date().toISOString().slice(0, 10);
@@ -57,6 +29,7 @@ function todayInputValue(): string {
 
 export default function NovaVagaPage() {
   const router = useRouter();
+  const { isGuest, requireLogin } = useLoginGate();
 
   const [step, setStep] = useState<Step>("input");
   const [description, setDescription] = useState("");
@@ -74,6 +47,41 @@ export default function NovaVagaPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Depois do login, devolve o texto que o visitante tinha colado.
+  useEffect(() => {
+    if (isGuest) return;
+    try {
+      const draft = sessionStorage.getItem(DRAFT_KEY);
+      if (!draft) return;
+      sessionStorage.removeItem(DRAFT_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage só existe no cliente
+      setDescription(draft);
+    } catch {
+      // sessionStorage bloqueado: segue sem rascunho
+    }
+  }, [isGuest]);
+
+  function askLogin(message: string): boolean {
+    if (!isGuest) return false;
+    try {
+      sessionStorage.setItem(DRAFT_KEY, description);
+    } catch {
+      // sem sessionStorage o texto só não volta depois do login
+    }
+    return requireLogin(message);
+  }
+
+  function applyAnalysis(data: JobAnalysis) {
+    setAnalysis(data);
+    setCompany(data.company);
+    setTitle(data.title);
+    setSummary(data.summary);
+    // Pré-preenche com o que a IA achou no texto — continua editável.
+    setSalary(data.salary ?? "");
+    setLocation(data.location ?? "NAO_INFORMADO");
+    setStep("preview");
+  }
+
   async function handleAnalyze() {
     setError(null);
 
@@ -86,6 +94,14 @@ export default function NovaVagaPage() {
       setError(`Descrição muito longa (${description.length}/${MAX_DESCRIPTION_LENGTH} caracteres).`);
       return;
     }
+
+    // Visitante: a vaga de exemplo mostra uma análise pronta (sem gastar IA);
+    // qualquer outro texto pede login.
+    if (isGuest && description.trim() === EXAMPLE_JOB.trim()) {
+      applyAnalysis(EXAMPLE_ANALYSIS);
+      return;
+    }
+    if (askLogin("Entre para a IA analisar esta vaga. O texto que você colou continua aqui.")) return;
 
     setIsAnalyzing(true);
     try {
@@ -102,14 +118,7 @@ export default function NovaVagaPage() {
         return;
       }
 
-      setAnalysis(data as JobAnalysis);
-      setCompany(data.company);
-      setTitle(data.title);
-      setSummary(data.summary);
-      // Pré-preenche com o que a IA achou no texto — continua editável.
-      setSalary(data.salary ?? "");
-      setLocation(data.location ?? "NAO_INFORMADO");
-      setStep("preview");
+      applyAnalysis(data as JobAnalysis);
     } catch {
       setError("Falha de conexão. Tente novamente.");
     } finally {
@@ -119,6 +128,7 @@ export default function NovaVagaPage() {
 
   async function handleSave() {
     if (!analysis) return;
+    if (askLogin("Entre para salvar a vaga e acompanhar a candidatura.")) return;
     setError(null);
     setIsSaving(true);
 

@@ -13,6 +13,23 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(visitante): usar o app sem login (só leitura) + onboarding visual
+- [x] Sem login, `/`, `/monitoradas`, `/nova-vaga` e `/vaga/*` abrem com vagas
+  de exemplo (`lib/demoJobs.ts`, nada do banco); `/perfil` e `/admin`
+  continuam pedindo login, e link de vaga real leva ao login e volta
+- [x] Qualquer ação que grava (status, checklist, dados da candidatura,
+  excluir, Tenho interesse/Descartar, Analisar, Salvar) abre uma janela de
+  login por cima da página (`components/auth/LoginGate.tsx`) e volta para a
+  mesma página depois. O servidor continua recusando sem sessão
+- [x] `/nova-vaga` como visitante: a vaga de exemplo mostra uma análise pronta
+  (sem gastar IA); outro texto pede login e o texto colado volta depois
+- [x] Onboarding visual: três passos (Cole a vaga → IA analisa → Acompanhe)
+  no convite do visitante e no dashboard vazio de quem acabou de entrar.
+  Some com a primeira vaga, então não precisou de `hasSeenOnboarding` nem
+  de migration
+- [x] `/login` e a janela usam os mesmos botões (`LoginButtons`); "Sair" agora
+  volta para o dashboard de exemplo
+
 ### feat(n8n): estágio na Gupy, filtro por local e execução no GitHub Actions
 - [x] Gupy volta como fonte: a página de busca do portal traz as 12 vagas mais
   recentes no `__NEXT_DATA__` (a API JSON saiu do ar). 11 buscas só de
@@ -341,15 +358,11 @@ Auth.js já tem suporte nativo. Falta escolher provedor de envio:
   com Next.js. `npm install resend` + configurar `EmailProvider` em `auth.ts`.
 - Alternativa: Nodemailer com SMTP do Gmail (zero custo, mais configuração).
 Benefício: inclui quem não usa Google/GitHub (recrutadores, usuários comuns).
+Encaixe pronto: basta um terceiro botão (campo de e-mail) em
+`components/auth/LoginButtons.tsx`, que já serve a tela `/login` e a janela de
+login do modo visitante. Falta criar a conta no Resend e verificar um domínio.
 
-### 2. Onboarding visual (2–3 passos na primeira entrada)
-Hoje o onboarding é só texto em `/perfil`. Tornar mais visual:
-- Três cards sequenciais: "Cole a vaga → IA analisa → Acompanhe o status"
-- Pode ser um modal simples na primeira visita ao dashboard (flag
-  `hasSeenOnboarding` no `UserProfile`)
-- Não bloqueia o uso — pode ser pulado
-
-### 3. Finalizar a automação n8n
+### 2. Finalizar a automação n8n
 Rodando a cada 2h no GitHub Actions (Remotar, GitHub, Himalayas e Gupy →
 webhook → `/monitoradas`). Falta:
 - Gmail (alertas de vaga por e-mail: LinkedIn, CIEE...) — exige OAuth do
@@ -358,18 +371,20 @@ webhook → `/monitoradas`). Falta:
   diferentes e entra duas vezes (dedup é só por URL)
 - Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
   outros usuários cada conta precisaria da própria config (palavras-chave e
-  fontes)
+  fontes). Enquanto isso, quem não é o dono vê `/monitoradas` sempre vazia
+  com "quando o monitoramento encontrar vagas..." — ajustar esse texto (ou
+  esconder a aba) para essas contas
 
-### 4. Screenshots reais no README
+### 3. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.
 Sugestão: dashboard com vagas reais, tela de análise preenchida, mobile.
 
-### 5. Monitoramento básico em produção
+### 4. Monitoramento básico em produção
 Log estruturado quando `/api/analyze` falhar repetidamente.
 Opção simples: Vercel Analytics (já incluso no plano) + alerta por email
 via Resend quando `error.tsx` for renderizado N vezes em X minutos.
 
-### 6. Fluidez: vidro dos cards (só se ainda travar)
+### 5. Fluidez: vidro dos cards (só se ainda travar)
 Cada `JobCard` do dashboard é um `GlassPanel` com `backdrop-filter` + filtro SVG
 `#glass-distort`; com muitas vagas o scroll pode pesar em celular. A versão
 "vidro leve" nos cards foi testada e **recusada** (perde o efeito). Só voltar a

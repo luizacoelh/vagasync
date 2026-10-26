@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import SelectionBar from "@/components/ui/SelectionBar";
 import ActionToast from "@/components/ui/ActionToast";
 import { deleteJobs } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 function normalize(value: string): string {
   return value.trim().toLowerCase();
@@ -32,6 +33,7 @@ export default function DashboardClient({ jobs }: { jobs: JobSummary[] }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const closeToast = useCallback(() => setToast(null), []);
+  const { requireLogin } = useLoginGate();
 
   const availableTechs = useMemo(() => {
     const set = new Set<string>();
@@ -175,7 +177,7 @@ export default function DashboardClient({ jobs }: { jobs: JobSummary[] }) {
           ) : (
             <button
               type="button"
-              onClick={() => setConfirming(true)}
+              onClick={() => !requireLogin("Entre para gerenciar as suas vagas.") && setConfirming(true)}
               disabled={selectedIds.length === 0}
               className="text-xs font-semibold text-[#E5534B] hover:underline disabled:opacity-40"
             >
