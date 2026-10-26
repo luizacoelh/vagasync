@@ -9,7 +9,11 @@
 - **`dashboard/`** — componentes específicos da tela de Dashboard:
   `DashboardClient`, `FilterBar`, `StatsBar`.
 - **`auth/`** — componentes ligados à sessão do usuário: `UserMenu` (avatar,
-  nome, link de perfil e botão de sair, usado no cabeçalho do Dashboard).
+  nome, link de perfil e botão de sair, usado no cabeçalho do Dashboard),
+  `LoginButtons` (Google/GitHub) e `LoginGate` (modo visitante: janela de
+  login, `useLoginGate()` e o botão `LoginButton`).
+- **`onboarding/`** — `OnboardingSteps` (os três passos, no convite do
+  visitante e no dashboard vazio) e `DemoBanner`.
 - **`profile/`** — `ProfileForm`, usado tanto na tela de onboarding quanto
   na edição posterior do perfil em `/perfil`.
 

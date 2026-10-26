@@ -7,11 +7,24 @@ import { HIDDEN_FROM_DASHBOARD } from "@/lib/jobStatus";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import UserMenu from "@/components/auth/UserMenu";
 import MonitoredLink from "@/components/dashboard/MonitoredLink";
+import { LoginButton } from "@/components/auth/LoginGate";
+import OnboardingSteps from "@/components/onboarding/OnboardingSteps";
+import DemoBanner from "@/components/onboarding/DemoBanner";
+import { getDemoDashboardJobs, getDemoMonitoredRows } from "@/lib/demoJobs";
+import type { JobSummary } from "@/types/job";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) {
-    redirect("/login");
+    // Modo visitante: vagas de exemplo, sem tocar no banco.
+    return (
+      <DashboardShell
+        jobs={getDemoDashboardJobs()}
+        monitoredCount={getDemoMonitoredRows().length}
+        actions={<LoginButton />}
+        guest
+      />
+    );
   }
 
   // Promise.all — profile e jobs buscados em paralelo.
@@ -36,8 +49,46 @@ export default async function DashboardPage() {
     redirect("/perfil?onboarding=true");
   }
 
-  const jobList = jobs.map(mapJobSummary);
+  return (
+    <DashboardShell
+      jobs={jobs.map(mapJobSummary)}
+      monitoredCount={monitoredCount}
+      actions={<UserMenu user={session.user} />}
+    />
+  );
+}
 
+// Convite do modo visitante: o que é o VagaSync, os três passos e o login.
+function GuestIntro() {
+  return (
+    <section className="mb-10">
+      <p className="max-w-2xl text-sm text-[#A9B2C0]">
+        Cole o texto de uma vaga e o VagaSync monta o resumo, as tecnologias, as perguntas
+        prováveis e um checklist do que estudar. Depois é só acompanhar cada candidatura até a
+        oferta.
+      </p>
+      <div className="mt-6">
+        <OnboardingSteps />
+      </div>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <LoginButton label="Começar agora" primary />
+        <span className="text-xs text-[#7C8494]">Grátis, entrando com Google ou GitHub.</span>
+      </div>
+    </section>
+  );
+}
+
+function DashboardShell({
+  jobs,
+  monitoredCount,
+  actions,
+  guest = false,
+}: {
+  jobs: JobSummary[];
+  monitoredCount: number;
+  actions: React.ReactNode;
+  guest?: boolean;
+}) {
   return (
     <main className="min-h-screen text-[#E4E6EB] px-4 py-10">
       <div className="studio-backdrop">
@@ -61,7 +112,7 @@ export default async function DashboardPage() {
               </span>
             </div>
             <h1 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-outfit)" }}>
-              Suas candidaturas
+              {guest ? "Organize suas candidaturas com ajuda de IA" : "Suas candidaturas"}
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -82,11 +133,18 @@ export default async function DashboardPage() {
             >
               + Nova vaga
             </Link>
-            <UserMenu user={session.user} />
+            {actions}
           </div>
         </div>
 
-        <DashboardClient jobs={jobList} />
+        {guest && (
+          <>
+            <GuestIntro />
+            <DemoBanner text="Abaixo, um dashboard de exemplo. Clique nas vagas para ver a análise da IA." />
+          </>
+        )}
+
+        <DashboardClient jobs={jobs} />
       </div>
     </main>
   );

@@ -40,7 +40,7 @@ export default function UserMenu({ user }: { user: Session["user"] }) {
       <form
         action={async () => {
           "use server";
-          await signOut({ redirectTo: "/login" });
+          await signOut({ redirectTo: "/" });
         }}
       >
         <button

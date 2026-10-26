@@ -5,6 +5,8 @@ import { mapJob } from "@/lib/jobMapper";
 import { parseArray } from "@/lib/json";
 import BackButton from "@/components/ui/BackButton";
 import VagaContent from "@/components/job/VagaContent";
+import DemoBanner from "@/components/onboarding/DemoBanner";
+import { DEMO_SKILLS, getDemoJob, isDemoJobId } from "@/lib/demoJobs";
 
 // Busca a vaga completa e as skills do perfil em paralelo.
 async function getVagaData(id: string, userId: string) {
@@ -24,6 +26,11 @@ async function getVagaData(id: string, userId: string) {
   };
 }
 
+function getDemoVagaData(id: string) {
+  const job = getDemoJob(id);
+  return job ? { job, userSkills: DEMO_SKILLS } : null;
+}
+
 export default async function VagaDetalhesPage({
   params,
   searchParams,
@@ -32,17 +39,20 @@ export default async function VagaDetalhesPage({
   searchParams: Promise<{ created?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/login");
-  }
-
   const { id } = await params;
   const { created } = await searchParams;
+
+  // Modo visitante: só as vagas de exemplo abrem sem login. Link de uma vaga
+  // real (ex: compartilhado) leva ao login e volta para cá depois.
+  const guest = !session?.user;
+  if (guest && !isDemoJobId(id)) {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/vaga/${id}`)}`);
+  }
 
   // Com o Prisma connection cache e JWT ativo, isso é uma única conexão
   // reutilizada + 1 roundtrip paralelo. Enquanto resolve, aparece o
   // app/vaga/[id]/loading.tsx.
-  const data = await getVagaData(id, session.user.id);
+  const data = guest ? getDemoVagaData(id) : await getVagaData(id, session.user.id);
 
   if (!data) {
     // notFound() não funciona bem dentro de async Server Components com
@@ -64,6 +74,12 @@ export default async function VagaDetalhesPage({
             label={data.job.status === "MONITORADA" || data.job.status === "DESCARTADA" ? "Monitoradas" : "Dashboard"}
           />
         </div>
+
+        {guest && (
+          <div className="mt-4">
+            <DemoBanner text="Vaga de exemplo. Com sua conta, cada vaga que você colar ganha esta análise." />
+          </div>
+        )}
 
         {created === "true" && (
           <div className="mt-4 rounded-xl border border-[#4ADE80]/40 bg-[#4ADE80]/10 px-4 py-3 text-sm text-[#4ADE80]">

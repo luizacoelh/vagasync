@@ -4,13 +4,16 @@ import { useState } from "react";
 import { JobStatus } from "@prisma/client";
 import { STATUS_LABELS } from "@/lib/jobStatus";
 import { updateJobStatus } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 export default function StatusSelect({ jobId, initialStatus }: { jobId: string; initialStatus: JobStatus }) {
   const [status, setStatus] = useState(initialStatus);
   const [toast, setToast] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const { requireLogin } = useLoginGate();
 
   async function handleChange(newStatus: JobStatus) {
+    if (requireLogin("Entre para acompanhar o status das suas candidaturas.")) return;
     const previousStatus = status;
     setStatus(newStatus);
     setIsUpdating(true);

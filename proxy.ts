@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-const PUBLIC_PATHS = ["/login", "/privacidade", "/termos"];
+// Abertas sem login. "/", "/monitoradas", "/nova-vaga" e "/vaga/*" entram no
+// modo visitante (vagas de exemplo, ações pedem login — ver
+// components/auth/LoginGate.tsx). Perfil e admin continuam exigindo login.
+const PUBLIC_PATHS = ["/", "/login", "/privacidade", "/termos", "/monitoradas", "/nova-vaga"];
+const PUBLIC_PREFIXES = ["/api/auth", "/vaga/"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   const isPublic =
-    PUBLIC_PATHS.some((path) => pathname === path) || pathname.startsWith("/api/auth");
+    PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   // Injeta x-pathname em cada resposta para que Server Components (ex: NewJobFab)
   // possam saber em qual rota estão sendo renderizados sem precisar de Client Component.

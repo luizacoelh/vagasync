@@ -9,17 +9,19 @@ fica no [`README.md`](./README.md); passo a passo de deploy no
 ```
 vagasync/
   auth.ts                       # Config central do Auth.js (providers, adapter, callbacks)
-  proxy.ts                      # Protege rotas (substitui middleware.ts no Next.js 16)
+  proxy.ts                      # Protege rotas (substitui middleware.ts no Next.js 16); /, /monitoradas, /nova-vaga e /vaga/* abertas ao visitante
   app/
-    page.tsx                    # Dashboard (exige sessão + perfil, filtra por usuário)
-    login/page.tsx               # Tela de login (Google/GitHub)
+    page.tsx                    # Dashboard (sessão + perfil, filtra por usuário); sem sessão: convite + vagas de exemplo
+    login/page.tsx               # Tela de login (Google/GitHub) — também abre como janela no modo visitante
     perfil/page.tsx              # Perfil do usuário (onboarding + edição)
     admin/page.tsx                # Limites globais + gestão de usuários (admin only)
     monitoradas/page.tsx         # Vagas coletadas pelo n8n (status MONITORADA): Tenho interesse / Descartar
     privacidade/page.tsx         # Política de Privacidade
     termos/page.tsx              # Termos de Uso
     nova-vaga/page.tsx          # Cadastro de vaga (Analisar → Confirmar → Salvar)
-    vaga/[id]/page.tsx          # Detalhes da vaga (só do dono)
+    vaga/[id]/page.tsx          # Detalhes da vaga (só do dono; visitante só abre as de exemplo)
+    actions/jobs.ts             # Server Actions de vaga (todas conferem a sessão)
+    actions/auth.ts             # signInWith(provider, redirectTo) — login pelos botões
     api/
       auth/[...nextauth]/route.ts  # Handler do Auth.js (login/logout/callback OAuth)
       analyze/route.ts          # Chama o Gemini — sessão + limite de tamanho + rate limit (usuário e IP)
@@ -38,7 +40,8 @@ vagasync/
     ui/                         # Componentes genéricos de apresentação
     job/                        # Componentes do domínio "vaga"
     dashboard/                  # Componentes específicos do Dashboard
-    auth/                       # UserMenu (avatar + link de perfil + admin + logout)
+    auth/                       # UserMenu, LoginButtons, LoginGate (modo visitante: janela de login + useLoginGate)
+    onboarding/                 # OnboardingSteps (os 3 passos) e DemoBanner (aviso "isto é exemplo")
     profile/                    # ProfileForm
     admin/                      # AppSettingsForm, UsersTable
     monitoradas/                # MonitoredJobList (feed de vagas do n8n com ações)
@@ -56,6 +59,8 @@ vagasync/
     jobStatus.ts / jobLocation.ts / experienceLevel.ts  # Labels e estilos dos enums
     json.ts                     # parseArray/stringifyArray (campos JSON-em-string)
     skillGap.ts                 # Compara tecnologias da vaga com as skills do UserProfile
+    demoJobs.ts                 # Vagas fictícias do modo visitante + análise pronta da vaga de exemplo
+    safeRedirect.ts             # Só deixa voltar para caminho interno depois do login
   prisma/
     schema.prisma                # User/Account/Session/VerificationToken (Auth.js) + UserProfile + AiUsage + AppSettings + Job
     prisma.config.ts            # Config do CLI — sempre aponta para o SQLite local
@@ -85,6 +90,12 @@ vagasync/
   de API e todo Server Component que consulta o banco confere `auth()` de
   novo. Depender só do proxy é desaconselhado pela comunidade Next.js (CVE de
   2025 envolvendo bypass de middleware via header forjado).
+- **Modo visitante só na interface.** Sem login, as páginas mostram vagas de
+  exemplo de `lib/demoJobs.ts` (nada vem do banco) e cada ação chama
+  `requireLogin()` de `components/auth/LoginGate.tsx`, que abre a janela de
+  login em vez de chamar o servidor. Server Actions e rotas de API continuam
+  recusando quem não tem sessão; o gate é só para o visitante ver um convite
+  em vez de um erro. Como o layout raiz chama `auth()`, toda página é dinâmica.
 - **404, não 403, para recurso de outro usuário.** Não confirmamos para quem
   não tem acesso que aquele id existe.
 - **Rate limit (usuário e IP) contado no banco, não em memória.** Funções

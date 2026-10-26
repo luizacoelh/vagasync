@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
+import { auth } from "@/auth";
 import NewJobFab from "@/components/ui/NewJobFab";
+import { LoginGateProvider } from "@/components/auth/LoginGate";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -20,11 +22,15 @@ export const metadata: Metadata = {
   description: "Organize suas candidaturas de emprego com ajuda de IA.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Sem sessão = modo visitante: as páginas mostram vagas de exemplo e as
+  // ações abrem a janela de login (components/auth/LoginGate.tsx).
+  const session = await auth();
+
   return (
     <html lang="pt-BR" className={`${outfit.variable} ${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
@@ -43,18 +49,17 @@ export default function RootLayout({
           </filter>
         </svg>
 
-        {children}
+        <LoginGateProvider isGuest={!session?.user}>
+          {children}
 
-        {/*
-          FAB global de "Nova vaga" — aparece em todas as páginas autenticadas
-          (o componente verifica a sessão internamente e não renderiza nada
-          na tela de login/onboarding). Fixo no canto inferior direito em
-          mobile (círculo 56px), expande pra texto em sm+.
-          O botão "+ Nova vaga" no header do Dashboard foi mantido — em
-          desktop os dois coexistem; em mobile o FAB substitui o do header
-          que some no breakpoint sm.
-        */}
-        <NewJobFab />
+          {/*
+            FAB global de "Nova vaga" — aparece em todas as páginas, inclusive
+            no modo visitante (some só em login, perfil, termos e admin). Fixo
+            no canto inferior direito em mobile (círculo 56px), expande pra
+            texto em sm+. Em desktop convive com o "+ Nova vaga" do header.
+          */}
+          <NewJobFab />
+        </LoginGateProvider>
       </body>
     </html>
   );

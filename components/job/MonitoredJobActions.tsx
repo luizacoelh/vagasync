@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { markJobsInterested, discardJobs } from "@/app/actions/jobs";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 const OUTFIT = { fontFamily: "var(--font-outfit)" } as const;
+export const MONITORED_LOGIN_MESSAGE = "Entre para separar as vagas que te interessam e levá-las ao seu dashboard.";
 
 // Ações da página de uma vaga MONITORADA — as mesmas da lista de
 // /monitoradas. Depois de agir, volta para /monitoradas no mesmo ponto da
@@ -14,8 +16,10 @@ export default function MonitoredJobActions({ jobId }: { jobId: string }) {
   const router = useRouter();
   const [pending, setPending] = useState<"interest" | "discard" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { requireLogin } = useLoginGate();
 
   async function act(kind: "interest" | "discard") {
+    if (requireLogin(MONITORED_LOGIN_MESSAGE)) return;
     setPending(kind);
     setError(null);
     try {
