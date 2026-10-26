@@ -13,6 +13,23 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### feat(n8n): estágio na Gupy, filtro por local e execução no GitHub Actions
+- [x] Gupy volta como fonte: a página de busca do portal traz as 12 vagas mais
+  recentes no `__NEXT_DATA__` (a API JSON saiu do ar). 11 buscas só de
+  estágio: remoto do Brasil todo + Piauí, janela de 30 dias respeitando o
+  prazo de inscrição
+- [x] Filtro de local para todas as fontes: remoto de qualquer lugar;
+  presencial/híbrido só Teresina/PI (`ESTADO_LOCAL`, `CIDADES_LOCAIS`)
+- [x] Estágio entra primeiro na fila da rodada; `soujava/vagas-java` entra no
+  GitHub; "Programa de Estágio" e "Desenvolvimento de Negócios" não contam
+  mais como TI
+- [x] "Buscar vagas" lê o corpo como texto (para aceitar o HTML da Gupy)
+- [x] `.github/workflows/n8n-vagas.yml`: a cada 2h roda o mesmo workflow num
+  n8n descartável (sem PC ligado); log só com o resumo
+  (`scripts/n8n-execution-summary.mjs`). Agendamento do n8n local desligado
+- [x] Medido: InfoJobs (RSS virou HTML) e Catho (403) fora; primeira rodada
+  trouxe 5 vagas novas, 2 da Gupy (uma presencial em Teresina)
+
 ### chore(turso): banco de produção movido para São Paulo
 - A função da Vercel roda em `gru1` (São Paulo) e o banco `applylens` estava
   no grupo `default` na Irlanda (`aws-eu-west-1`): ~175 ms por consulta
@@ -333,13 +350,12 @@ Hoje o onboarding é só texto em `/perfil`. Tornar mais visual:
 - Não bloqueia o uso — pode ser pulado
 
 ### 3. Finalizar a automação n8n
-Funcionando ponta a ponta em teste (We Work Remotely RSS → webhook →
-`/monitoradas`). Falta:
-- Publicar o workflow e hospedar o n8n 24/7 (Railway/Render) — local só roda
-  com o Docker ligado
-- Outras fontes: InfoJobs, Catho, Gmail (Gupy não tem mais API pública)
-- Mais vagas de estágio presencial/híbrido: hoje as fontes são quase todas
-  remotas (Remotar, Himalayas); vagas locais exigiriam outra fonte
+Rodando a cada 2h no GitHub Actions (Remotar, GitHub, Himalayas e Gupy →
+webhook → `/monitoradas`). Falta:
+- Gmail (alertas de vaga por e-mail: LinkedIn, CIEE...) — exige OAuth do
+  Google no n8n, então não roda no Actions descartável
+- Duplicadas entre fontes: a mesma vaga no Remotar e no Himalayas tem URLs
+  diferentes e entra duas vezes (dedup é só por URL)
 - Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
   outros usuários cada conta precisaria da própria config (palavras-chave e
   fontes)

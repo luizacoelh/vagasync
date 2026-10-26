@@ -1,0 +1,67 @@
+# Roda o workflow do n8n (n8n-workflows/vagas-br.json) a cada 2 horas sem
+# depender do PC ligado: sobe um n8n descartável, importa o workflow e a
+# credencial do webhook, executa uma vez e joga tudo fora. A deduplicação fica
+# no VagaSync (pela URL), então não há estado para guardar entre execuções.
+#
+# Segredo necessário (Settings → Secrets and variables → Actions):
+#   N8N_WEBHOOK_SECRET — o mesmo valor da Vercel
+name: n8n — vagas
+
+on:
+  schedule:
+    # minuto 17 para fugir do pico do início da hora no GitHub
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-vagas
+  cancel-in-progress: false
+
+jobs:
+  vagas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar workflow e credencial
+        env:
+          N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$N8N_WEBHOOK_SECRET" ]; then
+            echo "::error::Cadastre o secret N8N_WEBHOOK_SECRET no repositório."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/n8n"
+          cp n8n-workflows/vagas-br.json scripts/n8n-execution-summary.mjs "$RUNNER_TEMP/n8n/"
+          # Mesmo id da credencial referenciada no workflow
+          jq -n --arg value "$N8N_WEBHOOK_SECRET" '[{
+            id: "4hKzRl0IGwT4zRJf",
+            name: "Header Auth account",
+            type: "httpHeaderAuth",
+            data: { name: "x-webhook-secret", value: $value }
+          }]' > "$RUNNER_TEMP/n8n/credentials.json"
+          chmod -R a+rwX "$RUNNER_TEMP/n8n"
+
+      - name: Executar no n8n
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "$RUNNER_TEMP/n8n:/work" \
+            -e GITHUB_TOKEN \
+            -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false \
+            -e N8N_DIAGNOSTICS_ENABLED=false \
+            -e GENERIC_TIMEZONE=America/Sao_Paulo \
+            --entrypoint sh \
+            n8nio/n8n:2.41.4 -c '
+              set -e
+              n8n import:credentials --input=/work/credentials.json
+              rm /work/credentials.json
+              n8n import:workflow --input=/work/vagas-br.json
+              n8n execute --id=qNi4pLxpKJ1N6moj > /work/saida.txt 2>&1 || true
+              node /work/n8n-execution-summary.mjs /work/saida.txt
+            '

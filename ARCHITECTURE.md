@@ -65,6 +65,9 @@ vagasync/
     sync-turso-schema.mjs       # Referência: cria tabelas novas faltantes sem reaplicar o histórico inteiro
     set-admin.mjs                # Bootstrap: marca um e-mail como admin (local; Turso só com --turso)
     lib/turso-env.mjs           # Carrega .env.turso e exige escolha explícita (escrita) ou token read-only (leitura)
+    n8n-execution-summary.mjs   # Resume a saída de `n8n execute` no GitHub Actions (sem imprimir as vagas)
+  n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → webhook)
+  .github/workflows/n8n-vagas.yml  # Roda o workflow acima a cada 2h num n8n descartável (secret N8N_WEBHOOK_SECRET)
   types/
     job.ts / profile.ts
     next-auth.d.ts              # Adiciona `id` e `isAdmin` ao tipo Session.user
