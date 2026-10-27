@@ -26,7 +26,10 @@ Deploy na Vercel. Repo público: nunca commitar segredos nem `*.db`.
 ## n8n
 - Workflow exportado em `n8n-workflows/`; endpoint `/api/webhook/n8n` (header `x-webhook-secret`, comparação timing-safe).
 - Vagas entram com status `MONITORADA` e aparecem em `/monitoradas`.
-- Nó Filter de "últimas 2h": "Always Output Data" deve ficar DESLIGADO. Nó Code: manter o guard `if (!title || !link) continue;`.
+- Roda no GitHub Actions (`.github/workflows/n8n-vagas.yml`) a partir do JSON do repo; o agendamento do n8n local fica desligado.
+- Nó "Montar vagas": manter o guard `if (!v.title || !v.url || v.description.length < 20) continue;`.
+- Duplicata (mesma URL ou título + empresa de outra origem) é regra de `lib/jobDedup.ts`; o teto de 40 envios
+  por rodada fica em "Separar novas", depois da checagem em lote. Detalhes em `docs/N8N_SETUP.md`.
 - Alterar workflow em produção: exportar o JSON antes, mudar, versionar o JSON no repo.
 
 ## Segredos
@@ -39,4 +42,4 @@ Deploy na Vercel. Repo público: nunca commitar segredos nem `*.db`.
 - Testes: SQLite descartável (`DATABASE_URL=file:./test.db`); `NODE_ENV=test` recusa o Turso.
 
 ## Comandos
-`npm run dev` · `npm run lint` · `npm run build` · `npm run check:turso` · `npm run migrate:turso -- --dry-run`
+`npm run dev` · `npm run lint` · `npm test` · `npm run build` · `npm run check:turso` · `npm run migrate:turso -- --dry-run`

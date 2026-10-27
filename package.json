@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test \"tests/*.test.mjs\"",
     "postinstall": "prisma generate",
     "migrate:turso": "node scripts/apply-turso-migrations.mjs",
     "check:turso": "node scripts/check-turso-schema.mjs"

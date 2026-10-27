@@ -25,7 +25,18 @@ for (const [node, runs] of Object.entries(runData)) {
 const auth = runData["Fontes"]?.[0]?.data?.main?.[0]?.some((i) => i.json.auth);
 console.log(`Token do GitHub nas buscas: ${auth ? "sim" : "não"}`);
 
-const sent = runData["Montar vagas"]?.[0]?.data?.main?.[0] ?? [];
+// Checagem em lote antes dos envios: quantas candidatas já existiam
+const check = runData["Checar já cadastradas"]?.[0]?.data?.main?.[0]?.[0]?.json;
+if (check) {
+  console.log(
+    Array.isArray(check.novas)
+      ? `Checagem: ${check.novas.length} novas, ${check.duplicadas} já cadastradas`
+      : `Checagem falhou (${String(check.error?.message ?? check.error ?? "sem detalhe").slice(0, 120)}); enviando as primeiras candidatas`
+  );
+}
+
+// "Enviar para VagaSync" recebe os itens de "Separar novas", na mesma ordem
+const sent = runData["Separar novas"]?.[0]?.data?.main?.[0] ?? [];
 const answers = runData["Enviar para VagaSync"]?.[0]?.data?.main?.[0] ?? [];
 const count = { novas: 0, duplicadas: 0, erros: 0 };
 let unauthorized = false;

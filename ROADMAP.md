@@ -13,6 +13,26 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### fix(n8n): vaga repetida entre fontes e filtro de área pelo título
+- [x] Mesma vaga em fontes diferentes (ex: Remotar e Himalayas) não entra
+  duas vezes: além da URL, o webhook compara título + empresa (sem acento,
+  caixa, pontuação e espaços) de outra origem nos últimos 30 dias, antes do
+  Gemini. Só entre as vagas do mesmo usuário; empresa vazia ou
+  "Confidencial" nunca casa; mesmo site com URL diferente é vaga distinta
+  (`lib/jobDedup.ts`). Depois da IA confere de novo com o título e a empresa
+  extraídos (pega o GitHub, que não tem empresa)
+- [x] n8n manda `title` e `company` como a fonte publicou
+- [x] Teto de 40 por rodada passa a contar só vagas novas: nó "Checar já
+  cadastradas" (`POST /api/webhook/n8n/check`, uma chamada por rodada) +
+  "Separar novas". Duplicadas antigas não travam mais a fila; se a checagem
+  falhar, volta ao comportamento anterior
+- [x] Área decidida pelo título (e categorias no Remotar), não pela
+  descrição; título de marketing/vendas/comercial/RH etc. sem nada de TI cai.
+  Corrige "Estágio em Marketing e Vendas" entrando pelo Himalayas
+- [x] `npm test` (node --test, sem dependência nova) com 17 testes; roda no CI
+- [x] CI: Node 22 (o mesmo do `engines`), `actions/checkout@v5` e
+  `actions/setup-node@v5` (rodam em Node 24; some o aviso de Node 20)
+
 ### feat(visitante): usar o app sem login (só leitura) + onboarding visual
 - [x] Sem login, `/`, `/monitoradas`, `/nova-vaga` e `/vaga/*` abrem com vagas
   de exemplo (`lib/demoJobs.ts`, nada do banco); `/perfil` e `/admin`
@@ -367,8 +387,6 @@ Rodando a cada 2h no GitHub Actions (Remotar, GitHub, Himalayas e Gupy →
 webhook → `/monitoradas`). Falta:
 - Gmail (alertas de vaga por e-mail: LinkedIn, CIEE...) — exige OAuth do
   Google no n8n, então não roda no Actions descartável
-- Duplicadas entre fontes: a mesma vaga no Remotar e no Himalayas tem URLs
-  diferentes e entra duas vezes (dedup é só por URL)
 - Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
   outros usuários cada conta precisaria da própria config (palavras-chave e
   fontes). Enquanto isso, quem não é o dono vê `/monitoradas` sempre vazia
