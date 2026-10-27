@@ -259,14 +259,18 @@ lote (`/api/webhook/n8n/check`). Sempre só entre as vagas do mesmo usuário
 2. **Mesmo título e mesma empresa vindos de outra origem**, criados nos
    últimos 30 dias (`DEDUP_WINDOW_DAYS`). É a mesma vaga anunciada em fontes
    diferentes (ex: Remotar e Himalayas, Remotar e Gupy). Título e empresa são
-   comparados sem acento, maiúsculas, pontuação e espaços extras. "Origem" é
-   o domínio da URL:
-   - mesmo título + empresa no **mesmo site** com URL diferente são vagas
+   comparados sem acento, maiúsculas, pontuação e espaços extras (`C++`,
+   `C#`, `F#` e `.NET` viram palavras antes, para não se confundirem).
+   "Origem" é o domínio da URL; no GitHub, o domínio + dono/repositório (cada
+   repositório de vagas é uma fonte):
+   - mesmo título + empresa na **mesma origem** com URL diferente são vagas
      **distintas** (ex: duas turmas de estágio) e entram;
-   - empresa vazia ou genérica (`Confidencial`, `Não informado`...) **nunca**
-     casa: sem empresa não dá para dizer que é a mesma vaga;
+   - empresa vazia ou genérica **nunca** casa: sem empresa não dá para dizer
+     que é a mesma vaga. Genérica = `Confidencial`, `Sigiloso`, `Anônimo`,
+     `Desconhecida`, `A definir`, `Não informada/especificada/divulgada...`,
+     `Sem nome` (com ou sem "Empresa" na frente), inclusive como a IA escreve;
    - limitação conhecida: duas vagas realmente diferentes, com título e
-     empresa idênticos, em sites diferentes no mesmo mês, contam como uma.
+     empresa idênticos, em origens diferentes no mesmo mês, contam como uma.
 
 Duplicata volta `200` com `{ "duplicate": true, "id": "...", "reason": "url" |
 "titulo_empresa" }` **sem chamar o Gemini** e sem criar nada.
@@ -276,7 +280,17 @@ publicou) com o título e a empresa **salvos** (os que a IA extraiu na época;
 na prática são iguais). Os dois campos são opcionais: sem eles, só a URL
 decide antes da IA. Depois da análise ele confere de novo com o título e a
 empresa que a IA extraiu, o que pega fontes sem empresa (GitHub): nesse caso a
-IA já foi gasta, mas a vaga repetida não é criada.
+IA já foi gasta, mas a vaga repetida não é criada. Essa segunda checagem
+recarrega as vagas do banco, porque o n8n dispara um envio a cada 8s sem
+esperar a resposta e outro envio da mesma rodada pode ter gravado a vaga
+durante a análise.
+
+Ainda não coberto (ver `ROADMAP.md`):
+- **Corrida residual**: dois envios da mesma vaga gravando no mesmo instante
+  ainda criam duas linhas. Resolver de vez exige um índice único
+  `(userId, url)` por migration e tratar o conflito como duplicata.
+- **URL com variação** (`http`/`https`, barra final, `?utm_*`): não casa pela
+  URL e, sendo da mesma origem, também não casa por título + empresa.
 
 Fontes aceitas em `source`: `indeed`, `weworkremotely`, `github`,
 `himalayas`, `remotar`, `gupy`, `infojobs`, `catho`, `gmail`, `manual` (outro

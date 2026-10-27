@@ -110,10 +110,12 @@ export async function POST(req: NextRequest) {
 
     // Segunda checagem com o título e a empresa que a IA extraiu: pega a fonte
     // que não informa empresa (ex: issues do GitHub). A IA já foi gasta, mas
-    // não nasce uma vaga repetida.
+    // não nasce uma vaga repetida. Recarrega as vagas: a análise leva segundos
+    // e outro envio da mesma rodada pode ter gravado a mesma vaga nesse meio
+    // tempo (o n8n dispara um envio a cada 8s sem esperar a resposta).
     const afterAi = findDuplicate(
       { url: normalizedUrl, title: analysis.title, company: analysis.company },
-      existingJobs
+      await loadDedupJobs(userId, normalizedUrl ? [normalizedUrl] : [])
     );
     if (afterAi) {
       console.log(`[webhook] vaga duplicada após a IA (${validSource}): ${analysis.title} @ ${analysis.company}`);

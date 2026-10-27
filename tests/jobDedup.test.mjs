@@ -93,3 +93,27 @@ test("vaga colada à mão (sem URL) conta como outra origem", () => {
   const existing = [job("a", null, "Estágio em TI", "Ponte")];
   assert.ok(findDuplicate({ url: "https://remotar.com.br/job/1", title: "Estágio em TI", company: "Ponte" }, existing, NOW));
 });
+
+test("empresa genérica escrita pela IA não casa", () => {
+  for (const name of ["Não especificada", "Empresa não informada", "Desconhecida", "Não divulgado", "A definir", "Confidencial (via Sylisi)"]) {
+    assert.equal(normalizeCompany(name), null, name);
+  }
+  // nomes reais que começam parecido continuam valendo
+  assert.equal(normalizeCompany("Sem Parar"), "sem parar");
+  assert.equal(normalizeCompany("Nao Sei Tecnologia"), "nao sei tecnologia");
+});
+
+test("C++, C# e .NET não viram o mesmo título", () => {
+  assert.notEqual(normalizeText("Desenvolvedor C++ Jr"), normalizeText("Desenvolvedor C# Jr"));
+  assert.equal(normalizeText("Estágio .NET"), "estagio dotnet");
+  const existing = [job("a", "https://remotar.com.br/job/1", "Desenvolvedor C++ Jr", "Ponte")];
+  assert.equal(findDuplicate({ url: "https://himalayas.app/j/1", title: "Desenvolvedor C# Jr", company: "Ponte" }, existing, NOW), null);
+});
+
+test("no GitHub cada repositório é uma origem", () => {
+  const existing = [job("a", "https://github.com/frontendbr/vagas/issues/1", "Dev Júnior", "Ponte")];
+  // mesma vaga em outro repositório de vagas: duplicata
+  assert.ok(findDuplicate({ url: "https://github.com/backend-br/vagas/issues/9", title: "Dev Júnior", company: "Ponte" }, existing, NOW));
+  // outra issue no mesmo repositório: vaga distinta
+  assert.equal(findDuplicate({ url: "https://github.com/frontendbr/vagas/issues/2", title: "Dev Júnior", company: "Ponte" }, existing, NOW), null);
+});

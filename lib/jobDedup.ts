@@ -15,17 +15,20 @@
 
 export const DEDUP_WINDOW_DAYS = 30;
 
-const GENERIC_COMPANIES = new Set([
-  "confidencial",
-  "empresa confidencial",
-  "nao informado",
-  "nao informada",
-  "sigiloso",
-  "sigilosa",
-  "anonimo",
-  "anonima",
-  "n a",
-]);
+// Empresa que não identifica ninguém: as fontes e a IA escrevem "Confidencial",
+// "Não informada", "Empresa não especificada", "Desconhecida" etc. Testado já
+// normalizado (sem acento, minúsculo).
+const GENERIC_COMPANY =
+  /^(empresa )?(confidencial|sigilos[ao]|anonim[ao]|desconhecid[ao]|n a|a definir|nao (informad|especificad|divulgad|identificad|mencionad)[ao]s?|sem (nome|empresa|informacao))( .*)?$/;
+
+// Símbolos que mudam a vaga e sumiriam ao tirar a pontuação ("C++" e "C#"
+// virariam o mesmo "c").
+const SYMBOL_WORDS: [RegExp, string][] = [
+  [/c\+\+/g, " cpp "],
+  [/c#/g, " csharp "],
+  [/f#/g, " fsharp "],
+  [/\.net\b/g, " dotnet "],
+];
 
 export type DedupCandidate = {
   url?: string | null;
@@ -46,18 +49,18 @@ export type DuplicateMatch = { id: string; reason: "url" | "titulo_empresa" };
 // "  Estágio em TI – Grupo CÉV " → "estagio em ti grupo cev". Vazio → null.
 export function normalizeText(value: string | null | undefined): string | null {
   if (typeof value !== "string") return null;
-  const text = value
+  let text = value
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
+    .toLowerCase();
+  for (const [pattern, word] of SYMBOL_WORDS) text = text.replace(pattern, word);
+  text = text.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   return text === "" ? null : text;
 }
 
 export function normalizeCompany(value: string | null | undefined): string | null {
   const text = normalizeText(value);
-  if (!text || GENERIC_COMPANIES.has(text) || text.startsWith("confidencial ")) return null;
+  if (!text || GENERIC_COMPANY.test(text)) return null;
   return text;
 }
 
@@ -65,11 +68,17 @@ export function normalizeUrl(value: string | null | undefined): string | null {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 }
 
-// Origem da vaga = host da URL ("" sem URL, ex: vaga colada à mão).
+// Origem da vaga = host da URL ("" sem URL, ex: vaga colada à mão). No
+// GitHub cada repositório de vagas é uma fonte diferente (frontendbr/vagas,
+// backend-br/vagas...), então entra o dono/repo.
 function origin(url: string | null): string {
   if (!url) return "";
   try {
-    return new URL(url).host.toLowerCase().replace(/^www\./, "");
+    const parsed = new URL(url);
+    const host = parsed.host.toLowerCase().replace(/^www\./, "");
+    if (host !== "github.com") return host;
+    const [owner = "", repo = ""] = parsed.pathname.split("/").filter(Boolean);
+    return `${host}/${owner.toLowerCase()}/${repo.toLowerCase()}`;
   } catch {
     return "";
   }

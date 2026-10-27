@@ -140,3 +140,30 @@ test("se a checagem falhar, volta às 40 primeiras", () => {
   assert.equal(urls.length, 40);
   assert.equal(urls[0], "https://x/0");
 });
+
+test("nenhum nó de código tem caractere de controle (ex: \b virado backspace no JSON)", () => {
+  for (const n of workflow.nodes) {
+    if (typeof n.parameters.jsCode !== "string") continue;
+    assert.doesNotMatch(n.parameters.jsCode, /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/, n.name);
+  }
+});
+
+test("título de vendas/RH cai mesmo com categoria de TI no Remotar", () => {
+  const vagas = montar([
+    remotar([
+      ["Estágio em Sales Ops", "ZG Soluções", "Programação"],
+      ["Estágio RH", "ZG Soluções", "Programação"],
+      ["Estágio em Back-end", "ZG Soluções", "Programação"],
+    ]),
+  ]);
+  assert.deepEqual(vagas.map((v) => v.title), ["Estágio em Back-end"]);
+});
+
+test("a checagem lê as candidatas do nó Montar vagas", () => {
+  const body = workflow.nodes.find((n) => n.name === "Checar já cadastradas").parameters.jsonBody;
+  assert.match(body, /\$\('Montar vagas'\)\.all\(\)/);
+});
+
+test("índice repetido na resposta não envia a vaga duas vezes", () => {
+  assert.deepEqual(separar({ novas: [3, 3, 5], duplicadas: 97 }), ["https://x/3", "https://x/5"]);
+});
