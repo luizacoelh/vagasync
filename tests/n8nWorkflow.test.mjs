@@ -207,8 +207,8 @@ test("vaga em inglês ou espanhol continua recusada", () => {
 });
 
 test("ênclise do português não conta como espanhol", () => {
-  // só "da" e "com" contam para o português; sem o hífen no token, os
-  // pronomes ("-las", "-los", "-la", "-lo") dariam 11 ao espanhol
+  // o português soma 5 ("os", "e" duas vezes, "da", "com"); sem o hífen no
+  // token, os pronomes ("-las", "-los", "-la", "-lo") dariam 11 ao espanhol
   const enclise =
     "Receber os relatórios, analisá-las e corrigi-los; validá-las, revisá-los, organizá-las, documentá-los, " +
     "apoiá-la, testá-lo, integrá-las, publicá-los e acompanhá-las junto da equipe técnica, " +
