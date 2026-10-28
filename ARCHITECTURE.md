@@ -76,7 +76,7 @@ vagasync/
     n8n-execution-summary.mjs   # Resume a saída de `n8n execute` no GitHub Actions (sem imprimir as vagas)
   n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → checagem → webhook)
   .github/workflows/n8n-vagas.yml  # Roda o workflow acima a cada 2h num n8n descartável (secret N8N_WEBHOOK_SECRET)
-  tests/                        # `npm test` (node --test, sem banco): jobDedup e nós de código do workflow n8n
+  tests/                        # `npm test` (node --test, sem banco): jobDedup, nós de código do workflow n8n, resumo do Actions (fixtures/ com respostas reais) e Job.source num SQLite temporário (support/: loader de TS e stubs do Gemini/Auth)
   types/
     job.ts / profile.ts
     next-auth.d.ts              # Adiciona `id` e `isAdmin` ao tipo Session.user
@@ -189,6 +189,12 @@ vagasync/
   (30 dias), o `isAdmin` do cookie pode estar velho depois de uma revogação.
   `requireAdmin()` já cobria a API; a página passou a consultar o banco
   também, senão um admin revogado ainda veria a lista de usuários.
+- **`Job.source` é o canal de entrada, não o provedor.** `"manual"` (padrão,
+  cadastro na interface) ou `"n8n"` (gravado pelo webhook). O provedor
+  (`gupy`, `remotar`...) que o n8n manda vai só para o log e `AiUsage.action`;
+  quando preciso, sai do host da URL. Vagas anteriores a essa regra ficaram
+  `"manual"` (sem backfill). Uma coluna própria para o provedor, se um dia
+  for necessária, entra por migration.
 - **Vagas `MONITORADA` ficam fora do dashboard principal.** Vagas coletadas
   pelo n8n entram com esse status e só aparecem em `/monitoradas`.
   "Tenho interesse" muda para `APLICADA` (com `appliedAt` = hoje) e a vaga

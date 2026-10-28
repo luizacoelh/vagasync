@@ -1,0 +1,168 @@
+{
+  "_origem": "Respostas reais das APIs do Remotar e do Himalayas em 28/10/2026, reduzidas aos campos usados por \"Montar vagas\".",
+  "remotarCurtas": [
+    {
+      "id": 167678,
+      "title": "Estágio em Inteligência Artificial",
+      "subtitle": null,
+      "description": "<h2>Responsabilidades</h2><ul><li>Aprender na prática com profissionais experientes das áreas de IA e Engenharia.</li><li>Apoiar no desenvolvimento de pipelines de Machine Learning e IA generativa.</li><li>Participar da construção de agentes inteligentes com ferramentas como LangChain, OpenAI API, RAG, entre outras.</li><li>Contribuir com testes, documentação, melhorias de código e evolução contínua dos experimentos.</li><li>Colaborar com equipes multidisciplinares, entendendo como IA se conecta com produtos, dados e negócios.</li></ul>",
+      "moreInfos": "Selecionamos as principais informações da posição. Para conferir o descritivo completo, clique em \"acessar\"",
+      "companyDisplayName": null,
+      "city": null,
+      "state": null,
+      "type": "remote",
+      "createdAt": "2026-10-22T19:52:04.717-03:00",
+      "jobTags": [
+        {
+          "tag": {
+            "name": "🐣 Estágio"
+          }
+        },
+        {
+          "tag": {
+            "name": "👩🏻 Para mulheres"
+          }
+        },
+        {
+          "tag": {
+            "name": "🌍 100% Remoto"
+          }
+        }
+      ],
+      "jobCategories": [
+        {
+          "category": {
+            "name": "Programação"
+          }
+        }
+      ]
+    },
+    {
+      "id": 168384,
+      "title": "Programa de Estágio em Segurança da Informação",
+      "subtitle": null,
+      "description": "<h2>Responsabilidades</h2><ul><li>Auxiliar no monitoramento do ambiente de rede e alertas de segurança, contribuindo para a detecção de falhas.</li><li>Contribuir para a remediação de vulnerabilidades e auxiliar na busca por melhorias em segurança da informação.</li><li>Contribuir na documentação e normatização do setor de segurança da informação.</li><li>Trabalhar em conjunto com os analistas para documentar os processos de segurança da informação.</li><li>Efetuar análise inicial dos chamados do SOC e redirecioná-los para execução.</li><li>Realizar a abertura de chamados relacionados à segurança da informação no CRM interno.</li><li>Participar do Onboarding, juntamente com os analistas, para divulgação do setor de segurança da informação.</li></ul>",
+      "moreInfos": "Selecionamos as principais informações da posição. Para conferir o descritivo completo, clique em \"acessar\"",
+      "companyDisplayName": null,
+      "city": "Belo Horizonte",
+      "state": "MG",
+      "type": "hybrid",
+      "createdAt": "2026-10-27T14:19:02.832-03:00",
+      "jobTags": [
+        {
+          "tag": {
+            "name": "🐣 Estágio"
+          }
+        },
+        {
+          "tag": {
+            "name": "♿ PcD"
+          }
+        },
+        {
+          "tag": {
+            "name": "🌈 LGBTQIAP+"
+          }
+        },
+        {
+          "tag": {
+            "name": "👨🏾‍🦱 Para pessoas não brancas"
+          }
+        },
+        {
+          "tag": {
+            "name": "👩🏻 Para mulheres"
+          }
+        },
+        {
+          "tag": {
+            "name": "🏢 Vaga híbrida"
+          }
+        }
+      ],
+      "jobCategories": [
+        {
+          "category": {
+            "name": "SysAdmin"
+          }
+        }
+      ]
+    },
+    {
+      "id": 163635,
+      "title": "Estágio em Contabilidade: Dados e Inteligência Artificial",
+      "subtitle": null,
+      "description": "<h2>Responsabilidades</h2><ul><li>Criar visões analíticas e apresentações de dados contábeis e financeiros.</li><li>Preparar, organizar e estruturar dados contábeis para alimentar modelos de Inteligência Artificial.</li><li>Dar suporte no desenvolvimento, acompanhamento e melhoria dos fluxos de automação contábil.</li><li>Executar a limpeza e organização de dados não estruturados provenientes de sistemas legados.</li><li>Auxiliar na atualização, validação e manutenção de indicadores, dashboards e relatórios gerenciais.</li></ul>",
+      "moreInfos": "Selecionamos as principais informações da posição. Para conferir o descritivo completo, clique em \"acessar\"",
+      "companyDisplayName": null,
+      "city": null,
+      "state": null,
+      "type": "remote",
+      "createdAt": "2026-09-21T13:17:32.775-03:00",
+      "jobTags": [
+        {
+          "tag": {
+            "name": "♿ PcD"
+          }
+        },
+        {
+          "tag": {
+            "name": "🐣 Estágio"
+          }
+        },
+        {
+          "tag": {
+            "name": "⏳ Jornada reduzida"
+          }
+        },
+        {
+          "tag": {
+            "name": "🌍 100% Remoto"
+          }
+        }
+      ],
+      "jobCategories": [
+        {
+          "category": {
+            "name": "Administrativo / Financeiro / Operações"
+          }
+        }
+      ]
+    }
+  ],
+  "himalayasIngles": [
+    {
+      "title": "Backend Engineer Internship",
+      "companyName": "Metasys",
+      "pubDate": 1792929692,
+      "applicationLink": "https://himalayas.app/companies/metasys/jobs/backend-engineer-internship?utm_source=api",
+      "locationRestrictions": [],
+      "seniority": [
+        "Entry-level"
+      ],
+      "description": "<h3>Overview: Supply Chain API and Microservices Development</h3><p>The Backend Engineer is a hands-on role responsible for the development, scaling, and maintenance of the core API services that power our entire integrated platform. You will build highly reliable, secure, and performant backend services within the NestJS modular monolith, focusing on critical supply chain logic, complex payment integrations, and the orchestration backbone for our AI agents.</p><h3>Internship Details</h3><p>Duration: 3 months </p><h3>Start Date: Immediate</h3><h3>Location: Remote</h3><p>Stipend: None initially. Based on your first-quarter performance, you may be offered a paid full-time opportunity, or even be absorbed directly by the client as an FTE.</p><h3><strong>Key Responsibilities &amp; Core Projects</strong></h3><p>You will own the backend development for the most complex domain logic, ensuring scalability and transactional integrity.</p><ul>\n<li><p>API Development &amp; Implementation: Design, develop, and deploy highly scalable APIs for all platform components using Node.js 22 and NestJS within the TypeScript modular monolith. This includes the backends for the e-commerce checkout, internal tool APIs, and the B2B portal.</p></li>\n<li><p>SCM Domain Logic: Implement complex, transactional business logic within the core supply chain modules: Order Management (OMS), Warehouse Management (WMS), and Manufacturing Execution (MES). Ensure data integrity using PostgreSQL 15.</p></li>\n<li><p>Integrations &amp; Payments: Implement secure, reliable integrations with third-party payment gateways and external shipping/logistics providers.</p></li>\n<li><p>Performance &amp; Reliability: Implement effective caching strategies using Redis to boost API performance. Design and implement asynchronous processing and event-driven workflows to ensure system reliability and handle high-volume operations.</p></li>\n<li><p>Security &amp; Monitoring: Ensure all services adhere to security standards (JWT authorization, API security). Integrate backend services with the observability stack (OpenTelemetry, Prometheus, Loki) for monitoring and tracing.</p></li>\n</ul><h3><strong>Required Technologies &amp; Tools</strong></h3><p>Candidates must possess deep, hands-on experience with our core backend and data stack:</p><ul>\n<li><p>Core Backend: Expert proficiency in Node.js 22, NestJS, and TypeScript (mandatory).</p></li>\n<li><p>Data Layer: Strong expertise in PostgreSQL 15 (schema design, query optimization) and utilizing Redis for caching.</p></li>\n<li><p>Architecture: Experience designing and implementing APIs (REST/GraphQL), asynchronous communication, and event-driven patterns.</p></li>\n<li><p>Workflow: Experience working within a Monorepo structure, contributing to CI/CD via Makefile, and utilizing Docker for local development.</p></li>\n</ul><h3><strong>AI Agent Focus</strong></h3><p>You will build the reliable, secure services required for AI agent orchestration.</p><ul>\n<li><p>Agent Orchestration: Develop the backend services and API endpoints necessary to securely orchestrate, manage, and scale the AI agent systems.</p></li>\n<li><p>Data Access Services: Implement secure, high-performance services that allow AI agents (using frameworks like LangChain) to access and write necessary data to the WMS/OMS modules without compromising transactional integrity.</p></li>\n</ul><h3><strong>Success Metrics &amp; Career Path</strong></h3><h3>Performance will be measured by:</h3><ul>\n<li><p>Service Reliability: Uptime and stability of deployed services, achieving defined SLOs.</p></li>\n<li><p>Code Quality &amp; Efficiency: Delivery of clean, well-tested, and performant code that scales effectively.</p></li>\n<li><p>Feature Velocity: Timely and efficient delivery of complex backend features, particularly within the critical OMS and WMS modules.</p></li>\n</ul><p><strong>Mentorship Structure:</strong> Reports to the Technical Architect or Engineering Lead, working directly with Frontend, QA, and SRE teams to deliver high-quality supply chain functionality.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>"
+    },
+    {
+      "title": "Web Developer Intern",
+      "companyName": "Business Web Solutions",
+      "pubDate": 1792928495,
+      "applicationLink": "https://himalayas.app/companies/businesswebsolutions/jobs/web-developer-intern?utm_source=api",
+      "locationRestrictions": [],
+      "seniority": [
+        "Entry-level"
+      ],
+      "description": "<h3>Job Overview</h3><p>We’re looking for enthusiastic <strong>Web Developer/Web Development Interns</strong> who are excited to build real-world experience in web development and design. This internship, lasting 1 to 6 months (based on your availability), provides the opportunity to work on real-life projects, learn modern web development practices, and develop skills under the guidance of experienced developers with a pool of trained interns by us and a plan to global expansion worldwide in near future.</p><h3>Responsibilities</h3><ul>\n<li><p>Assist in building and redesigning websites from scratch, ensuring mobile-friendly and user-centric designs.</p></li>\n<li><p>Collaborate with the design and development teams to optimize websites for performance, scalability, and SEO.</p></li>\n<li><p>Create wireframes and sitemaps to support project planning and improve user experience (UX) design.</p></li>\n<li><p>Develop responsive and interactive front-end user interfaces (UI) and assist in back-end tasks for smooth website functionality.</p></li>\n<li><p>Participate in project brainstorming sessions to support our development strategies.</p></li>\n<li><p>Contribute to troubleshooting, debugging, and testing processes to maintain high-quality standards.</p></li>\n<li><p>Follow best practices in clean coding, version control, and web design standards.</p></li>\n</ul><h3>Requirements</h3><ul>\n<li><p>A PC or laptop with a stable internet connection.</p></li>\n<li><p>Mode of communication will only be in English Language.</p></li>\n<li><p>Basic understanding of HTML, CSS, and JavaScript is a plus but not mandatory.</p></li>\n<li><p>Strong problem-solving skills, attention to detail, and a proactive attitude.</p></li>\n<li><p>Comfortable working in a remote environment with an eagerness to learn and adapt.</p></li>\n</ul><h3>Benefits</h3><ul>\n<li><p>Hands-on experience in web development with exposure to industry-standard tools and frameworks.</p></li>\n<li><p>Mentorship from experienced web developers to support your learning journey.</p></li>\n<li><p>Flexible internship duration, from 1 to 6 months, tailored to your goals and availability.</p></li>\n<li><p>Potential for a paid stipend based on performance, duration, and project contributions.</p></li>\n<li><p>Opportunity to work remotely in a supportive, globally-focused team environment.</p></li>\n</ul><p>This role is ideal for individuals looking to gain practical web development experience, contribute to impactful projects, and build skills that are essential for a successful career in web development. If you’re passionate about building websites that make a difference, we encourage you to apply and grow with us!</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>"
+    },
+    {
+      "title": "Junior Software Engineer",
+      "companyName": "Mimidentalclinic",
+      "pubDate": 1792179332,
+      "applicationLink": "https://himalayas.app/companies/mimidentalclinic/jobs/junior-software-engineer?utm_source=api",
+      "locationRestrictions": [],
+      "seniority": [
+        "Entry-level"
+      ],
+      "description": "<h3>About the Job</h3><h3>The Opportunity</h3><p>As a Junior Software Engineer at Mimi Dental Clinic, you will contribute to building the technology that powers Ibadan's premier dental practice, serving over 15,000 patients with world-class care across more than two decades of continuous operation. Mimi Dental Clinic is a leading dental healthcare provider delivering exceptional, patient-centred care with warmth, precision, and integrity, backed by nearly 2,000 Google reviews and a 4.9-star rating.</p><p>In this role, you will work alongside senior engineers to develop, test, and ship features across our patient-facing platforms, clinical operations tools, and internal systems. You will gain hands-on experience with mobile application development, healthcare data systems, and the infrastructure that enables thousands of patients to access premium dental care seamlessly. You will be trusted with meaningful work from day one, not sidelined with tasks that don't matter.</p><p>This is a rare opportunity to begin your engineering career at the intersection of healthcare and technology, where your contributions will be visible, valued, and directly tied to the quality of experience that patients receive at one of Nigeria's highest-rated dental practices.</p><h3>What You'll Do</h3><p>Write clean, well-tested code that contributes to Mimi Dental Clinic's core platforms, patient-facing applications, and internal tooling. Collaborate with senior engineers on the design and implementation of new features across our mobile application, booking systems, and clinical operations infrastructure. Participate in code reviews, giving and receiving feedback that elevates the quality of the entire team's work. Assist in debugging, troubleshooting, and resolving issues across the platform with attention to detail and persistence. Contribute to building and improving automation that supports our patient scheduling, follow-up, and engagement workflows. Learn and grow rapidly by engaging with modern tools, frameworks, and healthcare technology in a production environment.</p><h3>What You'll Need to Succeed</h3><p>A degree in Computer Science, Software Engineering, or a related discipline, or equivalent practical experience through bootcamps, self-directed learning, or personal projects. Foundational knowledge of at least one programming language such as Python, C#, TypeScript, or JavaScript. Familiarity with web development fundamentals including APIs, databases, and version control with Git. A genuine desire to learn, improve, and take ownership of your growth as an engineer. Strong communication skills and a collaborative disposition, comfortable working within a team and asking thoughtful questions. Genuine interest in healthcare technology, patient experience systems, or digital health innovation is highly valued.</p><h3>Role Details</h3><p>Employment Type: Full-Time and Part-Time positions available Location: Fully Remote Stage: Established, 20+ years operational</p><h3>About Mimi Dental Clinic</h3><p>Mimi Dental Clinic is Ibadan's premier dental practice, founded in 2004 with a singular vision: to deliver world-class dental care with warmth, precision, and integrity. For over two decades, we have been the trusted choice for individuals and families seeking exceptional oral healthcare in a refined, comfortable setting. We provide a comprehensive suite of dental services including general dentistry, cosmetic dentistry, orthodontics, dental implants, oral surgery, paediatric dentistry, and emergency care.</p><p>We are not simply a dental clinic. We are the standard that others aspire to, serving over 15,000 satisfied patients with a 99% satisfaction rate, investing continuously in advanced technology, and building digital experiences that reflect the same commitment to excellence that defines every aspect of our care.</p><h3>Equal Opportunity</h3><p>Mimi Dental Clinic is an equal opportunity employer. We welcome dedicated individuals regardless of gender, race, ethnicity, national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status. We believe that exceptional care is delivered by exceptional teams, and exceptional teams are built on inclusion, respect, and the understanding that brilliance has no single origin.</p><p>If you require accommodation during the application or interview process, please reach out to our team and we will ensure your needs are met with care.</p><p>Let's build the future of dental healthcare, together.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>"
+    }
+  ]
+}
