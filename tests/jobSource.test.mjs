@@ -99,16 +99,17 @@ test("vaga nova pelo webhook é gravada com source n8n, sem o nome do provedor",
 });
 
 test("vaga repetida no webhook não chama a IA nem cria outra linha", async () => {
-  globalThis.__geminiCalls = 0;
-  const res = await enviar({
-    description: "Estágio em Desenvolvimento Web na Nimbus, remoto, com React e JavaScript.",
-    url: "https://himalayas.app/j/estagio-web",
-    source: "himalayas",
+  // a vaga já existe (criada aqui, sem depender do teste anterior)
+  const url = "https://remotar.com.br/job/999";
+  await prisma.job.create({
+    data: { userId, description: "Vaga já cadastrada.", company: "ZG Soluções", title: "Estágio em QA", url, source: "n8n" },
   });
+  globalThis.__geminiCalls = 0;
+  const res = await enviar({ description: "Estágio em QA na ZG Soluções, remoto, com testes automatizados.", url, source: "remotar" });
   assert.equal(res.status, 200);
   assert.equal((await res.json()).duplicate, true);
   assert.equal(globalThis.__geminiCalls, 0);
-  assert.equal(await prisma.job.count({ where: { source: "n8n" } }), 1);
+  assert.equal(await prisma.job.count({ where: { url } }), 1);
 });
 
 test("cadastro manual mantém source manual", async () => {
