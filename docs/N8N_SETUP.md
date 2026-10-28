@@ -328,7 +328,10 @@ repositório é público.
 - **Log**: só o resumo de `scripts/n8n-execution-summary.mjs` (itens por nó,
   itens e aprovadas **por busca**, resultado da checagem em lote, vagas novas,
   duplicadas e erros). A linha por busca (`remotar estágio: 50 / 3`; "sem
-  resposta" quando a busca falhou) é a base para decidir, depois de umas duas
+  resposta" quando a busca falhou). "Aprovadas" são as que passaram no filtro
+  do "Montar vagas", **antes** da checagem de já cadastradas, e a mesma vaga
+  conta em cada busca onde apareceu (a soma passa do total de candidatas).
+  Essa linha é a base para decidir, depois de umas duas
   semanas de dados, sobre buscas que nunca trazem vaga — nenhuma foi removida. A saída bruta não vai para o log. O job
   falha se o webhook responder 401 (secret errado).
 - **Rodar na hora**: aba *Actions* → "n8n — vagas" → *Run workflow*.

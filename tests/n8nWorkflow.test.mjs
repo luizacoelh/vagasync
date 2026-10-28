@@ -206,6 +206,18 @@ test("vaga em inglês ou espanhol continua recusada", () => {
   assert.equal(montar([soIdioma([espanhol])]).length, 0);
 });
 
+test("ênclise do português não conta como espanhol", () => {
+  // só "da" e "com" contam para o português; sem o hífen no token, os
+  // pronomes ("-las", "-los", "-la", "-lo") dariam 11 ao espanhol
+  const enclise =
+    "Receber os relatórios, analisá-las e corrigi-los; validá-las, revisá-los, organizá-las, documentá-los, " +
+    "apoiá-la, testá-lo, integrá-las, publicá-los e acompanhá-las junto da equipe técnica, " +
+    "com foco remoto, prazos definidos, entregas semanais, métricas claras, feedback contínuo, mentoria próxima, " +
+    "rotina flexível, ferramentas modernas, aprendizado diário, código revisado, testes automatizados, dados abertos, " +
+    "projetos reais, impacto direto.";
+  assert.equal(montar([soIdioma([enclise])]).length, 1);
+});
+
 test("texto curto ou empatado não é recusado só pelo idioma", () => {
   const curto = "Remote internship. You will build web apps with the team in React and Node.";
   const tecnico = Array.from({ length: 50 }, (_, i) => `React${i}`).join(" ");
