@@ -13,6 +13,32 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### fix(n8n): vaga repetida entre fontes e filtro de área pelo título
+- [x] Mesma vaga em fontes diferentes (ex: Remotar e Himalayas) não entra
+  duas vezes: além da URL, o webhook compara título + empresa (sem acento,
+  caixa, pontuação e espaços) de outra origem nos últimos 30 dias, antes do
+  Gemini. Só entre as vagas do mesmo usuário; empresa vazia ou genérica
+  ("Confidencial", "Não informada"...) nunca casa; mesma origem com URL
+  diferente é vaga distinta; no GitHub cada repositório é uma origem
+  (`lib/jobDedup.ts`). Depois da IA confere de novo, com as vagas recarregadas
+  do banco, usando o título e a empresa extraídos (pega o GitHub, que não tem
+  empresa)
+- [x] n8n manda `title` e `company` como a fonte publicou
+- [x] Teto de 40 por rodada passa a contar só vagas novas: nó "Checar já
+  cadastradas" (`POST /api/webhook/n8n/check`, uma chamada por rodada) +
+  "Separar novas". Duplicadas antigas não travam mais a fila; se a checagem
+  falhar, volta ao comportamento anterior
+- [x] Área decidida pelo título (e categorias no Remotar), não pela
+  descrição; título de marketing/vendas/comercial/RH etc. sem nada de TI cai.
+  Corrige "Estágio em Marketing e Vendas" entrando pelo Himalayas
+- [x] `npm test` (node --test, sem dependência nova) com 24 testes; roda no CI
+- [x] Revisão independente antes do merge: corrigidos `` virado
+  caractere de controle no filtro (vendas/RH passavam), símbolos de
+  linguagem no título (C++ x C#), empresa genérica escrita pela IA e
+  recarga das vagas antes da checagem pós-IA
+- [x] CI: Node 22 (o mesmo do `engines`), `actions/checkout@v5` e
+  `actions/setup-node@v5` (rodam em Node 24; some o aviso de Node 20)
+
 ### feat(visitante): usar o app sem login (só leitura) + onboarding visual
 - [x] Sem login, `/`, `/monitoradas`, `/nova-vaga` e `/vaga/*` abrem com vagas
   de exemplo (`lib/demoJobs.ts`, nada do banco); `/perfil` e `/admin`
@@ -367,13 +393,33 @@ Rodando a cada 2h no GitHub Actions (Remotar, GitHub, Himalayas e Gupy →
 webhook → `/monitoradas`). Falta:
 - Gmail (alertas de vaga por e-mail: LinkedIn, CIEE...) — exige OAuth do
   Google no n8n, então não roda no Actions descartável
-- Duplicadas entre fontes: a mesma vaga no Remotar e no Himalayas tem URLs
-  diferentes e entra duas vezes (dedup é só por URL)
 - Monitoramento por usuário: hoje tudo vai para `N8N_TARGET_USER_ID`; para
   outros usuários cada conta precisaria da própria config (palavras-chave e
   fontes). Enquanto isso, quem não é o dono vê `/monitoradas` sempre vazia
   com "quando o monitoramento encontrar vagas..." — ajustar esse texto (ou
   esconder a aba) para essas contas
+- Dedup — sobras da revisão do PR #33:
+  - Índice único `(userId, url)` por migration (fluxo de backup do Turso) e
+    conflito tratado como duplicata: fecha a corrida residual de dois envios
+    gravando a mesma vaga no mesmo instante
+  - Normalizar URL (http/https, barra final, `?utm_*`, `#`) no que é salvo e
+    no que é comparado
+  - `loadDedupJobs` traz todas as vagas do usuário dos últimos 30 dias a cada
+    chamada; filtrar mais no banco se o volume crescer
+
+### 2b. Build instável no CI: download das fontes do Google
+`next build` (Turbopack) às vezes falha ao baixar Inter/Outfit do Google
+Fonts: `Module not found: Can't resolve
+'@vercel/turbopack-next/internal/font/google/font'` + `next/font/google
+queries have exactly one entry`. No PR #33 (commit `4cd3098`) o job
+"Lint + TypeScript + Build" do run 40584675565 falhou nas tentativas 1 e 2 e
+passou na 3, sem mudança de código; o run do pull request (40584836617)
+passou de primeira. Lint, testes e migrations passaram em todas. O mesmo erro
+apareceu uma vez num build local (Node 22). Causa não confirmada (antes o CI
+usava Node 20 e não tinha falhado; a Vercel já builda em Node 22 e passa).
+Correção provável, num PR próprio: fontes locais com `next/font/local`
+(arquivos `.woff2` no repo) em `app/layout.tsx`, tirando a rede do build.
+Detalhes e logs na issue #35.
 
 ### 3. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.

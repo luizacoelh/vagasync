@@ -12,11 +12,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          # Mesma major do "engines" do package.json (>=22 <23)
+          node-version: 22
           cache: npm
 
       - name: Instalar dependências
@@ -24,6 +25,11 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      # Regras de deduplicação (lib/jobDedup.ts) e nós de código do workflow
+      # do n8n; não precisam de banco nem de rede
+      - name: Testes
+        run: npm test
 
       - name: Gerar Prisma Client
         run: npx prisma generate
@@ -46,11 +52,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          # Mesma major do "engines" do package.json (>=22 <23)
+          node-version: 22
           cache: npm
 
       - name: Instalar dependências

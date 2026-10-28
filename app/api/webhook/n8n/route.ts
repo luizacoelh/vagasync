@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { stringifyArray } from "@/lib/json";
 import { mapJob } from "@/lib/jobMapper";
@@ -7,6 +6,8 @@ import { analyzeJobWithGemini } from "@/lib/gemini";
 import { logAiUsage } from "@/lib/aiUsage";
 import { getAppSettings } from "@/lib/appSettings";
 import { JobAnalysis } from "@/types/job";
+import { findDuplicate, normalizeUrl } from "@/lib/jobDedup";
+import { authorizeN8n, loadDedupJobs, optionalText } from "@/lib/n8nWebhook";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -31,34 +32,9 @@ const VALID_SOURCES = ["indeed", "weworkremotely", "github", "himalayas", "remot
 type JobSource = typeof VALID_SOURCES[number];
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.N8N_WEBHOOK_SECRET;
-  const targetUserId = process.env.N8N_TARGET_USER_ID;
-
-  if (!secret || !targetUserId) {
-    return NextResponse.json(
-      { error: "Webhook não configurado. Defina N8N_WEBHOOK_SECRET e N8N_TARGET_USER_ID no .env." },
-      { status: 501 }
-    );
-  }
-
-  const receivedSecret = req.headers.get("x-webhook-secret") ?? "";
-  const secretBuf = Buffer.from(secret);
-  const receivedBuf = Buffer.from(receivedSecret);
-  const lengthsMatch = secretBuf.length === receivedBuf.length;
-  const safeReceived = lengthsMatch ? receivedBuf : Buffer.alloc(secretBuf.length);
-  const valid = lengthsMatch && timingSafeEqual(secretBuf, safeReceived);
-
-  if (!valid) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-
-  const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
-  if (!targetUser) {
-    return NextResponse.json(
-      { error: "N8N_TARGET_USER_ID não corresponde a nenhum usuário." },
-      { status: 500 }
-    );
-  }
+  const auth = await authorizeN8n(req);
+  if (auth.response) return auth.response;
+  const userId = auth.userId;
 
   const settings = await getAppSettings();
 
@@ -71,6 +47,10 @@ export async function POST(req: NextRequest) {
       // Fonte de onde a vaga veio — para rastreabilidade
       source?: JobSource;
     };
+    // Título e empresa como a fonte publicou — opcionais, só para deduplicar
+    // antes da IA (lib/jobDedup.ts). O que fica salvo é o que a IA extrai.
+    const title = optionalText(body.title);
+    const company = optionalText(body.company);
 
     if (!description || typeof description !== "string" || description.trim().length < 20) {
       return NextResponse.json(
@@ -101,20 +81,15 @@ export async function POST(req: NextRequest) {
     // Valida source se fornecido
     const validSource = source && VALID_SOURCES.includes(source) ? source : "manual";
 
-    // Deduplicação por URL, antes do Gemini: a mesma vaga reaparece no feed
-    // entre execuções do n8n e cada nova análise gastaria IA à toa. Responde
-    // 200 (não erro) para o n8n não tratar como falha. Vaga sem URL não tem
-    // como ser comparada e segue normalmente.
-    const normalizedUrl = typeof url === "string" && url.trim() !== "" ? url.trim() : undefined;
-    if (normalizedUrl) {
-      const existing = await prisma.job.findFirst({
-        where: { userId: targetUser.id, url: normalizedUrl },
-        select: { id: true },
-      });
-      if (existing) {
-        console.log(`[webhook] vaga duplicada ignorada (${validSource}): ${normalizedUrl}`);
-        return NextResponse.json({ duplicate: true, id: existing.id }, { status: 200 });
-      }
+    // Deduplicação antes do Gemini (mesma URL, ou mesmo título + empresa de
+    // outra fonte): cada nova análise gastaria IA à toa. Responde 200 (não
+    // erro) para o n8n não tratar como falha.
+    const normalizedUrl = normalizeUrl(url);
+    const existingJobs = await loadDedupJobs(userId, normalizedUrl ? [normalizedUrl] : []);
+    const duplicate = findDuplicate({ url: normalizedUrl, title, company }, existingJobs);
+    if (duplicate) {
+      console.log(`[webhook] vaga duplicada ignorada (${validSource}, ${duplicate.reason}): ${normalizedUrl ?? title}`);
+      return NextResponse.json({ duplicate: true, ...duplicate }, { status: 200 });
     }
 
     const analysis = await analyzeJobWithGemini(description);
@@ -128,14 +103,28 @@ export async function POST(req: NextRequest) {
 
     const approxTokens = Math.ceil(description.length / 4);
     await logAiUsage({
-      userId: targetUser.id,
+      userId,
       action: `analyze_job_webhook_${validSource}`,
       tokens: approxTokens,
     });
 
+    // Segunda checagem com o título e a empresa que a IA extraiu: pega a fonte
+    // que não informa empresa (ex: issues do GitHub). A IA já foi gasta, mas
+    // não nasce uma vaga repetida. Recarrega as vagas: a análise leva segundos
+    // e outro envio da mesma rodada pode ter gravado a mesma vaga nesse meio
+    // tempo (o n8n dispara um envio a cada 8s sem esperar a resposta).
+    const afterAi = findDuplicate(
+      { url: normalizedUrl, title: analysis.title, company: analysis.company },
+      await loadDedupJobs(userId, normalizedUrl ? [normalizedUrl] : [])
+    );
+    if (afterAi) {
+      console.log(`[webhook] vaga duplicada após a IA (${validSource}): ${analysis.title} @ ${analysis.company}`);
+      return NextResponse.json({ duplicate: true, ...afterAi }, { status: 200 });
+    }
+
     const job = await prisma.job.create({
       data: {
-        userId: targetUser.id,
+        userId,
         description,
         company: analysis.company,
         title: analysis.title,

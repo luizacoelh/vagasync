@@ -80,7 +80,8 @@ O fluxo em uso é `n8n-workflows/vagas-br.json` ("VagaSync — Vagas BR"):
 
 ```
 A cada 2h ─┐
-Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Enviar para VagaSync
+Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Checar já cadastradas
+                                                   → Separar novas → Enviar para VagaSync
 ```
 
 - **Fontes**: lista de URLs — busca do Remotar (`estágio`, `júnior`,
@@ -92,17 +93,37 @@ Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Enviar pa
   o `Montar vagas` faz o parse.
 - **Montar vagas**: normaliza os quatro formatos, pega as publicadas nos
   últimos 7 dias (30 na Gupy, se o prazo de inscrição não passou), aplica o
-  filtro de perfil e manda no máximo 40 por rodada, estágio primeiro,
-  intercalando as fontes. O perfil fica nas constantes do topo do código:
-  `ESTADO_LOCAL`/`CIDADES_LOCAIS` (presencial/híbrido só em Teresina/PI;
-  remoto de qualquer lugar), `NIVEL_OK`/`NIVEL_FORA` (estágio–júnior),
-  `AREA_TI`/`AREA_FORA`, `EXIGE_INGLES`, `EXIGE_ANOS` (2+ anos),
-  `CATEGORIAS_REMOTAR` e o teste de português. Para trocar de estado, mude
-  `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a busca `state=` da Gupy em "Fontes".
+  filtro de perfil e devolve as candidatas (até 300), estágio primeiro,
+  intercalando as fontes. Cada uma leva `title` e `company` como a fonte
+  publicou (`company` vazio no GitHub, que não tem esse campo). O perfil fica
+  nas constantes do topo do código: `ESTADO_LOCAL`/`CIDADES_LOCAIS`
+  (presencial/híbrido só em Teresina/PI; remoto de qualquer lugar),
+  `NIVEL_OK`/`NIVEL_FORA` (estágio–júnior), `AREA_TI`/`AREA_FORA`/`NAO_TI`,
+  `EXIGE_INGLES`, `EXIGE_ANOS` (2+ anos), `CATEGORIAS_REMOTAR` e o teste de
+  português. Para trocar de estado, mude `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a
+  busca `state=` da Gupy em "Fontes".
+  - **Área (TI ou não)** sai do **título**, não da descrição: texto de vaga de
+    marketing fala em "autodesenvolvimento" e "sistemas" e passava. No Remotar
+    contam também as categorias (já filtradas por `CATEGORIAS_REMOTAR`); no
+    GitHub os repositórios já são só de desenvolvimento. Título de outra área
+    (`NAO_TI`: marketing, vendas, comercial, RH, jurídico, administrativo...)
+    cai, a menos que também tenha algo de TI ("Analista de Dados de
+    Marketing" passa). As categorias do Himalayas **não** são usadas: vaga de
+    "Desenvolvimento de Negócios" vem com "Estágio-em-Desenvolvimento".
+- **Checar já cadastradas**: uma única chamada (`executeOnce`) a
+  `POST /api/webhook/n8n/check` com `{ vagas: [{ url, title, company }] }`
+  de todas as candidatas. Responde os índices das que ainda não existem (ver
+  seção 6). Não grava nada nem chama a IA.
+- **Separar novas**: fica só com as novas e aplica o teto de **40 envios por
+  rodada** (`MAX_POR_EXECUCAO`) sobre elas. Assim vagas antigas que
+  reaparecem no feed nunca ocupam a fila. Se a checagem falhar (rede, deploy
+  sem a rota), volta ao comportamento antigo: as 40 primeiras candidatas, e o
+  webhook deduplica uma a uma.
 - **Enviar para VagaSync**: 1 vaga a cada 8s (abaixo do limite por minuto
-  do Gemini), autenticado pela credencial *Header Auth* (`x-webhook-secret`).
-  Erro numa vaga não para as outras; ela é tentada de novo na próxima rodada
-  (o webhook deduplica pela URL).
+  do Gemini), com `description`, `url`, `source`, `title` e `company`,
+  autenticado pela credencial *Header Auth* (`x-webhook-secret`, a mesma da
+  checagem). Erro numa vaga não para as outras; ela é tentada de novo na
+  próxima rodada.
 
 Importar/atualizar pela CLI (o arquivo tem `id` fixo, então reimportar
 substitui o mesmo workflow):
@@ -228,13 +249,48 @@ Catho responde 403. As seções abaixo são do plano antigo.
 
 ## 6. Evitar vagas duplicadas
 
-O webhook deduplica por URL: se já existe uma vaga do usuário com a mesma
-`url`, ele responde `200` com `{ "duplicate": true, "id": "..." }` **sem chamar
-o Gemini** e sem criar nada. Vaga enviada sem `url` não é deduplicada.
+A regra fica em `lib/jobDedup.ts` e vale igual no webhook e na checagem em
+lote (`/api/webhook/n8n/check`). Sempre só entre as vagas do mesmo usuário
+(`N8N_TARGET_USER_ID`), em qualquer status (inclusive `DESCARTADA`):
 
-A comparação é exata (só remove espaços nas pontas). Se uma fonte coloca
-parâmetros de rastreio variáveis no link (`utm_*` etc.), limpe a URL no nó
-Code antes de enviar.
+1. **Mesma URL**, em qualquer data. A comparação é exata (só remove espaços
+   nas pontas). Se uma fonte coloca parâmetros de rastreio variáveis no link
+   (`utm_*` etc.), limpe a URL no nó Code antes de enviar.
+2. **Mesmo título e mesma empresa vindos de outra origem**, criados nos
+   últimos 30 dias (`DEDUP_WINDOW_DAYS`). É a mesma vaga anunciada em fontes
+   diferentes (ex: Remotar e Himalayas, Remotar e Gupy). Título e empresa são
+   comparados sem acento, maiúsculas, pontuação e espaços extras (`C++`,
+   `C#`, `F#` e `.NET` viram palavras antes, para não se confundirem).
+   "Origem" é o domínio da URL; no GitHub, o domínio + dono/repositório (cada
+   repositório de vagas é uma fonte):
+   - mesmo título + empresa na **mesma origem** com URL diferente são vagas
+     **distintas** (ex: duas turmas de estágio) e entram;
+   - empresa vazia ou genérica **nunca** casa: sem empresa não dá para dizer
+     que é a mesma vaga. Genérica = `Confidencial`, `Sigiloso`, `Anônimo`,
+     `Desconhecida`, `A definir`, `Não informada/especificada/divulgada...`,
+     `Sem nome` (com ou sem "Empresa" na frente), inclusive como a IA escreve;
+   - limitação conhecida: duas vagas realmente diferentes, com título e
+     empresa idênticos, em origens diferentes no mesmo mês, contam como uma.
+
+Duplicata volta `200` com `{ "duplicate": true, "id": "...", "reason": "url" |
+"titulo_empresa" }` **sem chamar o Gemini** e sem criar nada.
+
+O webhook compara o `title`/`company` **enviados pelo n8n** (como a fonte
+publicou) com o título e a empresa **salvos** (os que a IA extraiu na época;
+na prática são iguais). Os dois campos são opcionais: sem eles, só a URL
+decide antes da IA. Depois da análise ele confere de novo com o título e a
+empresa que a IA extraiu, o que pega fontes sem empresa (GitHub): nesse caso a
+IA já foi gasta, mas a vaga repetida não é criada. Essa segunda checagem
+recarrega as vagas do banco, porque o n8n dispara um envio a cada 8s sem
+esperar a resposta e outro envio da mesma rodada pode ter gravado a vaga
+durante a análise.
+
+Ainda não coberto (ver `ROADMAP.md`):
+- **Corrida residual**: dois envios da mesma vaga gravando no mesmo instante
+  ainda criam duas linhas. Resolver de vez exige um índice único
+  `(userId, url)` por migration e tratar o conflito como duplicata.
+- **URL com variação** (`http`/`https`, barra final, `?utm_*`): não casa pela
+  URL e, sendo da mesma origem, também não casa por título + empresa.
 
 Fontes aceitas em `source`: `indeed`, `weworkremotely`, `github`,
 `himalayas`, `remotar`, `gupy`, `infojobs`, `catho`, `gmail`, `manual` (outro
@@ -248,13 +304,13 @@ que muda conforme a página de origem.
 `.github/workflows/n8n-vagas.yml` roda o mesmo `vagas-br.json` a cada 2 horas
 (minuto 17) num n8n descartável: sobe `n8nio/n8n:2.41.4`, importa a credencial
 e o workflow, executa uma vez (`n8n execute`) e descarta o container. Não há
-estado a guardar: a deduplicação é no VagaSync, pela URL. Grátis porque o
+estado a guardar: a deduplicação é no VagaSync (seção 6). Grátis porque o
 repositório é público.
 
 - **Secret necessário** (Settings → Secrets and variables → Actions →
   *New repository secret*): `N8N_WEBHOOK_SECRET`, o mesmo valor da Vercel.
 - **Log**: só o resumo de `scripts/n8n-execution-summary.mjs` (itens por nó,
-  vagas novas, duplicadas e erros). A saída bruta não vai para o log. O job
+  resultado da checagem em lote, vagas novas, duplicadas e erros). A saída bruta não vai para o log. O job
   falha se o webhook responder 401 (secret errado).
 - **Rodar na hora**: aba *Actions* → "n8n — vagas" → *Run workflow*.
 - **Local**: o agendamento do n8n do PC fica desligado para não rodar duas
@@ -277,11 +333,37 @@ curl -X POST https://seu-projeto.vercel.app/api/webhook/n8n \
   -d '{
     "description": "Desenvolvedor React Pleno - Empresa XYZ. Buscamos desenvolvedor com 3+ anos de experiência em React, TypeScript e testes unitários. Remoto. CLT.",
     "url": "https://br.indeed.com/vaga-teste",
-    "source": "indeed"
+    "source": "indeed",
+    "title": "Desenvolvedor React Pleno",
+    "company": "Empresa XYZ"
   }'
 ```
 
 Resposta esperada: JSON com a vaga criada (`id`, `title`, `company`, etc.)
+
+A checagem em lote, que não cria nada:
+
+```bash
+curl -X POST https://seu-projeto.vercel.app/api/webhook/n8n/check \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-secret: seu_segredo_aqui" \
+  -d '{ "vagas": [{ "url": "https://br.indeed.com/vaga-teste", "title": "Desenvolvedor React Pleno", "company": "Empresa XYZ" }] }'
+# → { "novas": [0], "duplicadas": 0 }
+```
+
+**Testes automáticos** (`npm test`, também no CI): `tests/jobDedup.test.mjs`
+cobre as regras da seção 6 e `tests/n8nWorkflow.test.mjs` roda o código dos
+nós "Montar vagas" e "Separar novas" direto do `vagas-br.json`, com respostas
+falsas das fontes (filtro de área, campos enviados e teto de 40).
+
+**Ensaio completo sem tocar na produção**: suba o app numa porta livre
+apontando para um SQLite descartável (`DATABASE_URL=file:...`,
+`N8N_WEBHOOK_SECRET` e `N8N_TARGET_USER_ID` de teste, `GEMINI_API_KEY` vazia
+para não gastar IA), troque `https://vagasync.vercel.app` por
+`http://host.docker.internal:<porta>` numa **cópia** do `vagas-br.json` e rode
+a cópia no mesmo container do Actions
+(`--add-host=host.docker.internal:host-gateway`). Vagas novas voltam erro de
+chave do Gemini, o que mostra que passaram da deduplicação sem gastar IA.
 
 ---
 

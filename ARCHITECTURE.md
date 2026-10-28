@@ -29,7 +29,8 @@ vagasync/
       jobs/route.ts             # GET (lista do usuário) / POST (cria para o usuário)
       jobs/[id]/route.ts        # GET / PATCH / DELETE — só se for dono da vaga
       jobs/export/route.ts      # Exporta as vagas do usuário logado em CSV
-      webhook/n8n/route.ts      # Endpoint para automações futuras (desativado por padrão)
+      webhook/n8n/route.ts      # Recebe vagas do n8n (x-webhook-secret); deduplica antes do Gemini
+      webhook/n8n/check/route.ts # Checagem em lote: quais candidatas ainda não existem (não grava)
       admin/settings/route.ts   # GET/PUT dos limites globais (admin only)
       admin/users/route.ts      # Lista usuários (admin only)
       admin/users/[id]/route.ts # Edita override de limite / isAdmin de um usuário (admin only)
@@ -59,6 +60,8 @@ vagasync/
     jobStatus.ts / jobLocation.ts / experienceLevel.ts  # Labels e estilos dos enums
     json.ts                     # parseArray/stringifyArray (campos JSON-em-string)
     skillGap.ts                 # Compara tecnologias da vaga com as skills do UserProfile
+    jobDedup.ts                 # Regra de duplicata do n8n: mesma URL ou título + empresa de outra origem (30 dias)
+    n8nWebhook.ts               # Auth do webhook do n8n + vagas do usuário que entram na comparação
     demoJobs.ts                 # Vagas fictícias do modo visitante + análise pronta da vaga de exemplo
     safeRedirect.ts             # Só deixa voltar para caminho interno depois do login
   prisma/
@@ -71,8 +74,9 @@ vagasync/
     set-admin.mjs                # Bootstrap: marca um e-mail como admin (local; Turso só com --turso)
     lib/turso-env.mjs           # Carrega .env.turso e exige escolha explícita (escrita) ou token read-only (leitura)
     n8n-execution-summary.mjs   # Resume a saída de `n8n execute` no GitHub Actions (sem imprimir as vagas)
-  n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → webhook)
+  n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → checagem → webhook)
   .github/workflows/n8n-vagas.yml  # Roda o workflow acima a cada 2h num n8n descartável (secret N8N_WEBHOOK_SECRET)
+  tests/                        # `npm test` (node --test, sem banco): jobDedup e nós de código do workflow n8n
   types/
     job.ts / profile.ts
     next-auth.d.ts              # Adiciona `id` e `isAdmin` ao tipo Session.user
