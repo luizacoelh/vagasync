@@ -34,7 +34,8 @@ const aprovadas = new Map();
 for (const item of runData["Montar vagas"]?.[0]?.data?.main?.[0] ?? []) {
   for (const i of item.json.buscas ?? []) aprovadas.set(i, (aprovadas.get(i) ?? 0) + 1);
 }
-if (buscas.length) console.log("Por busca (itens / aprovadas):");
+// "aprovadas" = passaram no filtro, antes da checagem de já cadastradas
+if (buscas.length) console.log("Por busca (itens / aprovadas no filtro, antes da checagem; a mesma vaga conta em cada busca):");
 buscas.forEach((item, i) => {
   const itens = countItems(respostas[i]?.json?.data);
   console.log(`  ${searchLabel(item.json.url)}: ${itens ?? "sem resposta"} / ${aprovadas.get(i) ?? 0}`);

@@ -21,6 +21,10 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   continuam recusadas
 - [x] Webhook grava `Job.source = "n8n"` nas vagas novas (canal de entrada;
   provedor não vai para a coluna). Vagas antigas não foram alteradas
+- [x] Teste de persistência (`tests/jobSource.test.mjs`): SQLite temporário
+  criado pelas migrations, Gemini simulado, webhook grava `"n8n"` e o
+  cadastro manual (`createJob`) mantém `"manual"`. Sem dependência nova:
+  `tests/support/ts-loader.mjs` transpila o TS com o `typescript` instalado
 - [x] Resumo do Actions mostra itens e aprovadas por busca. Nenhuma busca
   removida: decidir depois de ~2 semanas de dados
   (`docs/PLANO_N8N_IMPORTACAO_URL.md`, etapa E0)

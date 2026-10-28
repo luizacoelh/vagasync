@@ -46,7 +46,7 @@ test("resumo mostra itens e aprovadas por busca", () => {
     "Montar vagas": run([{ json: { buscas: [remotar, gupy] } }, { json: { buscas: [remotar] } }]),
   });
 
-  assert.match(out, /Por busca \(itens \/ aprovadas\):/);
+  assert.match(out, /Por busca \(itens \/ aprovadas no filtro, antes da checagem; a mesma vaga conta em cada busca\):/);
   assert.match(out, /^ {2}remotar estágio: 3 \/ 2$/m);
   assert.match(out, /^ {2}github soujava\/vagas-java: 2 \/ 0$/m);
   assert.match(out, /^ {2}gupy term=estágio&workplaceTypes=remote: 1 \/ 1$/m);

@@ -26,8 +26,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Regras de deduplicação (lib/jobDedup.ts) e nós de código do workflow
-      # do n8n; não precisam de banco nem de rede
+      # Regras de deduplicação (lib/jobDedup.ts), nós de código do workflow
+      # do n8n e Job.source gravado pelo webhook/cadastro manual. Sem rede:
+      # o Gemini é simulado e o banco é um SQLite temporário criado pelas
+      # migrations (tests/jobSource.test.mjs)
       - name: Testes
         run: npm test
 

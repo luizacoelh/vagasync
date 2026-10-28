@@ -76,7 +76,7 @@ vagasync/
     n8n-execution-summary.mjs   # Resume a saída de `n8n execute` no GitHub Actions (sem imprimir as vagas)
   n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → checagem → webhook)
   .github/workflows/n8n-vagas.yml  # Roda o workflow acima a cada 2h num n8n descartável (secret N8N_WEBHOOK_SECRET)
-  tests/                        # `npm test` (node --test, sem banco): jobDedup, nós de código do workflow n8n e resumo do Actions (fixtures/ com respostas reais)
+  tests/                        # `npm test` (node --test, sem banco): jobDedup, nós de código do workflow n8n, resumo do Actions (fixtures/ com respostas reais) e Job.source num SQLite temporário (support/: loader de TS e stubs do Gemini/Auth)
   types/
     job.ts / profile.ts
     next-auth.d.ts              # Adiciona `id` e `isAdmin` ao tipo Session.user
