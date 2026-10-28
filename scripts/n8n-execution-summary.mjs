@@ -22,8 +22,60 @@ for (const [node, runs] of Object.entries(runData)) {
   console.log(`${node}: ${items}${err ? ` (erro: ${err})` : ""}`);
 }
 
-const auth = runData["Fontes"]?.[0]?.data?.main?.[0]?.some((i) => i.json.auth);
+const buscas = runData["Fontes"]?.[0]?.data?.main?.[0] ?? [];
+const auth = buscas.some((i) => i.json.auth);
 console.log(`Token do GitHub nas buscas: ${auth ? "sim" : "não"}`);
+
+// Por busca: itens que a fonte devolveu e candidatas aprovadas em "Montar
+// vagas" (cada candidata traz em `buscas` as posições de "Fontes" onde
+// apareceu). Base para decidir sobre buscas que nunca trazem vaga.
+const respostas = runData["Buscar vagas"]?.[0]?.data?.main?.[0] ?? [];
+const aprovadas = new Map();
+for (const item of runData["Montar vagas"]?.[0]?.data?.main?.[0] ?? []) {
+  for (const i of item.json.buscas ?? []) aprovadas.set(i, (aprovadas.get(i) ?? 0) + 1);
+}
+if (buscas.length) console.log("Por busca (itens / aprovadas):");
+buscas.forEach((item, i) => {
+  const itens = countItems(respostas[i]?.json?.data);
+  console.log(`  ${searchLabel(item.json.url)}: ${itens ?? "sem resposta"} / ${aprovadas.get(i) ?? 0}`);
+});
+
+// Quantas vagas a resposta da fonte trouxe, no mesmo formato que "Montar
+// vagas" lê. null quando a busca falhou ou o formato mudou.
+function countItems(body) {
+  if (typeof body !== "string" || body === "") return null;
+  try {
+    if (body.trimStart().startsWith("<")) {
+      const m = body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+      const list = m && JSON.parse(m[1]).props?.pageProps?.initialJobList?.data;
+      return Array.isArray(list) ? list.length : null;
+    }
+    const data = JSON.parse(body);
+    const list = Array.isArray(data) ? data : data.data ?? data.jobs;
+    return Array.isArray(list) ? list.length : null;
+  } catch {
+    return null;
+  }
+}
+
+// "remotar estágio", "github soujava/vagas-java", "gupy term=estágio ti&state=Piauí"...
+function searchLabel(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "api.github.com") return `github ${u.pathname.split("/").slice(2, 4).join("/")}`;
+    if (u.hostname.endsWith("remotar.com.br")) return `remotar ${u.searchParams.get("search")}`;
+    if (u.hostname.endsWith("gupy.io")) {
+      const q = new URLSearchParams(decodeURIComponent(u.pathname.split("/").pop()));
+      for (const k of ["type", "sortBy", "sortOrder"]) q.delete(k);
+      return `gupy ${decodeURIComponent(q.toString().replace(/\+/g, " "))}`;
+    }
+    const q = new URLSearchParams(u.search);
+    q.delete("sort");
+    return `${u.hostname.replace(/^www\./, "").split(".")[0]} ${decodeURIComponent(q.toString().replace(/\+/g, " "))}`;
+  } catch {
+    return String(url);
+  }
+}
 
 // Checagem em lote antes dos envios: quantas candidatas já existiam
 const check = runData["Checar já cadastradas"]?.[0]?.data?.main?.[0]?.[0]?.json;

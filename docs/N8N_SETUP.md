@@ -100,7 +100,7 @@ Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Checar j�
   (presencial/híbrido só em Teresina/PI; remoto de qualquer lugar),
   `NIVEL_OK`/`NIVEL_FORA` (estágio–júnior), `AREA_TI`/`AREA_FORA`/`NAO_TI`,
   `EXIGE_INGLES`, `EXIGE_ANOS` (2+ anos), `CATEGORIAS_REMOTAR` e o teste de
-  português. Para trocar de estado, mude `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a
+  idioma (`emPortugues`). Para trocar de estado, mude `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a
   busca `state=` da Gupy em "Fontes".
   - **Área (TI ou não)** sai do **título**, não da descrição: texto de vaga de
     marketing fala em "autodesenvolvimento" e "sistemas" e passava. No Remotar
@@ -110,6 +110,17 @@ Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Checar j�
     cai, a menos que também tenha algo de TI ("Analista de Dados de
     Marketing" passa). As categorias do Himalayas **não** são usadas: vaga de
     "Desenvolvimento de Negócios" vem com "Estágio-em-Desenvolvimento".
+  - **Idioma** compara palavras funcionais exclusivas de cada língua
+    (português: `e`, `em`, `do`, `da`, `com`, `uma`, `não`...; inglês:
+    `the`, `and`, `of`, `to`, `with`...; espanhol: `el`, `la`, `los`, `y`,
+    `en`, `con`...). Recusa só quando inglês ou espanhol têm mais que o
+    português. Texto com menos de 40 palavras (`MIN_PALAVRAS_IDIOMA`) ou
+    empate passa: na dúvida a vaga vai para `/monitoradas`, onde descartar
+    custa um clique. A regra antiga (4 ocorrências de "vaga", "requisitos",
+    "benefícios"...) recusava descrições curtas do Remotar em português.
+  - Cada candidata leva também `buscas`: as posições, em "Fontes", das
+    buscas onde a vaga apareceu. Não vai para o VagaSync; serve só ao resumo
+    do Actions (seção 7).
 - **Checar já cadastradas**: uma única chamada (`executeOnce`) a
   `POST /api/webhook/n8n/check` com `{ vagas: [{ url, title, company }] }`
   de todas as candidatas. Responde os índices das que ainda não existem (ver
@@ -294,7 +305,12 @@ Ainda não coberto (ver `ROADMAP.md`):
 
 Fontes aceitas em `source`: `indeed`, `weworkremotely`, `github`,
 `himalayas`, `remotar`, `gupy`, `infojobs`, `catho`, `gmail`, `manual` (outro
-valor vira `manual`). Na Gupy o link é gravado sem o `?jobBoardSource=...`,
+valor vira `manual`). Esse provedor vai só para o log, a resposta e
+`AiUsage.action` (`analyze_job_webhook_<fonte>`). No banco, `Job.source` é o
+**canal de entrada**: toda vaga criada pelo webhook grava `"n8n"`, e o
+cadastro pela interface fica com o padrão `"manual"`. O provedor sai do host
+da URL. Vagas criadas antes dessa mudança continuam `"manual"` (não há como
+separar com segurança as que vieram do n8n; sem backfill). Na Gupy o link é gravado sem o `?jobBoardSource=...`,
 que muda conforme a página de origem.
 
 ---
@@ -310,7 +326,10 @@ repositório é público.
 - **Secret necessário** (Settings → Secrets and variables → Actions →
   *New repository secret*): `N8N_WEBHOOK_SECRET`, o mesmo valor da Vercel.
 - **Log**: só o resumo de `scripts/n8n-execution-summary.mjs` (itens por nó,
-  resultado da checagem em lote, vagas novas, duplicadas e erros). A saída bruta não vai para o log. O job
+  itens e aprovadas **por busca**, resultado da checagem em lote, vagas novas,
+  duplicadas e erros). A linha por busca (`remotar estágio: 50 / 3`; "sem
+  resposta" quando a busca falhou) é a base para decidir, depois de umas duas
+  semanas de dados, sobre buscas que nunca trazem vaga — nenhuma foi removida. A saída bruta não vai para o log. O job
   falha se o webhook responder 401 (secret errado).
 - **Rodar na hora**: aba *Actions* → "n8n — vagas" → *Run workflow*.
 - **Local**: o agendamento do n8n do PC fica desligado para não rodar duas

@@ -1,7 +1,8 @@
 # Plano — correções do n8n, novas fontes e cadastro de vaga por URL
 
-Documento de trabalho para organizar a execução no Maestri. **Nada aqui foi
-implementado ainda.** Diagnóstico feito em 28/10/2026, depois dos PRs #33 e #34.
+Documento de trabalho para organizar a execução no Maestri. **Status:** E0
+(seção 1.1, 1.2 e contagem por busca) implementada em `fix/n8n-idioma-origem`;
+o resto ainda não. Diagnóstico feito em 28/10/2026, depois dos PRs #33 e #34.
 A issue #35 (fontes do Google no build) fica fora deste plano.
 
 Legenda usada em todo o documento:

@@ -13,6 +13,18 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Concluído
 
+### fix(n8n): idioma em descrições curtas, origem n8n e contagem por busca
+- [x] Teste de idioma do "Montar vagas" compara palavras funcionais de
+  português, inglês e espanhol; texto curto (< 40 palavras) ou empate não é
+  recusado. Três descrições curtas reais do Remotar, antes recusadas, viraram
+  fixture (`tests/fixtures/n8n-idioma.json`); vagas em inglês e espanhol
+  continuam recusadas
+- [x] Webhook grava `Job.source = "n8n"` nas vagas novas (canal de entrada;
+  provedor não vai para a coluna). Vagas antigas não foram alteradas
+- [x] Resumo do Actions mostra itens e aprovadas por busca. Nenhuma busca
+  removida: decidir depois de ~2 semanas de dados
+  (`docs/PLANO_N8N_IMPORTACAO_URL.md`, etapa E0)
+
 ### fix(n8n): vaga repetida entre fontes e filtro de área pelo título
 - [x] Mesma vaga em fontes diferentes (ex: Remotar e Himalayas) não entra
   duas vezes: além da URL, o webhook compara título + empresa (sem acento,

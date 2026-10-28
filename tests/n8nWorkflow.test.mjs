@@ -164,6 +164,63 @@ test("a checagem lê as candidatas do nó Montar vagas", () => {
   assert.match(body, /\$\('Montar vagas'\)\.all\(\)/);
 });
 
+// Respostas reais (28/10/2026): descrições curtas em português do Remotar, que
+// o filtro antigo de idioma recusava, e vagas em inglês do Himalayas.
+const fixture = JSON.parse(readFileSync(new URL("./fixtures/n8n-idioma.json", import.meta.url), "utf8"));
+const recente = new Date(now - 3600000).toISOString();
+const remotarReal = (jobs) => ({ meta: {}, data: jobs.map((j) => ({ ...j, createdAt: recente })) });
+// Embala só a descrição numa vaga que passa em todo o resto (remota, Brasil,
+// estágio, título de TI): o que decidir é o idioma.
+const soIdioma = (descriptions) => ({
+  jobs: descriptions.map((description, i) => ({
+    title: `Estágio em Desenvolvimento ${i}`,
+    companyName: `Empresa ${i}`,
+    pubDate: Math.floor(now / 1000) - 3600,
+    applicationLink: `https://himalayas.app/j/idioma-${i}`,
+    locationRestrictions: ["Brazil"],
+    seniority: ["Entry-level"],
+    description,
+  })),
+});
+
+test("descrições curtas reais em português passam no idioma", () => {
+  // remotas e com categoria de TI, para só o idioma decidir
+  const jobs = fixture.remotarCurtas.map((j) => ({ ...j, type: "remote", jobCategories: [{ category: { name: "Programação" } }] }));
+  assert.equal(montar([remotarReal(jobs)]).length, 3);
+});
+
+test("descrição curta do Remotar segue o resto do filtro", () => {
+  // IA (remoto, Programação) passa; Segurança cai por local (híbrido em BH);
+  // Contabilidade cai pela categoria
+  const vagas = montar([remotarReal(fixture.remotarCurtas)]);
+  assert.deepEqual(vagas.map((v) => v.title), ["Estágio em Inteligência Artificial"]);
+});
+
+test("vaga em inglês ou espanhol continua recusada", () => {
+  assert.equal(montar([soIdioma(fixture.himalayasIngles.map((j) => j.description))]).length, 0);
+  const espanhol =
+    "Buscamos un estudiante de ingeniería de sistemas para unirse a nuestro equipo de desarrollo. " +
+    "El practicante trabajará con el equipo en la construcción de aplicaciones web y en la mejora de los procesos internos. " +
+    "Requisitos: conocimientos en JavaScript y en bases de datos, disponibilidad para trabajar en las tardes, " +
+    "buena comunicación con el cliente y con los compañeros. Ofrecemos un ambiente flexible y la posibilidad de crecer.";
+  assert.equal(montar([soIdioma([espanhol])]).length, 0);
+});
+
+test("texto curto ou empatado não é recusado só pelo idioma", () => {
+  const curto = "Remote internship. You will build web apps with the team in React and Node.";
+  const tecnico = Array.from({ length: 50 }, (_, i) => `React${i}`).join(" ");
+  assert.equal(montar([soIdioma([curto, tecnico])]).length, 2);
+});
+
+test("cada candidata diz de quais buscas veio", () => {
+  // itens de "Buscar vagas" na ordem de "Fontes": a mesma vaga em 0 e 2
+  const vaga = himalayas([["Estágio em Desenvolvimento Web", "Nimbus"]]);
+  const outra = remotar([["Estágio em Back-end", "ZG Soluções", "Programação"]]);
+  const vagas = montar([vaga, outra, vaga]);
+  const byTitle = Object.fromEntries(vagas.map((v) => [v.title, v.buscas]));
+  assert.deepEqual(byTitle, { "Estágio em Desenvolvimento Web": [0, 2], "Estágio em Back-end": [1] });
+});
+
 test("índice repetido na resposta não envia a vaga duas vezes", () => {
   assert.deepEqual(separar({ novas: [3, 3, 5], duplicadas: 97 }), ["https://x/3", "https://x/5"]);
 });
