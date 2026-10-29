@@ -406,3 +406,13 @@ do dashboard, com contador), agrupada por dia de chegada:
 Hoje todas as vagas do n8n vão para a conta definida em `N8N_TARGET_USER_ID`.
 Outros usuários não recebem vagas automáticas até existir configuração de
 monitoramento por conta (ver `ROADMAP.md`, "Finalizar a automação n8n").
+
+## Limites de cadastro independentes da IA
+
+O webhook usa a cota `n8n`: 60 criações/60s, 500/24h e teto compartilhado de
+2.000 vagas por usuário (todos os status, inclusive DESCARTADA). Janelas
+renovam a partir do primeiro uso. Se já bloqueado, retorna 429 antes do Gemini;
+ao salvar há nova verificação atômica. Duplicatas continuam retornando 200 sem
+consumir cota. Ao atingir o teto, é preciso revisar/excluir vagas pelo fluxo
+normal; descartar não libera espaço. Não aumentar retries para contornar 429.
+Exige a migration `20261028160000_job_creation_quota` antes do deploy do app.

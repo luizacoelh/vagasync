@@ -1,6 +1,6 @@
+import { createLimitedJob, checkJobCreationQuota, JobInputError, JobQuotaError } from "@/lib/jobCreation";
+import { jobCreateData, jobMeta, readJobJson } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { stringifyArray } from "@/lib/json";
 import { mapJob } from "@/lib/jobMapper";
 import { analyzeJobWithGemini } from "@/lib/gemini";
 import { logAiUsage } from "@/lib/aiUsage";
@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
   const settings = await getAppSettings();
 
   try {
-    const body = await req.json();
+    const input = await readJobJson(req);
+    jobMeta(input); // valida objeto e URL antes de normalizar ou chamar IA
+    const body = input as Record<string, unknown>;
     const { description, url, source } = body as {
       description: string;
       // URL original da vaga — opcional, aparece nos detalhes da vaga no dashboard
@@ -60,9 +62,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (description.length > settings.maxDescriptionLength) {
+    if (description.length > Math.min(settings.maxDescriptionLength, 8000)) {
       return NextResponse.json(
-        { error: `Descrição muito longa (limite: ${settings.maxDescriptionLength} chars).` },
+        { error: `Descrição muito longa (limite: ${Math.min(settings.maxDescriptionLength, 8000)} chars).` },
         { status: 400 }
       );
     }
@@ -93,6 +95,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ duplicate: true, ...duplicate }, { status: 200 });
     }
 
+    await checkJobCreationQuota(userId, "n8n");
     const analysis = await analyzeJobWithGemini(description);
 
     if (!isValidAnalysis(analysis)) {
@@ -123,27 +126,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ duplicate: true, ...afterAi }, { status: 200 });
     }
 
-    const job = await prisma.job.create({
-      data: {
-        userId,
-        description,
-        company: analysis.company,
-        title: analysis.title,
-        summary: analysis.summary,
-        requirements: stringifyArray(analysis.requirements),
-        differentials: stringifyArray(analysis.differentials),
-        technologies: stringifyArray(analysis.technologies),
-        questions: stringifyArray(analysis.questions),
-        checklist: stringifyArray(analysis.checklist),
-        // Vagas do n8n entram como MONITORADA — ainda não candidatadas
-        status: "MONITORADA",
-        // canal de entrada; o provedor (validSource) não vai para o Job
-        source: "n8n",
-        location: analysis.location,
-        salary: analysis.salary,
-        ...(normalizedUrl ? { url: normalizedUrl } : {}),
-      },
-    });
+    const data = jobCreateData({ ...analysis, description, url: normalizedUrl ?? undefined }, userId);
+    const job = await createLimitedJob({ ...data, status: "MONITORADA" }, "n8n");
 
     console.log(`[webhook] vaga criada via ${validSource}: ${analysis.title} @ ${analysis.company}`);
 
@@ -152,8 +136,13 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof JobInputError || error instanceof JobQuotaError) {
+      return NextResponse.json({ error: error.message }, {
+        status: error.status,
+        headers: error instanceof JobQuotaError && error.retryAfter ? { "Retry-After": String(error.retryAfter) } : undefined,
+      });
+    }
     console.error("Erro no webhook n8n:", error);
-    const message = error instanceof Error ? error.message : "Erro desconhecido.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível cadastrar a vaga agora. Tente novamente em instantes." }, { status: 500 });
   }
 }
