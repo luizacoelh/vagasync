@@ -23,6 +23,7 @@ model User {
   jobs     Job[]
   profile  UserProfile?
   aiUsage  AiUsage[]
+  jobCreationQuotas JobCreationQuota[]
 
   // limites de uso da API do Gemini, para evitar abuso (ver lib/rateLimit.ts)
   geminiCallCount   Int      @default(0)
@@ -39,9 +40,22 @@ model User {
   createdAt DateTime @default(now())
 }
 
+// Contadores de criação independentes da IA e da exclusão de vagas.
+// Horários em segundos Unix, atualizados atomicamente em lib/jobCreation.ts.
+model JobCreationQuota {
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel String
+  minuteStart Int @default(0)
+  minuteCount Int @default(0)
+  dayStart Int @default(0)
+  dayCount Int @default(0)
+
+  @@id([userId, channel])
+}
+
 // Configuração global do app, editável via /admin sem precisar de deploy.
-// Linha única (singleton) — sempre lida/criada com id fixo "singleton", ver
-// lib/appSettings.ts.
+// Linha única (singleton), ver lib/appSettings.ts.
 model AppSettings {
   id                   String   @id @default("singleton")
   dailyAiLimit         Int      @default(20)

@@ -6,6 +6,31 @@ fica no [`README.md`](./README.md); passo a passo de deploy no
 
 ## Estrutura do projeto
 
+### Proteção de armazenamento de vagas
+
+`lib/jobInput.ts` valida tipos, tamanhos, listas e metadados no servidor.
+`lib/jobCreation.ts` é a única entrada de criação usada pela API, Server Action
+e webhook. Novos importadores (URL/extensão) devem passar por ela.
+
+`JobCreationQuota` mantém no máximo dois contadores por usuário (manual/n8n),
+separados de `AiUsage`: manual 10/60s e 100/24h; n8n 60/60s e 500/24h.
+As janelas começam no primeiro uso e renovam após a duração, pelo relógio do
+banco (não são janelas deslizantes nem viradas de dia UTC). Ambos compartilham
+o teto de 2.000 vagas, contando todos os status, inclusive DESCARTADA.
+
+A transação começa com uma escrita, reserva a cota com UPDATE condicional e
+grava a vaga na mesma transação. Isso serializa escritores SQLite/libSQL,
+inclusive canais e instâncias diferentes. Falha no INSERT reverte a reserva;
+excluir vagas não devolve a cota de criação. Não há exceção para admin/owner.
+O webhook verifica a cota antes do Gemini e novamente ao salvar; a pré-checagem
+evita gasto quando já bloqueado, mas não reserva IA em chamadas simultâneas.
+
+HTTP retorna 429 com mensagem e Retry-After para cotas temporais; teto de
+armazenamento não promete prazo de renovação. A interface já mostra o erro da
+Server Action. A validação também limita URL/salário nos dois caminhos de edição.
+Esta proteção é por conta: não substitui controles de tráfego ou prevenção
+de criação abusiva de múltiplas contas.
+
 ```
 vagasync/
   auth.ts                       # Config central do Auth.js (providers, adapter, callbacks)

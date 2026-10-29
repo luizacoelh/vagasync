@@ -11,7 +11,17 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ---
 
-## Concluído
+## Em validação — proteção de criação independente da IA (PR 0)
+
+- Branch `fix/job-creation-limits`: cota persistente por canal/usuário,
+  teto de armazenamento e validação de payload nos cadastros e metadados.
+- Migration aditiva pendente de publicação com backup e ensaio; não aplicada
+  em produção. Não houve limpeza de vagas existentes.
+- Bloqueia a entrega de importação por URL/extensão até ser publicada.
+- Valores iniciais: manual 10/min e 100/24h; n8n 60/min e 500/24h;
+  2.000 vagas armazenadas por conta, incluindo descartadas.
+
+## Entregas anteriores concluídas
 
 ### fix(n8n): idioma em descrições curtas, origem n8n e contagem por busca
 - [x] Teste de idioma do "Montar vagas" compara palavras funcionais de

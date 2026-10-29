@@ -13,6 +13,24 @@ compatível com esse ambiente).
 
 ## 0. Qual banco cada ambiente usa
 
+### Publicação da proteção de cadastro (PR 0)
+
+A migration `20261028160000_job_creation_quota` é aditiva: cria uma tabela de
+contadores, sem alterar/apagar vagas existentes. Aplicar **antes** de publicar
+o código que a usa. Sem a tabela, os novos cadastros falham de forma fechada.
+
+Fluxo obrigatório: baixar backup SQLite no Turso → ensaiar a migration numa
+cópia local → `npm run migrate:turso -- --dry-run` → revisar e aplicar com
+`npm run migrate:turso` → `npm run check:turso` → publicar app e validar.
+Não basta dar merge e deixar a Vercel publicar antes da migration.
+
+Contas já com 2.000 ou mais vagas não podem criar novas, mas conservam o
+histórico e podem excluir. O consumo histórico anterior não é reconstruído:
+contadores temporais começam no primeiro cadastro após a publicação.
+Limpeza dos registros de teste é operação separada, com backup, SQL e contagens
+aprovados; esta migration não executa limpeza. Reverter o app deixa a tabela
+compatível, porém perde a proteção: não fazer rollback como forma de liberar cota.
+
 A escolha é **explícita**, pela variável `DATABASE_TARGET` (`lib/prisma.ts`).
 `NODE_ENV` não participa: `next start` local roda com `NODE_ENV=production`
 e, antes, isso bastava para conectar no Turso de produção.

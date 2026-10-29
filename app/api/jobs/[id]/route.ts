@@ -1,20 +1,12 @@
+import { JobInputError } from "@/lib/jobCreation";
+import { jobMeta, readJobJson } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mapJob } from "@/lib/jobMapper";
-import { JobStatus, JobLocation, Prisma } from "@prisma/client";
-import { UpdateJobRequest } from "@/types/job";
+import { JobStatus, Prisma } from "@prisma/client";
 import { requireUser } from "@/lib/apiAuth";
 
 export const runtime = "nodejs";
-
-function isValidUrl(value: string): boolean {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // Busca a vaga já garantindo que pertence ao usuário logado. Se a vaga
 // existir mas for de outra pessoa, devolvemos 404 (não 403) de propósito —
@@ -57,45 +49,22 @@ export async function PATCH(
     return NextResponse.json({ error: "Vaga não encontrada." }, { status: 404 });
   }
 
-  const body: UpdateJobRequest = await req.json();
-  const { status, url, location, salary, appliedAt } = body;
-
-  const data: Prisma.JobUpdateInput = {};
+  let body: Record<string, unknown>;
+  let data: Prisma.JobUpdateInput;
+  try {
+    const input = await readJobJson(req);
+    data = jobMeta(input);
+    body = input as Record<string, unknown>;
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof JobInputError ? error.message : "Dados inválidos." }, { status: 400 });
+  }
+  const { status } = body;
 
   if (status !== undefined) {
-    if (typeof status !== "string" || !Object.values(JobStatus).includes(status)) {
+    if (typeof status !== "string" || !Object.values(JobStatus).includes(status as JobStatus)) {
       return NextResponse.json({ error: "Status inválido." }, { status: 400 });
     }
-    data.status = status;
-  }
-
-  if (url !== undefined) {
-    if (url.trim() !== "" && !isValidUrl(url)) {
-      return NextResponse.json(
-        { error: "URL da vaga inválida. Use um link completo (https://...)." },
-        { status: 400 }
-      );
-    }
-    data.url = url.trim() === "" ? null : url.trim();
-  }
-
-  if (location !== undefined) {
-    if (!Object.values(JobLocation).includes(location)) {
-      return NextResponse.json({ error: "Modalidade de local inválida." }, { status: 400 });
-    }
-    data.location = location;
-  }
-
-  if (salary !== undefined) {
-    data.salary = salary.trim() === "" ? null : salary.trim();
-  }
-
-  if (appliedAt !== undefined) {
-    const d = new Date(appliedAt);
-    if (isNaN(d.getTime())) {
-      return NextResponse.json({ error: "Data de candidatura inválida." }, { status: 400 });
-    }
-    data.appliedAt = d;
+    data.status = status as JobStatus;
   }
 
   if (Object.keys(data).length === 0) {

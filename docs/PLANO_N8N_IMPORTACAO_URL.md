@@ -1,9 +1,19 @@
 # Plano — correções do n8n, novas fontes e cadastro de vaga por URL
 
-Documento de trabalho para organizar a execução no Maestri. **Status:** E0
-(seção 1.1, 1.2 e contagem por busca) implementada em `fix/n8n-idioma-origem`;
-o resto ainda não. Diagnóstico feito em 28/10/2026, depois dos PRs #33 e #34.
+Documento de trabalho. **Status:** E0 (seção 1.1, 1.2 e contagem por busca)
+integrada na main pelo PR #36 (`da20d99`); E1–E6 e novas fontes ainda pendentes.
+Execução agora pelo Codex. Diagnóstico feito em 28/10/2026, depois dos PRs #33 e #34.
 A issue #35 (fontes do Google no build) fica fora deste plano.
+
+### Pré-requisito novo: PR 0 — proteção de cadastro
+
+Antes de E1–E6 e da extensão, publicar a proteção contra criação ilimitada
+independente de IA (`lib/jobCreation.ts`, migration `JobCreationQuota`).
+API, Server Action e n8n compartilham teto de armazenamento; manual e n8n têm
+cotas temporais separadas. Importação por link/extensão deve reutilizar o
+cadastro manual protegido, sem aceitar canal ou userId enviados pelo cliente.
+Excluir vaga não renova cota temporal. Limpeza de testes em produção fica
+separada e depende de backup e aprovação do SQL. Ver DEPLOY.md e ARCHITECTURE.md.
 
 Legenda usada em todo o documento:
 

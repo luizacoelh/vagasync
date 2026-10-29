@@ -1,21 +1,11 @@
+import { createLimitedJob, JobInputError, JobQuotaError } from "@/lib/jobCreation";
+import { jobCreateData, readJobJson } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { stringifyArray } from "@/lib/json";
 import { mapJob } from "@/lib/jobMapper";
-import { CreateJobRequest } from "@/types/job";
-import { JobLocation } from "@prisma/client";
 import { requireUser } from "@/lib/apiAuth";
 
 export const runtime = "nodejs";
-
-function isValidUrl(value: string): boolean {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function GET() {
   const { user, response } = await requireUser();
@@ -33,76 +23,18 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
-
   try {
-    const body: CreateJobRequest = await req.json();
-    const {
-      description,
-      company,
-      title,
-      summary,
-      requirements,
-      differentials,
-      technologies,
-      questions,
-      checklist,
-      url,
-      location,
-      salary,
-      appliedAt,
-    } = body;
-
-    if (!description || !company || !title) {
-      return NextResponse.json(
-        { error: "Dados incompletos para salvar a vaga." },
-        { status: 400 }
-      );
-    }
-
-    if (url && url.trim() !== "" && !isValidUrl(url)) {
-      return NextResponse.json(
-        { error: "URL da vaga inválida. Use um link completo (https://...)." },
-        { status: 400 }
-      );
-    }
-
-    if (location && !Object.values(JobLocation).includes(location)) {
-      return NextResponse.json({ error: "Modalidade de local inválida." }, { status: 400 });
-    }
-
-    let parsedAppliedAt: Date | undefined;
-    if (appliedAt) {
-      const d = new Date(appliedAt);
-      if (isNaN(d.getTime())) {
-        return NextResponse.json({ error: "Data de candidatura inválida." }, { status: 400 });
-      }
-      parsedAppliedAt = d;
-    }
-
-    const data = {
-      userId: user.id,
-      description,
-      company,
-      title,
-      summary: summary ?? null,
-      requirements: stringifyArray(requirements),
-      differentials: stringifyArray(differentials ?? []),
-      technologies: stringifyArray(technologies),
-      questions: stringifyArray(questions),
-      checklist: stringifyArray(checklist),
-      url: url && url.trim() !== "" ? url.trim() : null,
-      location: location ?? JobLocation.NAO_INFORMADO,
-      salary: salary && salary.trim() !== "" ? salary.trim() : null,
-      ...(parsedAppliedAt ? { appliedAt: parsedAppliedAt } : {}),
-    };
-
-    const job = await prisma.job.create({ data });
+    const data = jobCreateData(await readJobJson(req), user.id);
+    const job = await createLimitedJob(data, "manual");
     return NextResponse.json(mapJob(job), { status: 201 });
   } catch (error) {
+    if (error instanceof JobInputError || error instanceof JobQuotaError) {
+      return NextResponse.json({ error: error.message }, {
+        status: error.status,
+        headers: error instanceof JobQuotaError && error.retryAfter ? { "Retry-After": String(error.retryAfter) } : undefined,
+      });
+    }
     console.error("Erro ao salvar vaga:", error);
-    return NextResponse.json(
-      { error: "Não foi possível salvar a vaga." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Não foi possível salvar a vaga." }, { status: 500 });
   }
 }
