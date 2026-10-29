@@ -28,7 +28,10 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   teto de armazenamento e validação de payload nos cadastros e metadados.
 - Migration aditiva aplicada em produção. Não houve limpeza de vagas existentes.
 - Validação local da revisão: 51 testes, lint, TypeScript e build aprovados;
-  revisão independente somente-leitura. Publicação pelo deploy do commit na main.
+  revisão independente somente-leitura. Commit `365992a` publicado em Production,
+  com CI e Vercel aprovados. Página pública respondeu 200 e 12 endpoints privados
+  responderam 401 sem autenticação. Teste no Turso real confirmou bloqueio da
+  criação acima da cota sem consumo de IA; rollback verificado, sem dados de teste.
 - Valores iniciais: manual 10/min e 100/24h; n8n 60/min e 500/24h;
   2.000 vagas armazenadas por conta, incluindo descartadas.
 

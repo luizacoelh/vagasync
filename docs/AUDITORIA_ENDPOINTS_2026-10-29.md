@@ -15,8 +15,16 @@ Em 29/10/2026, após autorização de publicação:
 - Dry-run de produção confirmou somente `20261028160000_job_creation_quota`.
 - Migration aplicada no Turso; conferência posterior: **0 erros**, 1 aviso
   cosmético preexistente em `UserProfile.updatedAt`. Nenhuma vaga apagada.
-- Correções complementares neste commit: 51 testes, lint, TypeScript e build
-  locais aprovados. CI e Vercel devem confirmar a publicação deste commit.
+- Correções complementares no commit `365992a`: 51 testes, lint, TypeScript e
+  build locais aprovados. [CI aprovado](https://github.com/luizacoelh/vagasync/actions/runs/40823817437)
+  e deployment Production `7404894761` bem-sucedido.
+- Verificação HTTP em `https://vagasync.vercel.app`: página pública 200 e
+  12 endpoints privados 401 sem autenticação, incluindo criação, perfil, IA,
+  administração, exportação e webhooks.
+- Teste controlado no Turso real usando `createLimitedJob`: permitiu a última
+  unidade da cota e rejeitou o cadastro seguinte com `JobQuotaError`, mantendo
+  consumo de IA em zero. Transação revertida obrigatoriamente e ausência de
+  usuário/vagas de teste confirmada após rollback.
 
 ## Superfícies examinadas
 
@@ -58,7 +66,8 @@ permita leitura ou escrita anônima de dados privados.
 Revisão de código e testes locais com SQLite descartável e Gemini simulado,
 incluindo autenticação, isolamento, payloads e concorrência. Uma revisão
 independente somente-leitura conferiu endpoints e alterações.
-Não houve teste de carga/ataque em produção. Cotas por conta não são um teto
+Não houve teste de carga/ataque em produção; apenas a checagem HTTP e o teste
+transacional com rollback descritos acima. Cotas por conta não são um teto
 global do banco: múltiplas contas OAuth e retenção de histórico ainda exigem
 monitoramento e controles de infraestrutura. Leituras e atualizações repetidas
 também podem consumir recursos; WAF e orçamento global não foram verificados.
