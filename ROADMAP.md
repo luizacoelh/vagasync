@@ -11,13 +11,24 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ---
 
-## Em validação — proteção de criação independente da IA (PR 0)
+## Proteção de criação independente da IA (PR #37) e auditoria complementar
+
+- PR #37 integrado no commit `96981a2` (implementação `77b9b1c`).
+- **Aplicado no Turso em 29/10/2026:** migration `20261028160000_job_creation_quota`,
+  após backup consistente de 9 tabelas, conferência por hash e ensaio numa cópia.
+  `check:turso`: 0 erros, 1 aviso cosmético preexistente. O deploy do PR #37
+  já estava em Production; faltava a tabela, agora criada.
+- Revisão complementar: perfil com limites de campos/listas; teto de
+  corpo em todas as APIs próprias que recebem JSON; IDs individuais validados;
+  reserva atômica por IP antes da IA; cota separada de tentativas de análise n8n;
+  exportação CSV neutraliza fórmulas. Inventário e limites da auditoria em
+  `docs/AUDITORIA_ENDPOINTS_2026-10-29.md`.
 
 - Branch `fix/job-creation-limits`: cota persistente por canal/usuário,
   teto de armazenamento e validação de payload nos cadastros e metadados.
-- Migration aditiva pendente de publicação com backup e ensaio; não aplicada
-  em produção. Não houve limpeza de vagas existentes.
-- Bloqueia a entrega de importação por URL/extensão até ser publicada.
+- Migration aditiva aplicada em produção. Não houve limpeza de vagas existentes.
+- Validação local da revisão: 51 testes, lint, TypeScript e build aprovados;
+  revisão independente somente-leitura. Publicação pelo deploy do commit na main.
 - Valores iniciais: manual 10/min e 100/24h; n8n 60/min e 500/24h;
   2.000 vagas armazenadas por conta, incluindo descartadas.
 

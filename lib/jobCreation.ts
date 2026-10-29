@@ -19,7 +19,7 @@ export class JobQuotaError extends Error {
 
 type QuotaState = { stored: number; minuteCount: number; dayCount: number; minuteLeft: number; dayLeft: number };
 
-async function readQuota(db: Prisma.TransactionClient, userId: string, channel: JobChannel) {
+async function readQuota(db: Prisma.TransactionClient, userId: string, channel: string) {
   const [state] = await db.$queryRaw<QuotaState[]>`
     SELECT (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${userId}) AS stored,
       CASE WHEN q."minuteStart" > unixepoch() - 60 THEN q."minuteCount" ELSE 0 END AS minuteCount,
@@ -54,25 +54,34 @@ export async function createLimitedJob(
   db: PrismaClient = prisma,
 ) {
   return db.$transaction(async (tx) => {
-    // Primeira operação é escrita: serializa escritores SQLite/libSQL antes
-    // de consultar o teto. Não há leitura seguida de escrita fora da transação.
-    await tx.$executeRaw`INSERT INTO "JobCreationQuota" ("userId", channel, "minuteStart", "minuteCount", "dayStart", "dayCount")
-      VALUES (${data.userId}, ${channel}, unixepoch(), 0, unixepoch(), 0)
-      ON CONFLICT ("userId", channel) DO NOTHING`;
-    const changed = await tx.$executeRaw`UPDATE "JobCreationQuota" SET
-      "minuteCount" = CASE WHEN "minuteStart" <= unixepoch() - 60 THEN 1 ELSE "minuteCount" + 1 END,
-      "minuteStart" = CASE WHEN "minuteStart" <= unixepoch() - 60 THEN unixepoch() ELSE "minuteStart" END,
-      "dayCount" = CASE WHEN "dayStart" <= unixepoch() - 86400 THEN 1 ELSE "dayCount" + 1 END,
-      "dayStart" = CASE WHEN "dayStart" <= unixepoch() - 86400 THEN unixepoch() ELSE "dayStart" END
-      WHERE "userId" = ${data.userId} AND channel = ${channel}
-      AND ("minuteStart" <= unixepoch() - 60 OR "minuteCount" < ${JOB_LIMITS[channel].minute})
-      AND ("dayStart" <= unixepoch() - 86400 OR "dayCount" < ${JOB_LIMITS[channel].day})
-      AND (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${data.userId}) < ${JOB_LIMITS.stored}`;
-    if (changed !== 1) {
-      assertQuota(await readQuota(tx, data.userId, channel), channel);
-      throw new JobQuotaError("Não foi possível reservar a cota de cadastro. Tente novamente em instantes.", 60);
-    }
+    await reserveQuota(tx, data.userId, channel);
     // Falha no INSERT reverte também a cota. Excluir Job não mexe nela.
     return tx.job.create({ data: { ...data, source: channel } });
   }, { maxWait: 10000, timeout: 10000 });
+}
+
+async function reserveQuota(tx: Prisma.TransactionClient, userId: string, channel: JobChannel, key: string = channel) {
+  // Primeira operação é escrita: serializa escritores SQLite/libSQL antes
+  // de consultar o teto. Não há leitura seguida de escrita fora da transação.
+  await tx.$executeRaw`INSERT INTO "JobCreationQuota" ("userId", channel, "minuteStart", "minuteCount", "dayStart", "dayCount")
+    VALUES (${userId}, ${key}, unixepoch(), 0, unixepoch(), 0)
+    ON CONFLICT ("userId", channel) DO NOTHING`;
+  const changed = await tx.$executeRaw`UPDATE "JobCreationQuota" SET
+    "minuteCount" = CASE WHEN "minuteStart" <= unixepoch() - 60 THEN 1 ELSE "minuteCount" + 1 END,
+    "minuteStart" = CASE WHEN "minuteStart" <= unixepoch() - 60 THEN unixepoch() ELSE "minuteStart" END,
+    "dayCount" = CASE WHEN "dayStart" <= unixepoch() - 86400 THEN 1 ELSE "dayCount" + 1 END,
+    "dayStart" = CASE WHEN "dayStart" <= unixepoch() - 86400 THEN unixepoch() ELSE "dayStart" END
+    WHERE "userId" = ${userId} AND channel = ${key}
+    AND ("minuteStart" <= unixepoch() - 60 OR "minuteCount" < ${JOB_LIMITS[channel].minute})
+    AND ("dayStart" <= unixepoch() - 86400 OR "dayCount" < ${JOB_LIMITS[channel].day})
+    AND (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${userId}) < ${JOB_LIMITS.stored}`;
+  if (changed !== 1) {
+    assertQuota(await readQuota(tx, userId, key), channel);
+    throw new JobQuotaError("Não foi possível reservar a cota de cadastro. Tente novamente em instantes.", 60);
+  }
+}
+
+// Reserva antes da IA; falhas e duplicatas posteriores tambem consomem tentativa.
+export async function consumeWebhookAnalysisQuota(userId: string) {
+  await prisma.$transaction(tx => reserveQuota(tx, userId, "n8n", "n8n-analysis"));
 }

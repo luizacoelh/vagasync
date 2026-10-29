@@ -1,7 +1,7 @@
 import { JobLocation, Prisma } from "@prisma/client";
 import { JobInputError } from "@/lib/jobCreation";
 
-function object(value: unknown): Record<string, unknown> {
+export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new JobInputError("Dados da vaga inválidos.");
   return value as Record<string, unknown>;
 }
@@ -68,7 +68,7 @@ export function jobCreateData(value: unknown, userId: string): Prisma.JobUncheck
 }
 
 // Limita o corpo real, mesmo sem Content-Length, antes de fazer JSON.parse.
-export async function readJobJson(req: Request): Promise<unknown> {
+export async function readJobJson(req: Request, maxBytes = 65536): Promise<unknown> {
   const reader = req.body?.getReader();
   if (!reader) throw new JobInputError("Corpo da requisição ausente.");
   const chunks: Uint8Array[] = [];
@@ -78,9 +78,9 @@ export async function readJobJson(req: Request): Promise<unknown> {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > 65536) {
+      if (size > maxBytes) {
         await reader.cancel();
-        throw new JobInputError("Requisição muito grande (máximo 64 KiB).");
+        throw new JobInputError(`Requisição muito grande (máximo ${maxBytes} bytes).`);
       }
       chunks.push(value);
     }

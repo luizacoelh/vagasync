@@ -1,3 +1,4 @@
+import { readJobJson, object } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -18,8 +19,12 @@ export async function PATCH(
   if (!user) return response;
 
   const { id } = await params;
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = object(await readJobJson(req)); }
+  catch { return NextResponse.json({ error: "Corpo inv\u00e1lido ou muito grande." }, { status: 400 }); }
   const { dailyAiLimitOverride, isAdmin } = body;
+
+  if (isAdmin !== undefined && typeof isAdmin !== "boolean") return NextResponse.json({ error: "isAdmin inv\u00e1lido." }, { status: 400 });
 
   // Ninguem pode alterar o proprio isAdmin — evita se trancar fora
   if (id === user.id && isAdmin !== undefined) {
@@ -47,7 +52,7 @@ export async function PATCH(
   if (
     dailyAiLimitOverride !== undefined &&
     dailyAiLimitOverride !== null &&
-    (typeof dailyAiLimitOverride !== "number" || dailyAiLimitOverride <= 0 || !Number.isInteger(dailyAiLimitOverride))
+    (typeof dailyAiLimitOverride !== "number" || dailyAiLimitOverride <= 0 || !Number.isSafeInteger(dailyAiLimitOverride) || (typeof dailyAiLimitOverride === "number" && dailyAiLimitOverride > 2147483647))
   ) {
     return NextResponse.json(
       { error: "dailyAiLimitOverride precisa ser um inteiro positivo, ou null para usar o padrão global." },

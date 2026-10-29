@@ -196,6 +196,104 @@ test("sem autenticação não cria nem consome cota", async () => {
   assert.match((await action(input)).error, /autenticado/);
 });
 
+test("perfil limita tamanho e tipos antes de gravar; dados de outra conta ficam isolados", async () => {
+  const { PUT, GET } = await import("@/app/api/profile/route");
+  const id = await user();
+  for (const body of [null, [], { goal: "x".repeat(1001) }, { skills: {} }, { skills: [1] }, { skills: Array(101).fill("JS") }, { interestArea: "x".repeat(70000) }]) {
+    assert.equal((await PUT(request(body))).status, 400);
+    assert.equal(await prisma.userProfile.count({ where: { userId: id } }), 0);
+  }
+  assert.equal((await PUT(request({ goal: "Dev", skills: ["JS"] }))).status, 200);
+  await user();
+  assert.equal(await (await GET()).json(), null);
+  globalThis.__session = null;
+  assert.equal((await PUT(request({ goal: "Dev" }))).status, 401);
+});
+
+test("acoes individuais rejeitam filtros Prisma e ids ausentes", async () => {
+  const id = await user();
+  const { updateJobStatus, toggleChecklistItem } = await import("@/app/actions/jobs");
+  const job = await createLimitedJob(jobCreateData(input, id), "manual");
+  for (const bad of [undefined, null, { not: "" }, "", "x".repeat(65)]) {
+    assert.ok((await updateJobStatus(bad, "OFERTA")).error);
+    assert.ok((await updateMeta(bad, { salary: "999" })).error);
+    assert.ok((await toggleChecklistItem(bad, 0, true)).error);
+  }
+  const saved = await prisma.job.findUnique({ where: { id: job.id } });
+  assert.equal(saved.status, "APLICADA");
+  assert.equal(saved.salary, null);
+});
+
+test("reserva de IA por IP conta chamadas ainda em andamento e falhas", async () => {
+  const { checkIpRateLimit } = await import("@/lib/ipRateLimit");
+  await prisma.appSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ipHourlyLimit: 1 }, update: { ipHourlyLimit: 1 } });
+  const a = await user();
+  const b = await user();
+  const results = await Promise.all([checkIpRateLimit("192.0.2.1", a, 10), checkIpRateLimit("192.0.2.1", b, 10)]);
+  assert.equal(results.filter(r => r.allowed).length, 1);
+  assert.equal(await prisma.aiUsage.count({ where: { ip: "192.0.2.1" } }), 1);
+  assert.equal((await checkIpRateLimit("192.0.2.1", b, 10)).allowed, false);
+});
+
+test("webhook limita tentativas de IA mesmo sem gravar vaga", async () => {
+  const id = await user();
+  await setQuota(id, "n8n-analysis", 60, 60);
+  globalThis.__geminiCalls = 0;
+  assert.equal((await webhook(request({ description: input.description }, true))).status, 429);
+  assert.equal(globalThis.__geminiCalls, 0);
+  assert.equal(await prisma.job.count({ where: { userId: id } }), 0);
+});
+
+test("analisar rejeita corpo excessivo antes de consumir cota", async () => {
+  const id = await user();
+  const { POST } = await import("@/app/api/analyze/route");
+  for (const body of [null, { description: "x".repeat(8001) }, { description: input.description, extra: "x".repeat(70000) }]) {
+    assert.equal((await POST(request(body))).status, 400);
+  }
+  assert.equal((await prisma.user.findUnique({ where: { id } })).geminiCallCount, 0);
+});
+
+test("endpoints privados negam visitante e admin revalida papel no banco", async () => {
+  globalThis.__session = null;
+  for (const [path, methods] of [
+    ["jobs", ["GET", "POST"]], ["jobs/[id]", ["GET", "PATCH", "DELETE"]],
+    ["jobs/export", ["GET"]], ["profile", ["GET", "PUT"]], ["analyze", ["POST"]],
+    ["admin/settings", ["GET", "PUT"]], ["admin/users", ["GET"]], ["admin/users/[id]", ["PATCH"]],
+  ]) {
+    const route = await import(`@/app/api/${path}/route`);
+    for (const method of methods) assert.equal((await route[method](request({}), { params: Promise.resolve({ id: "other" }) })).status, 401, `${method} ${path}`);
+  }
+  await user();
+  globalThis.__session.user.isAdmin = true;
+  const { GET } = await import("@/app/api/admin/users/route");
+  assert.equal((await GET()).status, 404);
+  const { POST } = await import("@/app/api/webhook/n8n/check/route");
+  assert.equal((await POST(request({ vagas: [] }))).status, 401);
+  assert.equal((await webhook(request({ description: input.description }))).status, 401);
+});
+
+test("API e actions nao leem nem alteram vagas de outro usuario", async () => {
+  const owner = await user();
+  const job = await createLimitedJob(jobCreateData(input, owner), "manual");
+  await user();
+  const route = await import("@/app/api/jobs/[id]/route");
+  for (const method of ["GET", "PATCH", "DELETE"]) {
+    assert.equal((await route[method](request({ salary: "999" }), { params: Promise.resolve({ id: job.id }) })).status, 404);
+  }
+  assert.ok((await updateMeta(job.id, { salary: "999" })).error);
+  assert.equal((await prisma.job.findUnique({ where: { id: job.id } })).salary, null);
+});
+
+test("CSV neutraliza formulas e retorno do login rejeita caracteres de controle", async () => {
+  const id = await user();
+  await createLimitedJob(jobCreateData({ ...input, company: '=HYPERLINK("https://example.com")' }, id), "manual");
+  const { GET } = await import("@/app/api/jobs/export/route");
+  assert.ok((await (await GET()).text()).includes("'=HYPERLINK"));
+  const { safeRedirectPath } = await import("@/lib/safeRedirect");
+  for (const path of ["/\t/evil.test", "//evil.test", "/\\evil.test", null, {}]) assert.equal(safeRedirectPath(path), "/");
+  assert.equal(safeRedirectPath("/monitoradas"), "/monitoradas");
+});
+
 test("migration é compatível com executor de statements do Turso em arquivo temporário", async () => {
   // check:turso monta sua referência com libSQL e o parser do runner de produção.
   const output = execFileSync(process.execPath, [join(root, "scripts/check-turso-schema.mjs"), "--file", url.slice(5)], { cwd: root, encoding: "utf8", env: process.env });

@@ -5,21 +5,8 @@ import GitHub from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
 
 // Duração da sessão JWT: 30 dias.
-// O usuário permanece logado até fazer logout explicitamente ou a sessão
-// ser revogada no banco (via /admin). Esse é o comportamento padrão e
-// esperado em qualquer aplicação web — nenhum serviço sério desloga o
-// usuário a cada 15 minutos no uso normal.
-//
-// Por que 30 dias é seguro aqui:
-// - O cookie é httpOnly (JavaScript não consegue ler), secure (só HTTPS)
-//   e sameSite=lax (protege contra CSRF) — configurado automaticamente
-//   pelo Auth.js.
-// - Não há dados financeiros ou sensíveis no token, só id e isAdmin.
-// - Operações admin re-validam isAdmin no banco a cada request
-//   (ver lib/adminAuth.ts), então revogar acesso tem efeito imediato
-//   mesmo com o token ainda válido.
-// - Se precisar deslogar alguém remotamente antes dos 30 dias, basta
-//   apagar a linha correspondente na tabela Session do banco.
+// JWT nao e revogado apagando Session. Logout remove o cookie local;
+// operacoes admin revalidam o papel no banco a cada requisicao.
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 dias em segundos
 
 export const { handlers, auth, signIn, signOut } = NextAuth({

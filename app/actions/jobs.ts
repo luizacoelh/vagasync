@@ -20,6 +20,7 @@ async function requireUserId(): Promise<string> {
 // existe ou é de outra pessoa (as duas respondem igual, sem vazar qual).
 async function updateOwnJob(jobId: string, data: Prisma.JobUpdateManyMutationInput): Promise<boolean> {
   const userId = await requireUserId();
+  if (typeof jobId !== "string" || !jobId || jobId.length > 64) return false;
   const { count } = await prisma.job.updateMany({ where: { id: jobId, userId }, data });
   return count > 0;
 }
@@ -132,6 +133,7 @@ export async function toggleChecklistItem(
   done: boolean
 ): Promise<{ ok: true } | { error: string }> {
   const userId = await requireUserId();
+  if (typeof jobId !== "string" || !jobId || jobId.length > 64 || typeof done !== "boolean") return { error: "Item inv\u00e1lido." };
   const job = await prisma.job.findFirst({
     where: { id: jobId, userId },
     select: { checklist: true, checklistDone: true },
@@ -149,7 +151,7 @@ export async function toggleChecklistItem(
 
   try {
     await prisma.job.update({
-      where: { id: jobId },
+      where: { id: jobId, userId },
       data: { checklistDone: stringifyArray([...current].sort((a, b) => a - b)) },
     });
     revalidatePath(`/vaga/${jobId}`);

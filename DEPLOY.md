@@ -13,7 +13,11 @@ compatível com esse ambiente).
 
 ## 0. Qual banco cada ambiente usa
 
-### Publicação da proteção de cadastro (PR 0)
+### Publicação da proteção de cadastro (PR #37)
+
+Aplicada em produção em 29/10/2026 após backup verificado e ensaio local.
+`check:turso`: 0 erros e 1 aviso cosmético preexistente. Evidências em
+`docs/AUDITORIA_ENDPOINTS_2026-10-29.md`.
 
 A migration `20261028160000_job_creation_quota` é aditiva: cria uma tabela de
 contadores, sem alterar/apagar vagas existentes. Aplicar **antes** de publicar

@@ -1,3 +1,4 @@
+import { readJobJson } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { findDuplicate, normalizeUrl, type ExistingJob } from "@/lib/jobDedup";
 import { authorizeN8n, loadDedupJobs, optionalText } from "@/lib/n8nWebhook";
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await readJobJson(req, 1048576);
   } catch {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }

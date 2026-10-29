@@ -1,4 +1,4 @@
-import { createLimitedJob, checkJobCreationQuota, JobInputError, JobQuotaError } from "@/lib/jobCreation";
+import { createLimitedJob, checkJobCreationQuota, consumeWebhookAnalysisQuota, JobInputError, JobQuotaError } from "@/lib/jobCreation";
 import { jobCreateData, jobMeta, readJobJson } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { mapJob } from "@/lib/jobMapper";
@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     await checkJobCreationQuota(userId, "n8n");
+    await consumeWebhookAnalysisQuota(userId);
     const analysis = await analyzeJobWithGemini(description);
 
     if (!isValidAnalysis(analysis)) {

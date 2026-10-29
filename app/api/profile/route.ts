@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/apiAuth";
 import { parseArray, stringifyArray } from "@/lib/json";
 import { ExperienceLevel } from "@prisma/client";
-import { UpdateProfileRequest } from "@/types/profile";
+import { profileInput } from "@/lib/profileInput";
+import { readJobJson } from "@/lib/jobInput";
+import { JobInputError } from "@/lib/jobCreation";
 
 export const runtime = "nodejs";
 
@@ -31,14 +33,8 @@ export async function PUT(req: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
 
-  const body: UpdateProfileRequest = await req.json();
-  const { goal, interestArea, experience, skills } = body;
-
-  if (experience !== undefined && !Object.values(ExperienceLevel).includes(experience)) {
-    return NextResponse.json({ error: "Nível de experiência inválido." }, { status: 400 });
-  }
-
   try {
+    const { goal, interestArea, experience, skills } = profileInput(await readJobJson(req));
     const profile = await prisma.userProfile.upsert({
       where: { userId: user.id },
       create: {
@@ -49,9 +45,9 @@ export async function PUT(req: NextRequest) {
         skills: stringifyArray(skills ?? []),
       },
       update: {
-        ...(goal !== undefined ? { goal: goal.trim() === "" ? null : goal.trim() } : {}),
+        ...(goal !== undefined ? { goal: goal } : {}),
         ...(interestArea !== undefined
-          ? { interestArea: interestArea.trim() === "" ? null : interestArea.trim() }
+          ? { interestArea: interestArea }
           : {}),
         ...(experience !== undefined ? { experience } : {}),
         ...(skills !== undefined ? { skills: stringifyArray(skills) } : {}),
@@ -65,6 +61,7 @@ export async function PUT(req: NextRequest) {
       skills: parseArray(profile.skills),
     });
   } catch (error) {
+    if (error instanceof JobInputError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("Erro ao salvar perfil:", error);
     return NextResponse.json({ error: "Não foi possível salvar o perfil." }, { status: 500 });
   }

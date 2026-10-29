@@ -12,7 +12,7 @@ fica no [`README.md`](./README.md); passo a passo de deploy no
 `lib/jobCreation.ts` é a única entrada de criação usada pela API, Server Action
 e webhook. Novos importadores (URL/extensão) devem passar por ela.
 
-`JobCreationQuota` mantém no máximo dois contadores por usuário (manual/n8n),
+`JobCreationQuota` mantém três contadores por usuário (manual/n8n/n8n-analysis),
 separados de `AiUsage`: manual 10/60s e 100/24h; n8n 60/60s e 500/24h.
 As janelas começam no primeiro uso e renovam após a duração, pelo relógio do
 banco (não são janelas deslizantes nem viradas de dia UTC). Ambos compartilham

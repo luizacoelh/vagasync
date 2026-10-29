@@ -9,7 +9,8 @@ export const runtime = "nodejs";
 // Escapa um valor pro formato CSV (RFC 4180): envolve em aspas se tiver
 // vírgula, aspas ou quebra de linha, e duplica aspas internas.
 function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) {
+  if (/^[\s]*[=+@-]|^[\t\r\n]/.test(value)) value = "'" + value;
+  if (/[",\r\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
