@@ -8,9 +8,9 @@ import { safeRedirectPath } from "@/lib/safeRedirect";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, error } = await searchParams;
   const redirectTo = safeRedirectPath(callbackUrl);
 
   // Já logado (ex: voltou pelo histórico): segue para onde ia.
@@ -46,6 +46,14 @@ export default async function LoginPage({
           <p className="text-sm text-[#A9B2C0] text-center mb-[30px]">
             Organize suas candidaturas com ajuda de IA.
           </p>
+
+          {error && (
+            <p role="alert" className="mb-5 rounded-xl border border-[#E5534B]/40 bg-[#E5534B]/10 px-4 py-3 text-sm text-[#E5534B]">
+              {error === "CadastroLimitado"
+                ? "Novos cadastros estão temporariamente limitados. Tente de novo mais tarde."
+                : "Não foi possível entrar. Tente de novo."}
+            </p>
+          )}
 
           <LoginButtons redirectTo={redirectTo} />
         </GlassPanel>

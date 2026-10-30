@@ -37,6 +37,18 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### fix(security): teto global e alerta de volume
+- [x] Teto de 500 cadastros manuais em 24h somando todas as contas menos a do
+  dono, contado pela cota (apagar a vaga não devolve espaço), e teto de 20 contas
+  novas em 24h: várias contas OAuth não somam a cota individual sem limite
+  (pior caso documentado: ~2× o teto em 24h corridas, pela janela fixa por conta)
+- [x] `/api/analyze` recusa antes de chamar a IA quando a vaga não poderia ser salva
+- [x] `alerta-volume.yml`: de hora em hora, falha (e-mail do GitHub) se o volume
+  de 24h passar dos limites de `lib/volumeReport.ts`, via
+  `GET /api/webhook/n8n/volume` (só contagens, exige o segredo do webhook)
+- [ ] `VACUUM` no Turso para devolver ~253 MB de páginas livres, depois do
+  backup pelo painel (`DEPLOY.md`)
+
 ### fix(build): fontes locais (issue #35)
 - [x] Inter e Outfit saem de `next/font/google` para `next/font/local`, com os
   `.woff2` e as licenças OFL em `app/fonts/`: o build não baixa mais nada do

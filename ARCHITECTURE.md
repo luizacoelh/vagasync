@@ -56,6 +56,7 @@ vagasync/
       jobs/export/route.ts      # Exporta as vagas do usuário logado em CSV
       webhook/n8n/route.ts      # Recebe vagas do n8n (x-webhook-secret); deduplica antes do Gemini
       webhook/n8n/check/route.ts # Checagem em lote: quais candidatas ainda não existem (não grava)
+      webhook/n8n/volume/route.ts # Contagens para o alerta de volume (segredo do webhook; não grava)
       admin/settings/route.ts   # GET/PUT dos limites globais (admin only)
       admin/users/route.ts      # Lista usuários (admin only)
       admin/users/[id]/route.ts # Edita override de limite / isAdmin de um usuário (admin only)
@@ -101,6 +102,7 @@ vagasync/
     n8n-execution-summary.mjs   # Resume a saída de `n8n execute` no GitHub Actions (sem imprimir as vagas)
   n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → checagem → webhook)
   .github/workflows/n8n-vagas.yml  # Roda o workflow acima a cada 2h num n8n descartável (secret N8N_WEBHOOK_SECRET)
+  .github/workflows/alerta-volume.yml  # De hora em hora: falha (e-mail do GitHub) se o volume passar dos limites
   tests/                        # `npm test` (node --test, sem banco): jobDedup, nós de código do workflow n8n, resumo do Actions (fixtures/ com respostas reais) e Job.source num SQLite temporário (support/: loader de TS e stubs do Gemini/Auth)
   types/
     job.ts / profile.ts
@@ -217,6 +219,11 @@ vagasync/
 - **Fontes no repositório (`app/fonts/`), não baixadas no build.** O download
   do `next/font/google` falhava às vezes no CI (issue #35). Só o subset latin:
   letra fora dele (ex: `ł`) cai na fonte do sistema, o que não afeta português.
+- **Teto global só no cadastro manual, com o dono de fora.** A cota de
+  `lib/jobCreation.ts` é por conta; o teto de 500 em 24h fecha a soma de várias
+  contas, junto com o teto de 20 contas novas por dia (`lib/signupGuard.ts`).
+  Conta pela `JobCreationQuota`, não pelas vagas: criar e apagar em seguida
+  não devolve espaço. A coleta do n8n (já limitada pelo segredo) não trava o resto.
 - **`Job.source` é o canal de entrada, não o provedor.** `"manual"` (padrão,
   cadastro na interface) ou `"n8n"` (gravado pelo webhook). O provedor
   (`gupy`, `remotar`...) que o n8n manda vai só para o log e `AiUsage.action`;

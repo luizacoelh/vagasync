@@ -288,6 +288,16 @@ evitar timeout prematuro (504). Os limites exatos de duração variam por
 plano da Vercel — confira em *Project Settings → Functions* antes de assumir
 que 60s é suficiente no seu plano.
 
+## Liberar espaço no Turso (VACUUM)
+
+Apagar muitas linhas não reduz o arquivo: as páginas ficam livres. Para ver,
+`PRAGMA page_count` e `PRAGMA freelist_count` (multiplique por 4096 bytes).
+Para devolver o espaço: baixar o backup (Download SQLite File no painel), rodar
+`VACUUM` e conferir com `npm run check:turso`. Não altera linhas, mas é
+escrita em produção: mostrar o comando e esperar confirmação (regra do
+`CLAUDE.md`). Não confirmado se o Turso aceita `VACUUM` remoto; se recusar, a
+alternativa é restaurar um dump novo, o que exige outro plano.
+
 ## Checklist antes de ativar o deploy
 
 - [ ] Banco criado no Turso e migrations aplicadas (passos 1–2)

@@ -1,5 +1,5 @@
 import { readJobJson, object } from "@/lib/jobInput";
-import { JobInputError } from "@/lib/jobCreation";
+import { checkJobCreationQuota, JobInputError, JobQuotaError } from "@/lib/jobCreation";
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeJobWithGemini } from "@/lib/gemini";
 import { requireUser } from "@/lib/apiAuth";
@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Sem cota de cadastro a vaga não poderia ser salva: não gasta IA à toa.
+    await checkJobCreationQuota(user.id, "manual");
+
     const quota = await checkAndConsumeGeminiQuota(user.id);
     if (!quota.allowed) {
       return NextResponse.json(
@@ -58,6 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(analysis);
   } catch (error) {
     if (error instanceof JobInputError) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof JobQuotaError) return NextResponse.json({ error: error.message }, { status: 429 });
     console.error("Erro ao analisar vaga:", error);
     return NextResponse.json({ error: "Nao foi possivel analisar a vaga. Tente novamente." }, { status: 500 });
   }

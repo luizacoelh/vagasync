@@ -141,8 +141,8 @@ test("requisições concorrentes em conexões distintas disputam o último slot 
 test("teto compartilhado conta descartadas e protege o último slot entre canais", async () => {
   const id = await user();
   await prisma.$executeRaw`WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n<1999)
-    INSERT INTO "Job" (id,"userId",company,title,description,status,"appliedAt")
-    SELECT ${id} || '-' || n, ${id}, 'X','Y','Z','DESCARTADA',CURRENT_TIMESTAMP FROM seq`;
+    INSERT INTO "Job" (id,"userId",company,title,description,status,source,"appliedAt")
+    SELECT ${id} || '-' || n, ${id}, 'X','Y','Z','DESCARTADA','n8n',CURRENT_TIMESTAMP FROM seq`;
   const results = await concurrentCreates(id, ["manual", "n8n"]);
   assert.equal(results.filter(r => r.ok).length, 1);
   assert.equal(await prisma.job.count({ where: { userId: id } }), 2000);
