@@ -217,6 +217,10 @@ vagasync/
 - **Fontes no repositório (`app/fonts/`), não baixadas no build.** O download
   do `next/font/google` falhava às vezes no CI (issue #35). Só o subset latin:
   letra fora dele (ex: `ł`) cai na fonte do sistema, o que não afeta português.
+- **Teto global só no cadastro manual, com o dono de fora.** A cota de
+  `lib/jobCreation.ts` é por conta; o teto de 500 em 24h fecha a soma de várias
+  contas. Conta `Job` na hora em vez de manter um contador: uma vaga apagada
+  libera espaço, e a coleta do n8n (já limitada pelo segredo) não trava o resto.
 - **`Job.source` é o canal de entrada, não o provedor.** `"manual"` (padrão,
   cadastro na interface) ou `"n8n"` (gravado pelo webhook). O provedor
   (`gupy`, `remotar`...) que o n8n manda vai só para o log e `AiUsage.action`;

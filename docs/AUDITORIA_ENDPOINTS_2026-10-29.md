@@ -26,6 +26,24 @@ Em 29/10/2026, após autorização de publicação:
   consumo de IA em zero. Transação revertida obrigatoriamente e ausência de
   usuário/vagas de teste confirmada após rollback.
 
+## Limpeza do incidente e atualização de 30/10/2026
+
+- As ~16 mil vagas de teste de 28/10 saíram quando a dona da instância excluiu,
+  direto no Turso, as contas que as criaram (a chave estrangeira apaga as vagas).
+  Por isso o backup de 29/10 já tinha só 270 registros. Em 30/10: 90 vagas,
+  4 contas, nenhuma linha órfã.
+- O arquivo do banco continuou com ~254 MB, ~0,6 MB de dados: páginas livres que
+  só um `VACUUM` devolve. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
+  escritas do Turso não diminui: é uso do mês e zera no ciclo de cobrança.
+- Risco de várias contas: teto global de 500 cadastros manuais em 24h, somando
+  todas as contas menos a do dono. Custo aceito: num ataque, o cadastro manual
+  das outras contas para até a janela andar.
+- Sem aviso de abuso: `alerta-volume.yml` confere de hora em hora o volume de
+  24h e falha acima dos limites de `lib/volumeReport.ts`, o que gera e-mail do
+  GitHub. O atraso dos agendamentos do GitHub vale aqui também.
+- Ainda sem controle: criação de contas (`User` não tem data de criação; limitar
+  exigiria migration) e custo global de IA, que só tem alerta.
+
 ## Superfícies examinadas
 
 | Entrada | Autorização e proteção |

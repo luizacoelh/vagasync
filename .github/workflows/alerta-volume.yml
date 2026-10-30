@@ -1,0 +1,32 @@
+# Confere o volume de cadastros e de IA das últimas 24h. Se passar dos limites
+# de lib/volumeReport.ts o job falha, e o GitHub avisa por e-mail. Foi assim que
+# faltou: as ~16 mil vagas de teste de 28/10 só foram vistas por acaso.
+#
+# Usa o secret N8N_WEBHOOK_SECRET, o mesmo do workflow n8n — vagas.
+name: Alerta de volume
+
+on:
+  schedule:
+    # minuto 41 para fugir do pico do início da hora no GitHub
+    - cron: "41 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  volume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Conferir volume
+        env:
+          N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
+        run: |
+          report=$(curl -fsS --max-time 60 -H "x-webhook-secret: $N8N_WEBHOOK_SECRET" \
+            https://vagasync.vercel.app/api/webhook/n8n/volume)
+          echo "$report" | jq .
+          if [ "$(echo "$report" | jq -r .alert)" = "true" ]; then
+            echo "::error::Volume fora do normal: $(echo "$report" | jq -c .alerts)"
+            exit 1
+          fi
