@@ -1,8 +1,10 @@
-# Confere o volume de cadastros e de IA das últimas 24h. Se passar dos limites
-# de lib/volumeReport.ts o job falha, e o GitHub avisa por e-mail. Foi assim que
+# Confere o volume de cadastros, contas novas e IA. Se passar dos limites de
+# lib/volumeReport.ts o job falha, e o GitHub avisa por e-mail. Foi isso que
 # faltou: as ~16 mil vagas de teste de 28/10 só foram vistas por acaso.
 #
-# Usa o secret N8N_WEBHOOK_SECRET, o mesmo do workflow n8n — vagas.
+# Usa o secret N8N_WEBHOOK_SECRET, o mesmo do workflow n8n — vagas. O repo é
+# público: o log só mostra quais limites passaram, nunca as contagens normais.
+# Resposta que não seja o relatório (redirect, HTML, 5xx) também falha.
 name: Alerta de volume
 
 on:
@@ -23,10 +25,15 @@ jobs:
         env:
           N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
         run: |
-          report=$(curl -fsS --max-time 60 -H "x-webhook-secret: $N8N_WEBHOOK_SECRET" \
-            https://vagasync.vercel.app/api/webhook/n8n/volume)
-          echo "$report" | jq .
-          if [ "$(echo "$report" | jq -r .alert)" = "true" ]; then
-            echo "::error::Volume fora do normal: $(echo "$report" | jq -c .alerts)"
+          status=$(curl -sS --max-time 60 --retry 2 --retry-all-errors -o report.json -w '%{http_code}' \
+            -H "x-webhook-secret: $N8N_WEBHOOK_SECRET" \
+            https://vagasync.vercel.app/api/webhook/n8n/volume) || status=erro
+          if [ "$status" != "200" ] || ! jq -e 'has("alert") and has("alerts")' report.json > /dev/null 2>&1; then
+            echo "::error::Não consegui ler o relatório de volume (HTTP $status)."
             exit 1
           fi
+          if [ "$(jq -r .alert report.json)" = "true" ]; then
+            echo "::error::Volume fora do normal: $(jq -c .alerts report.json)"
+            exit 1
+          fi
+          echo "Volume dentro dos limites."

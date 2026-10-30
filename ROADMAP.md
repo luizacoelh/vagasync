@@ -39,7 +39,9 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ### fix(security): teto global e alerta de volume
 - [x] Teto de 500 cadastros manuais em 24h somando todas as contas menos a do
-  dono: várias contas OAuth não somam a cota individual sem limite
+  dono, contado pela cota (apagar a vaga não devolve espaço), e teto de 20 contas
+  novas em 24h: várias contas OAuth não somam a cota individual sem limite
+- [x] `/api/analyze` recusa antes de chamar a IA quando a vaga não poderia ser salva
 - [x] `alerta-volume.yml`: de hora em hora, falha (e-mail do GitHub) se o volume
   de 24h passar dos limites de `lib/volumeReport.ts`, via
   `GET /api/webhook/n8n/volume` (só contagens, exige o segredo do webhook)

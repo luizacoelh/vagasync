@@ -35,14 +35,25 @@ Em 29/10/2026, após autorização de publicação:
 - O arquivo do banco continuou com ~254 MB, ~0,6 MB de dados: páginas livres que
   só um `VACUUM` devolve. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
   escritas do Turso não diminui: é uso do mês e zera no ciclo de cobrança.
-- Risco de várias contas: teto global de 500 cadastros manuais em 24h, somando
-  todas as contas menos a do dono. Custo aceito: num ataque, o cadastro manual
-  das outras contas para até a janela andar.
-- Sem aviso de abuso: `alerta-volume.yml` confere de hora em hora o volume de
-  24h e falha acima dos limites de `lib/volumeReport.ts`, o que gera e-mail do
-  GitHub. O atraso dos agendamentos do GitHub vale aqui também.
-- Ainda sem controle: criação de contas (`User` não tem data de criação; limitar
-  exigiria migration) e custo global de IA, que só tem alerta.
+- Risco de várias contas, em duas camadas:
+  - teto de 20 contas novas em 24h (`lib/signupGuard.ts`, pelo `User.createdAt`;
+    quem já tem conta entra sempre);
+  - teto global de 500 cadastros manuais em 24h, somando todas as contas menos a
+    do dono, contado pela `JobCreationQuota` (apagar a vaga não devolve espaço).
+  Custo aceito: num ataque, cadastro de contas e cadastro manual das outras
+  contas param até a janela andar. A análise por IA recusa antes de chamar o
+  Gemini quando a vaga não poderia ser salva.
+- Sem aviso de abuso: `alerta-volume.yml` confere de hora em hora e falha acima
+  dos limites de `lib/volumeReport.ts` (cadastros, contas criando, contas
+  novas, IA e estoque de vagas), o que gera e-mail do GitHub. Também falha se
+  não conseguir ler o relatório. O log público só mostra quais limites passaram.
+  O atraso dos agendamentos do GitHub vale aqui também.
+- Ainda sem controle: custo global de IA, que só tem alerta.
+- Revisão independente somente-leitura (subagente, 30/10): sem achado alto; os
+  médios (apagar vagas burlava teto e alerta; workflow passava verde sem ler o
+  relatório) e os baixos relevantes foram corrigidos antes do merge. Não há
+  teste de corrida específico do teto global; uma simulação do revisor com 8
+  processos no adapter libSQL não passou de 500.
 
 ## Superfícies examinadas
 
@@ -57,6 +68,7 @@ Em 29/10/2026, após autorização de publicação:
 | `/api/admin/users` GET e `/[id]` PATCH | Papel admin revalidado; dono protegido, sem autopromoção; boolean validado |
 | `/api/webhook/n8n` POST | Segredo timing-safe; alvo configurado no servidor; cotas de cadastro e tentativas de IA |
 | `/api/webhook/n8n/check` POST | Mesmo segredo; até 300 candidatas, corpo até 1 MiB |
+| `/api/webhook/n8n/volume` GET | Mesmo segredo; só contagens, sem ids nem e-mails; não grava |
 | Server Actions de vagas | Sessão e proprietário; IDs individuais validados e lotes até 200 |
 | Auth.js e páginas | OAuth gerenciado pelo Auth.js; admin revalidado; vaga real exige proprietário; visitante recebe exemplos |
 

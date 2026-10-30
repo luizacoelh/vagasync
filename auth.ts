@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
+import { allowSignIn } from "@/lib/signupGuard";
 
 // Duração da sessão JWT: 30 dias.
 // JWT nao e revogado apagando Session. Logout remove o cookie local;
@@ -40,6 +41,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   callbacks: {
+    // Recusa conta nova acima do teto diário (lib/signupGuard.ts); o Auth.js
+    // manda para /login?error=AccessDenied.
+    async signIn({ user, account }) {
+      if (!account) return true;
+      return allowSignIn(user.email, account.provider, account.providerAccountId);
+    },
+
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

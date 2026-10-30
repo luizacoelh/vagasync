@@ -11,9 +11,11 @@ export const JOB_LIMITS = {
   globalManualDay: 500,
 } as const;
 
-// Cadastros manuais das últimas 24h, de todas as contas menos a do dono.
-const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COUNT(*) FROM "Job" j JOIN "User" u ON u.id = j."userId"
-  WHERE u."isOwner" = 0 AND j.source = 'manual' AND unixepoch(j."createdAt") > unixepoch() - 86400)`;
+// Cadastros manuais na janela de 24h de cada conta, menos a do dono. Conta pela
+// cota, não pelas vagas: apagar a vaga logo depois não devolve o espaço.
+const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM(q."dayCount"), 0) FROM "JobCreationQuota" q
+  JOIN "User" u ON u.id = q."userId"
+  WHERE u."isOwner" = 0 AND q.channel = 'manual' AND q."dayStart" > unixepoch() - 86400)`;
 
 export class JobInputError extends Error {
   readonly status = 400;
