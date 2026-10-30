@@ -21,7 +21,7 @@ process.env.DATABASE_URL = url;
 process.env.GEMINI_API_KEY = "teste-sem-rede";
 process.env.N8N_WEBHOOK_SECRET = SECRET;
 
-let prisma, api, action, analyze, volume, allowSignIn, checkSignIn, NextRequest, JOB_LIMITS, VOLUME_ALERTS, NEW_ACCOUNTS_PER_DAY;
+let prisma, api, action, analyze, volume, allowSignIn, checkSignIn, checkJobCreationQuota, NextRequest, JOB_LIMITS, VOLUME_ALERTS, NEW_ACCOUNTS_PER_DAY;
 const input = { company: "Empresa", title: "Vaga", description: "Vaga de desenvolvimento de software.", requirements: [], technologies: [], questions: [], checklist: [] };
 
 before(async () => {
@@ -32,7 +32,7 @@ before(async () => {
   ({ createJob: action } = await import("@/app/actions/jobs"));
   ({ GET: volume } = await import("@/app/api/webhook/n8n/volume/route"));
   ({ NextRequest } = await import("next/server"));
-  ({ JOB_LIMITS } = await import("@/lib/jobCreation"));
+  ({ JOB_LIMITS, checkJobCreationQuota } = await import("@/lib/jobCreation"));
   ({ VOLUME_ALERTS } = await import("@/lib/volumeReport"));
   ({ allowSignIn, checkSignIn, NEW_ACCOUNTS_PER_DAY } = await import("@/lib/signupGuard"));
 });
@@ -78,6 +78,14 @@ test("recusa do teto não gasta a cota da conta", async () => {
   assert.equal(await prisma.jobCreationQuota.count({ where: { userId: user.id } }), 0);
 });
 
+test("conta perto da própria cota recebe a mensagem do teto global", async () => {
+  const user = await account();
+  await created(user.id, JOB_LIMITS.manual.day - 1);
+  await sitewide(JOB_LIMITS.globalManualDay);
+  login(user);
+  assert.match((await action(input)).error, /temporariamente limitado/);
+});
+
 test("abaixo do teto o cadastro segue, e apagar a vaga não devolve o espaço", async () => {
   await sitewide(JOB_LIMITS.globalManualDay - 1);
   login(await account());
@@ -117,6 +125,16 @@ test("dono fica fora do teto, mas segue com a cota pessoal", async () => {
 
   await prisma.$executeRaw`UPDATE "JobCreationQuota" SET "dayCount" = ${JOB_LIMITS.manual.day} WHERE "userId" = ${owner.id}`;
   assert.equal((await post()).status, 429);
+});
+
+test("pré-checagem do n8n não depende da tabela do teto global", async () => {
+  const user = await account();
+  await prisma.$executeRaw`ALTER TABLE "GlobalJobHour" RENAME TO "GlobalJobHourFora"`;
+  try {
+    await checkJobCreationQuota(user.id, "n8n");
+  } finally {
+    await prisma.$executeRaw`ALTER TABLE "GlobalJobHourFora" RENAME TO "GlobalJobHour"`;
+  }
 });
 
 test("com o teto atingido, a análise recusa antes de chamar a IA", async () => {

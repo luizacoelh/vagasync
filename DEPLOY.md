@@ -292,7 +292,9 @@ que 60s é suficiente no seu plano.
 
 Código que usa tabela nova só entra na `main` depois da migration aplicada no
 Turso (seção 2.1). A Vercel publica a `main` sozinha: no PR #37 o cadastro falhou
-até a tabela existir. Vale para `GlobalJobHour`.
+até a tabela existir. Sem `GlobalJobHour`, o cadastro manual (`/api/jobs`,
+`createJob`), a análise pelo site (`/api/analyze`) e o relatório de volume
+respondem 500. O n8n não depende dela.
 
 ## Liberar espaço no Turso (VACUUM)
 

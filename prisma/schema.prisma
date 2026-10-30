@@ -42,12 +42,6 @@ model User {
 
 // Contadores de criação independentes da IA e da exclusão de vagas.
 // Horários em segundos Unix, atualizados atomicamente em lib/jobCreation.ts.
-// Teto global de cadastro manual: "hour" é unixepoch() / 3600. Ver lib/jobCreation.ts.
-model GlobalJobHour {
-  hour Int @id
-  count Int @default(0)
-}
-
 model JobCreationQuota {
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -58,6 +52,12 @@ model JobCreationQuota {
   dayCount Int @default(0)
 
   @@id([userId, channel])
+}
+
+// Teto global de cadastro manual: "hour" é unixepoch() / 3600. Ver lib/jobCreation.ts.
+model GlobalJobHour {
+  hour Int @id
+  count Int @default(0)
 }
 
 // Configuração global do app, editável via /admin sem precisar de deploy.
