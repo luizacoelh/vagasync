@@ -214,6 +214,9 @@ vagasync/
   (30 dias), o `isAdmin` do cookie pode estar velho depois de uma revogação.
   `requireAdmin()` já cobria a API; a página passou a consultar o banco
   também, senão um admin revogado ainda veria a lista de usuários.
+- **Fontes no repositório (`app/fonts/`), não baixadas no build.** O download
+  do `next/font/google` falhava às vezes no CI (issue #35). Só o subset latin:
+  letra fora dele (ex: `ł`) cai na fonte do sistema, o que não afeta português.
 - **`Job.source` é o canal de entrada, não o provedor.** `"manual"` (padrão,
   cadastro na interface) ou `"n8n"` (gravado pelo webhook). O provedor
   (`gupy`, `remotar`...) que o n8n manda vai só para o log e `AiUsage.action`;
