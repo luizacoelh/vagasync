@@ -37,6 +37,14 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### fix(build): fontes locais (issue #35)
+- [x] Inter e Outfit saem de `next/font/google` para `next/font/local`, com os
+  `.woff2` e as licenças OFL em `app/fonts/`: o build não baixa mais nada do
+  Google, o que elimina a falha intermitente do CI
+  (`next/font/google queries have exactly one entry`). Mesmos pesos, mesmas
+  variáveis e mesmos arquivos do subset latin
+- [x] CSP sem `fonts.googleapis.com` e `fonts.gstatic.com`
+
 ### fix(n8n): idioma em descrições curtas, origem n8n e contagem por busca
 - [x] Teste de idioma do "Montar vagas" compara palavras funcionais de
   português, inglês e espanhol; texto curto (< 40 palavras) ou empate não é
@@ -446,20 +454,6 @@ webhook → `/monitoradas`). Falta:
     no que é comparado
   - `loadDedupJobs` traz todas as vagas do usuário dos últimos 30 dias a cada
     chamada; filtrar mais no banco se o volume crescer
-
-### 2b. Build instável no CI: download das fontes do Google
-`next build` (Turbopack) às vezes falha ao baixar Inter/Outfit do Google
-Fonts: `Module not found: Can't resolve
-'@vercel/turbopack-next/internal/font/google/font'` + `next/font/google
-queries have exactly one entry`. No PR #33 (commit `4cd3098`) o job
-"Lint + TypeScript + Build" do run 40584675565 falhou nas tentativas 1 e 2 e
-passou na 3, sem mudança de código; o run do pull request (40584836617)
-passou de primeira. Lint, testes e migrations passaram em todas. O mesmo erro
-apareceu uma vez num build local (Node 22). Causa não confirmada (antes o CI
-usava Node 20 e não tinha falhado; a Vercel já builda em Node 22 e passa).
-Correção provável, num PR próprio: fontes locais com `next/font/local`
-(arquivos `.woff2` no repo) em `app/layout.tsx`, tirando a rede do build.
-Detalhes e logs na issue #35.
 
 ### 3. Screenshots reais no README
 Fazer antes de tornar o repositório público e postar no LinkedIn.

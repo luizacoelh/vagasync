@@ -41,10 +41,10 @@ const securityHeaders = [
       // no modo de desenvolvimento. Em produção nunca usa eval() — confirmado
       // pelo próprio aviso do React. Remover em prod mantém a CSP mais restrita.
       `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-      // Estilos: próprio domínio + inline (Tailwind/Next) + Google Fonts
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      // Fontes: próprio domínio + Google Fonts CDN
-      "font-src 'self' https://fonts.gstatic.com",
+      // Estilos: próprio domínio + inline (Tailwind/Next)
+      "style-src 'self' 'unsafe-inline'",
+      // Fontes: só o próprio domínio (arquivos em app/fonts/)
+      "font-src 'self'",
       // Imagens: próprio domínio + data URIs + avatares do GitHub e Google
       "img-src 'self' data: https://avatars.githubusercontent.com https://lh3.googleusercontent.com",
       // Conexões fetch/XHR: próprio domínio + API do Gemini

@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
-import { Outfit, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { auth } from "@/auth";
 import NewJobFab from "@/components/ui/NewJobFab";
 import { LoginGateProvider } from "@/components/auth/LoginGate";
 
-const outfit = Outfit({
+// Fontes no repositório (app/fonts/, licença OFL): o build não depende de rede.
+// Cada arquivo é a fonte variável do subset latin; um src por peso reproduz os
+// mesmos @font-face que vinham do Google.
+const outfit = localFont({
   variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  src: [
+    { path: "./fonts/outfit-latin.woff2", weight: "400" },
+    { path: "./fonts/outfit-latin.woff2", weight: "500" },
+    { path: "./fonts/outfit-latin.woff2", weight: "600" },
+    { path: "./fonts/outfit-latin.woff2", weight: "700" },
+  ],
 });
 
-const inter = Inter({
+const inter = localFont({
   variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  src: [
+    { path: "./fonts/inter-latin.woff2", weight: "400" },
+    { path: "./fonts/inter-latin.woff2", weight: "500" },
+  ],
 });
 
 export const metadata: Metadata = {
