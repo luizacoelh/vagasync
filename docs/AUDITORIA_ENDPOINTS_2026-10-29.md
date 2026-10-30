@@ -33,7 +33,7 @@ Em 29/10/2026, após autorização de publicação:
   Por isso o backup de 29/10 já tinha só 270 registros. Em 30/10: 90 vagas,
   4 contas, nenhuma linha órfã.
 - O arquivo do banco continuou com ~254 MB, ~0,6 MB de dados: páginas livres que
-  só um `VACUUM` devolve. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
+  reaproveitadas pelas próximas gravações; o Turso recusa `VACUUM` pela API. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
   escritas do Turso não diminui: é uso do mês e zera no ciclo de cobrança.
 - Risco de várias contas, em duas camadas:
   - teto de 20 contas novas em 24h (`lib/signupGuard.ts`, pelo `User.createdAt`;

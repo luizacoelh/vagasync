@@ -55,8 +55,8 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 - [x] `alerta-volume.yml`: de hora em hora, falha (e-mail do GitHub) se o volume
   de 24h passar dos limites de `lib/volumeReport.ts`, via
   `GET /api/webhook/n8n/volume` (só contagens, exige o segredo do webhook)
-- [ ] `VACUUM` no Turso para devolver ~253 MB de páginas livres, depois do
-  backup pelo painel (`DEPLOY.md`)
+- As ~253 MB livres do incidente seguem no arquivo: o Turso recusa `VACUUM` pela
+  API, e o espaço é reaproveitado pelas próximas gravações (`DEPLOY.md`)
 
 ### fix(build): fontes locais (issue #35)
 - [x] Inter e Outfit saem de `next/font/google` para `next/font/local`, com os
