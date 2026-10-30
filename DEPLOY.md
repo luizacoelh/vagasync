@@ -288,6 +288,12 @@ evitar timeout prematuro (504). Os limites exatos de duração variam por
 plano da Vercel — confira em *Project Settings → Functions* antes de assumir
 que 60s é suficiente no seu plano.
 
+## Migration antes do deploy
+
+Código que usa tabela nova só entra na `main` depois da migration aplicada no
+Turso (seção 2.1). A Vercel publica a `main` sozinha: no PR #37 o cadastro falhou
+até a tabela existir. Vale para `GlobalJobHour`.
+
 ## Liberar espaço no Turso (VACUUM)
 
 Apagar muitas linhas não reduz o arquivo: as páginas ficam livres. Para ver,

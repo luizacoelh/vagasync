@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma";
 // do limite, o alerta segue falhando até alguém olhar o banco.
 export const VOLUME_ALERTS = {
   manualCreated: 200,
-  accountsCreating: 10,
-  newAccounts: 10,
+  accountsCreating: 5,
+  newAccounts: 5,
   aiCalls: 300,
   storedJobs: 5000,
 } as const;
@@ -16,15 +16,17 @@ export const VOLUME_ALERTS = {
 type Counts = Record<keyof typeof VOLUME_ALERTS, number | bigint>;
 
 export async function loadVolumeReport() {
-  // Cadastros contados pela cota (lib/jobCreation.ts): vaga apagada não some daqui.
+  // Cadastros contados pela cota (lib/jobCreation.ts): vaga apagada não some
+  // daqui. aiCalls é só a análise pelo site: a do n8n tem cota própria e pode
+  // chegar a 480 por dia sem ser abuso.
   const [row] = await prisma.$queryRaw<Counts[]>`
     SELECT
-      (SELECT COALESCE(SUM("dayCount"), 0) FROM "JobCreationQuota"
-        WHERE channel = 'manual' AND "dayStart" > unixepoch() - 86400) AS manualCreated,
+      (SELECT COALESCE(SUM("count"), 0) FROM "GlobalJobHour"
+        WHERE "hour" >= unixepoch() / 3600 - 24) AS manualCreated,
       (SELECT COUNT(*) FROM "JobCreationQuota"
         WHERE channel = 'manual' AND "dayCount" > 0 AND "dayStart" > unixepoch() - 86400) AS accountsCreating,
       (SELECT COUNT(*) FROM "User" WHERE unixepoch("createdAt") > unixepoch() - 86400) AS newAccounts,
-      (SELECT COUNT(*) FROM "AiUsage" WHERE unixepoch("createdAt") > unixepoch() - 86400) AS aiCalls,
+      (SELECT COUNT(*) FROM "AiUsage" WHERE action = 'analyze_job' AND unixepoch("createdAt") > unixepoch() - 86400) AS aiCalls,
       (SELECT COUNT(*) FROM "Job") AS storedJobs`;
 
   const keys = Object.keys(VOLUME_ALERTS) as (keyof typeof VOLUME_ALERTS)[];

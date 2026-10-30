@@ -103,7 +103,7 @@ vagasync/
   n8n-workflows/vagas-br.json   # Workflow do n8n em uso (Remotar, GitHub, Himalayas, Gupy → checagem → webhook)
   .github/workflows/n8n-vagas.yml  # Roda o workflow acima a cada 2h num n8n descartável (secret N8N_WEBHOOK_SECRET)
   .github/workflows/alerta-volume.yml  # De hora em hora: falha (e-mail do GitHub) se o volume passar dos limites
-  tests/                        # `npm test` (node --test, sem banco): jobDedup, nós de código do workflow n8n, resumo do Actions (fixtures/ com respostas reais) e Job.source num SQLite temporário (support/: loader de TS e stubs do Gemini/Auth)
+  tests/                        # `npm test` (node --test): jobDedup, nós de código do workflow n8n, resumo do Actions (fixtures/ com respostas reais) e, num SQLite temporário, Job.source, cotas e tetos (support/: loader de TS e stubs do Gemini/Auth)
   types/
     job.ts / profile.ts
     next-auth.d.ts              # Adiciona `id` e `isAdmin` ao tipo Session.user
@@ -222,8 +222,11 @@ vagasync/
 - **Teto global só no cadastro manual, com o dono de fora.** A cota de
   `lib/jobCreation.ts` é por conta; o teto de 500 em 24h fecha a soma de várias
   contas, junto com o teto de 20 contas novas por dia (`lib/signupGuard.ts`).
-  Conta pela `JobCreationQuota`, não pelas vagas: criar e apagar em seguida
-  não devolve espaço. A coleta do n8n (já limitada pelo segredo) não trava o resto.
+  Contador próprio por hora (`GlobalJobHour`), somado em 25 horas para valer em
+  qualquer intervalo de 24h. Não conta vagas, porque criar e apagar em seguida
+  não pode devolver espaço, nem soma as janelas por conta, que saem inteiras
+  da soma ao vencer e deixavam passar quem as espalhasse. A coleta do n8n (já
+  limitada pelo segredo) não trava o resto.
 - **`Job.source` é o canal de entrada, não o provedor.** `"manual"` (padrão,
   cadastro na interface) ou `"n8n"` (gravado pelo webhook). O provedor
   (`gupy`, `remotar`...) que o n8n manda vai só para o log e `AiUsage.action`;

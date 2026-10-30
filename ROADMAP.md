@@ -37,11 +37,20 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### fix(security): contador global por hora
+- [x] Teto de 500 cadastros manuais passa a valer em qualquer intervalo de 24h,
+  com a tabela `GlobalJobHour`. A revisão independente do PR #39 mostrou que
+  somar as janelas de cada conta não limitava: 100 contas com janelas espalhadas
+  fariam 10.000 cadastros em 24h. **A migration vai para o Turso antes do deploy**
+- [x] Alerta de contas em 5 (era 10), e `aiCalls` só com a análise pelo site:
+  o n8n pode chegar a 480 por dia sem ser abuso
+- [x] Teste do retorno de login recusado (`checkSignIn`)
+
 ### fix(security): teto global e alerta de volume
 - [x] Teto de 500 cadastros manuais em 24h somando todas as contas menos a do
   dono, contado pela cota (apagar a vaga não devolve espaço), e teto de 20 contas
   novas em 24h: várias contas OAuth não somam a cota individual sem limite
-  (pior caso documentado: ~2× o teto em 24h corridas, pela janela fixa por conta)
+  (corrigido depois: a soma das janelas por conta não limitava; ver `GlobalJobHour`)
 - [x] `/api/analyze` recusa antes de chamar a IA quando a vaga não poderia ser salva
 - [x] `alerta-volume.yml`: de hora em hora, falha (e-mail do GitHub) se o volume
   de 24h passar dos limites de `lib/volumeReport.ts`, via

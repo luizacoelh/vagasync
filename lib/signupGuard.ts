@@ -22,3 +22,14 @@ export async function allowSignIn(email: string | null | undefined, provider: st
   console.warn(`[auth] teto de ${NEW_ACCOUNTS_PER_DAY} contas novas em 24h atingido; cadastro recusado`);
   return false;
 }
+
+// Resposta do callback signIn do Auth.js. Erro próprio em vez de false:
+// AccessDenied também é o que o Auth.js usa quando o callback falha (ex: banco
+// fora do ar), e aí a mensagem certa é a genérica.
+export async function checkSignIn(
+  user: { email?: string | null },
+  account: { provider: string; providerAccountId: string } | null | undefined,
+): Promise<true | string> {
+  if (!account) return true;
+  return (await allowSignIn(user.email, account.provider, account.providerAccountId)) || "/login?error=CadastroLimitado";
+}

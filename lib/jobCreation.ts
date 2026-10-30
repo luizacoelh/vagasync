@@ -11,13 +11,13 @@ export const JOB_LIMITS = {
   globalManualDay: 500,
 } as const;
 
-// Cadastros manuais na janela de 24h de cada conta, menos a do dono. Conta pela
-// cota, não pelas vagas: apagar a vaga logo depois não devolve o espaço. Cada
-// janela é fixa e sai inteira da soma ao vencer, então em 24h corridas o pior
-// caso é ~2× o teto; teto exato exigiria guardar a janela anterior (migration).
-const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM(q."dayCount"), 0) FROM "JobCreationQuota" q
-  JOIN "User" u ON u.id = q."userId"
-  WHERE u."isOwner" = 0 AND q.channel = 'manual' AND q."dayStart" > unixepoch() - 86400)`;
+// Cadastros manuais do site, por hora, sem os do dono. O contador é próprio:
+// somar as janelas de 24h de cada conta deixava passar quem espalhasse a
+// abertura das janelas, porque cada uma sai inteira da soma ao vencer. Conta
+// 25 horas para valer em qualquer intervalo de 24h, mesmo começando no meio de
+// uma hora. Apagar a vaga não devolve o espaço.
+const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM("count"), 0) FROM "GlobalJobHour"
+  WHERE "hour" >= unixepoch() / 3600 - 24)`;
 
 export class JobInputError extends Error {
   readonly status = 400;
@@ -92,14 +92,24 @@ async function reserveQuota(tx: Prisma.TransactionClient, userId: string, channe
     WHERE "userId" = ${userId} AND channel = ${key}
     AND ("minuteStart" <= unixepoch() - 60 OR "minuteCount" < ${JOB_LIMITS[channel].minute})
     AND ("dayStart" <= unixepoch() - 86400 OR "dayCount" < ${JOB_LIMITS[channel].day})
-    AND (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${userId}) < ${JOB_LIMITS.stored}
-    AND (${channel} <> 'manual'
-      OR EXISTS (SELECT 1 FROM "User" WHERE id = ${userId} AND "isOwner" = 1)
-      OR ${GLOBAL_MANUAL_COUNT} < ${JOB_LIMITS.globalManualDay})`;
-  if (changed !== 1) {
+    AND (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${userId}) < ${JOB_LIMITS.stored}`;
+  if (changed !== 1 || !(await reserveGlobal(tx, userId, channel))) {
     assertQuota(await readQuota(tx, userId, key), channel);
     throw new JobQuotaError("Não foi possível reservar a cota de cadastro. Tente novamente em instantes.", 60);
   }
+}
+
+// Roda depois da escrita de reserveQuota, na mesma transação: se recusar, o
+// erro desfaz também a cota da conta.
+async function reserveGlobal(tx: Prisma.TransactionClient, userId: string, channel: JobChannel) {
+  if (channel !== "manual") return true;
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { isOwner: true } });
+  if (user?.isOwner) return true;
+  await tx.$executeRaw`DELETE FROM "GlobalJobHour" WHERE "hour" < unixepoch() / 3600 - 24`;
+  const changed = await tx.$executeRaw`INSERT INTO "GlobalJobHour" ("hour", "count")
+    SELECT unixepoch() / 3600, 1 WHERE ${GLOBAL_MANUAL_COUNT} < ${JOB_LIMITS.globalManualDay}
+    ON CONFLICT ("hour") DO UPDATE SET "count" = "count" + 1`;
+  return changed === 1;
 }
 
 // Reserva antes da IA; falhas e duplicatas posteriores tambem consomem tentativa.
