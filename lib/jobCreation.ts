@@ -12,7 +12,9 @@ export const JOB_LIMITS = {
 } as const;
 
 // Cadastros manuais na janela de 24h de cada conta, menos a do dono. Conta pela
-// cota, não pelas vagas: apagar a vaga logo depois não devolve o espaço.
+// cota, não pelas vagas: apagar a vaga logo depois não devolve o espaço. Cada
+// janela é fixa e sai inteira da soma ao vencer, então em 24h corridas o pior
+// caso é ~2× o teto; teto exato exigiria guardar a janela anterior (migration).
 const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM(q."dayCount"), 0) FROM "JobCreationQuota" q
   JOIN "User" u ON u.id = q."userId"
   WHERE u."isOwner" = 0 AND q.channel = 'manual' AND q."dayStart" > unixepoch() - 86400)`;

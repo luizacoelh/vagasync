@@ -41,11 +41,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   callbacks: {
-    // Recusa conta nova acima do teto diário (lib/signupGuard.ts); o Auth.js
-    // manda para /login?error=AccessDenied.
+    // Recusa conta nova acima do teto diário (lib/signupGuard.ts) com um
+    // erro próprio: AccessDenied também é o que o Auth.js usa quando o callback
+    // falha (ex: banco fora do ar), e aí a mensagem certa é a genérica.
     async signIn({ user, account }) {
       if (!account) return true;
-      return allowSignIn(user.email, account.provider, account.providerAccountId);
+      return (await allowSignIn(user.email, account.provider, account.providerAccountId)) || "/login?error=CadastroLimitado";
     },
 
     async jwt({ token, user }) {

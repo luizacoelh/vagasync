@@ -49,7 +49,7 @@ export default async function LoginPage({
 
           {error && (
             <p role="alert" className="mb-5 rounded-xl border border-[#E5534B]/40 bg-[#E5534B]/10 px-4 py-3 text-sm text-[#E5534B]">
-              {error === "AccessDenied"
+              {error === "CadastroLimitado"
                 ? "Novos cadastros estão temporariamente limitados. Tente de novo mais tarde."
                 : "Não foi possível entrar. Tente de novo."}
             </p>

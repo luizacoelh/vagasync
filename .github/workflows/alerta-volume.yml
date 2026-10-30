@@ -25,7 +25,7 @@ jobs:
         env:
           N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
         run: |
-          status=$(curl -sS --max-time 60 --retry 2 --retry-all-errors -o report.json -w '%{http_code}' \
+          status=$(curl -sS --max-time 30 --retry 2 --retry-all-errors -o report.json -w '%{http_code}' \
             -H "x-webhook-secret: $N8N_WEBHOOK_SECRET" \
             https://vagasync.vercel.app/api/webhook/n8n/volume) || status=erro
           if [ "$status" != "200" ] || ! jq -e 'has("alert") and has("alerts")' report.json > /dev/null 2>&1; then

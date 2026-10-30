@@ -2,7 +2,9 @@ import { prisma } from "@/lib/prisma";
 
 // Contas novas por 24h no site inteiro. Cada conta tem a própria cota de
 // cadastro (lib/jobCreation.ts); sem este teto, criar contas em série
-// multiplicaria essa cota. Quem já tem conta entra sempre.
+// multiplicaria essa cota. Quem já tem conta entra sempre. Sem trava: logins
+// simultâneos podem passar alguns acima do teto, cada um com uma conta
+// Google/GitHub real.
 export const NEW_ACCOUNTS_PER_DAY = 20;
 
 // Conta nova = nem o vínculo OAuth nem o e-mail existem (o e-mail liga as

@@ -41,7 +41,10 @@ Em 29/10/2026, após autorização de publicação:
   - teto global de 500 cadastros manuais em 24h, somando todas as contas menos a
     do dono, contado pela `JobCreationQuota` (apagar a vaga não devolve espaço).
   Custo aceito: num ataque, cadastro de contas e cadastro manual das outras
-  contas param até a janela andar. A análise por IA recusa antes de chamar o
+  contas param até a janela andar. Limites reais: a janela de cada conta é fixa
+  e sai inteira da soma ao vencer, então em 24h corridas passam até ~1.000
+  cadastros (2× o teto); logins simultâneos podem passar alguns acima das 20
+  contas. Teto exato exigiria migration. A análise por IA recusa antes de chamar o
   Gemini quando a vaga não poderia ser salva.
 - Sem aviso de abuso: `alerta-volume.yml` confere de hora em hora e falha acima
   dos limites de `lib/volumeReport.ts` (cadastros, contas criando, contas
@@ -51,7 +54,9 @@ Em 29/10/2026, após autorização de publicação:
 - Ainda sem controle: custo global de IA, que só tem alerta.
 - Revisão independente somente-leitura (subagente, 30/10): sem achado alto; os
   médios (apagar vagas burlava teto e alerta; workflow passava verde sem ler o
-  relatório) e os baixos relevantes foram corrigidos antes do merge. Não há
+  relatório) e os baixos relevantes foram corrigidos antes do merge. Segunda
+  leitura do commit de correções: sem bypass no `signIn`; o limite de ~2× foi
+  documentado, e a mensagem de login e o tempo do workflow, corrigidos. Não há
   teste de corrida específico do teto global; uma simulação do revisor com 8
   processos no adapter libSQL não passou de 500.
 
