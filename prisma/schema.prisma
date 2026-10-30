@@ -54,6 +54,12 @@ model JobCreationQuota {
   @@id([userId, channel])
 }
 
+// Teto global de cadastro manual: "hour" é unixepoch() / 3600. Ver lib/jobCreation.ts.
+model GlobalJobHour {
+  hour Int @id
+  count Int @default(0)
+}
+
 // Configuração global do app, editável via /admin sem precisar de deploy.
 // Linha única (singleton), ver lib/appSettings.ts.
 model AppSettings {

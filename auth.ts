@@ -3,7 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
-import { allowSignIn } from "@/lib/signupGuard";
+import { checkSignIn } from "@/lib/signupGuard";
 
 // Duração da sessão JWT: 30 dias.
 // JWT nao e revogado apagando Session. Logout remove o cookie local;
@@ -41,13 +41,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   callbacks: {
-    // Recusa conta nova acima do teto diário (lib/signupGuard.ts) com um
-    // erro próprio: AccessDenied também é o que o Auth.js usa quando o callback
-    // falha (ex: banco fora do ar), e aí a mensagem certa é a genérica.
-    async signIn({ user, account }) {
-      if (!account) return true;
-      return (await allowSignIn(user.email, account.provider, account.providerAccountId)) || "/login?error=CadastroLimitado";
-    },
+    // Recusa conta nova acima do teto diário (lib/signupGuard.ts)
+    signIn: ({ user, account }) => checkSignIn(user, account),
 
     async jwt({ token, user }) {
       if (user) {

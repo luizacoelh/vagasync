@@ -288,15 +288,22 @@ evitar timeout prematuro (504). Os limites exatos de duração variam por
 plano da Vercel — confira em *Project Settings → Functions* antes de assumir
 que 60s é suficiente no seu plano.
 
-## Liberar espaço no Turso (VACUUM)
+## Migration antes do deploy
 
-Apagar muitas linhas não reduz o arquivo: as páginas ficam livres. Para ver,
-`PRAGMA page_count` e `PRAGMA freelist_count` (multiplique por 4096 bytes).
-Para devolver o espaço: baixar o backup (Download SQLite File no painel), rodar
-`VACUUM` e conferir com `npm run check:turso`. Não altera linhas, mas é
-escrita em produção: mostrar o comando e esperar confirmação (regra do
-`CLAUDE.md`). Não confirmado se o Turso aceita `VACUUM` remoto; se recusar, a
-alternativa é restaurar um dump novo, o que exige outro plano.
+Código que usa tabela nova só entra na `main` depois da migration aplicada no
+Turso (seção 2.1). A Vercel publica a `main` sozinha: no PR #37 o cadastro falhou
+até a tabela existir. Sem `GlobalJobHour`, o cadastro manual (`/api/jobs`,
+`createJob`), a análise pelo site (`/api/analyze`) e o relatório de volume
+respondem 500. O n8n não depende dela.
+
+## Espaço do banco no Turso
+
+Apagar muitas linhas não reduz o arquivo: as páginas ficam livres e são
+reaproveitadas pelas próximas gravações. Para ver, `PRAGMA page_count` e
+`PRAGMA freelist_count` (multiplique por 4096 bytes). O Turso recusa `VACUUM`
+pela API (`SQL not allowed statement`, testado em 30/10/2026), então devolver o
+espaço exigiria recriar o banco a partir de um dump. Não vale fazer isso só por
+causa das ~253 MB livres do incidente de 28/10.
 
 ## Checklist antes de ativar o deploy
 

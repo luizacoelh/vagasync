@@ -17,7 +17,7 @@ process.env.DATABASE_URL = url;
 process.env.GEMINI_API_KEY = "teste-sem-rede";
 process.env.N8N_WEBHOOK_SECRET = "teste-limits";
 
-let prisma, api, action, webhook, patch, updateMeta, NextRequest, createLimitedJob, jobCreateData;
+let prisma, api, action, webhook, patch, updateMeta, NextRequest, createLimitedJob, jobCreateData, JOB_LIMITS;
 const input = { company: "Empresa", title: "Desenvolvimento", description: "Vaga de desenvolvimento de software.", requirements: [], technologies: [], questions: [], checklist: [] };
 
 before(async () => {
@@ -28,7 +28,7 @@ before(async () => {
   ({ POST: webhook } = await import("@/app/api/webhook/n8n/route"));
   ({ PATCH: patch } = await import("@/app/api/jobs/[id]/route"));
   ({ NextRequest } = await import("next/server"));
-  ({ createLimitedJob } = await import("@/lib/jobCreation"));
+  ({ createLimitedJob, JOB_LIMITS } = await import("@/lib/jobCreation"));
   ({ jobCreateData } = await import("@/lib/jobInput"));
 });
 after(async () => {
@@ -136,6 +136,16 @@ test("requisições concorrentes em conexões distintas disputam o último slot 
   assert.equal(Number((await quota(id)).dayCount), 100);
   // Contenção pode negar uma requisição antes de adquirir o lock; nunca libera.
   assert.equal((await api(request(input))).status, 429);
+});
+
+test("requisições concorrentes disputam o último slot do teto global", async () => {
+  const id = await user();
+  await prisma.$executeRaw`DELETE FROM "GlobalJobHour"`;
+  await prisma.$executeRaw`INSERT INTO "GlobalJobHour" ("hour", "count") VALUES (unixepoch() / 3600, ${JOB_LIMITS.globalManualDay - 1})`;
+  const results = await concurrentCreates(id, ["manual", "manual"]);
+  assert.equal(results.filter(r => r.ok).length, 1);
+  assert.equal(await prisma.job.count({ where: { userId: id } }), 1);
+  await prisma.$executeRaw`DELETE FROM "GlobalJobHour"`;
 });
 
 test("teto compartilhado conta descartadas e protege o último slot entre canais", async () => {

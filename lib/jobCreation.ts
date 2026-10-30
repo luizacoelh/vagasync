@@ -11,13 +11,13 @@ export const JOB_LIMITS = {
   globalManualDay: 500,
 } as const;
 
-// Cadastros manuais na janela de 24h de cada conta, menos a do dono. Conta pela
-// cota, não pelas vagas: apagar a vaga logo depois não devolve o espaço. Cada
-// janela é fixa e sai inteira da soma ao vencer, então em 24h corridas o pior
-// caso é ~2× o teto; teto exato exigiria guardar a janela anterior (migration).
-const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM(q."dayCount"), 0) FROM "JobCreationQuota" q
-  JOIN "User" u ON u.id = q."userId"
-  WHERE u."isOwner" = 0 AND q.channel = 'manual' AND q."dayStart" > unixepoch() - 86400)`;
+// Cadastros manuais do site, por hora, sem os do dono. O contador é próprio:
+// somar as janelas de 24h de cada conta deixava passar quem espalhasse a
+// abertura das janelas, porque cada uma sai inteira da soma ao vencer. Conta
+// 25 horas para valer em qualquer intervalo de 24h, mesmo começando no meio de
+// uma hora. Apagar a vaga não devolve o espaço.
+const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM("count"), 0) FROM "GlobalJobHour"
+  WHERE "hour" >= unixepoch() / 3600 - 24)`;
 
 export class JobInputError extends Error {
   readonly status = 400;
@@ -37,7 +37,7 @@ async function readQuota(db: Prisma.TransactionClient, userId: string, channel: 
       CASE WHEN q."dayStart" > unixepoch() - 86400 THEN q."dayCount" ELSE 0 END AS dayCount,
       MAX(1, COALESCE(q."minuteStart", 0) + 60 - unixepoch()) AS minuteLeft,
       MAX(1, COALESCE(q."dayStart", 0) + 86400 - unixepoch()) AS dayLeft,
-      ${GLOBAL_MANUAL_COUNT} AS globalManual,
+      ${channel === "manual" ? GLOBAL_MANUAL_COUNT : Prisma.sql`0`} AS globalManual,
       EXISTS (SELECT 1 FROM "User" WHERE id = ${userId} AND "isOwner" = 1) AS owner
     FROM (SELECT 1) LEFT JOIN "JobCreationQuota" q ON q."userId" = ${userId} AND q.channel = ${channel}`;
   return state;
@@ -54,10 +54,14 @@ function assertQuota(state: QuotaState, channel: JobChannel) {
     throw new JobQuotaError(`Muitos cadastros em pouco tempo. Aguarde até um minuto e tente novamente.`, Number(state.minuteLeft));
   }
   if (channel === "manual" && !Number(state.owner) && Number(state.globalManual) >= JOB_LIMITS.globalManualDay) {
-    // Aparece nos logs da Vercel; o alerta de volume avisa por e-mail.
-    console.warn(`[jobs] teto global de ${JOB_LIMITS.globalManualDay} cadastros manuais em 24h atingido`);
-    throw new JobQuotaError("O cadastro de vagas está temporariamente limitado. Tente novamente mais tarde.", 3600);
+    throw globalLimitError();
   }
+}
+
+function globalLimitError() {
+  // Aparece nos logs da Vercel; o alerta de volume avisa por e-mail.
+  console.warn(`[jobs] teto global de ${JOB_LIMITS.globalManualDay} cadastros manuais em 24h atingido`);
+  return new JobQuotaError("O cadastro de vagas está temporariamente limitado. Tente novamente mais tarde.", 3600);
 }
 
 // Pré-checagem para não gastar Gemini quando a conta já está bloqueada.
@@ -92,14 +96,25 @@ async function reserveQuota(tx: Prisma.TransactionClient, userId: string, channe
     WHERE "userId" = ${userId} AND channel = ${key}
     AND ("minuteStart" <= unixepoch() - 60 OR "minuteCount" < ${JOB_LIMITS[channel].minute})
     AND ("dayStart" <= unixepoch() - 86400 OR "dayCount" < ${JOB_LIMITS[channel].day})
-    AND (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${userId}) < ${JOB_LIMITS.stored}
-    AND (${channel} <> 'manual'
-      OR EXISTS (SELECT 1 FROM "User" WHERE id = ${userId} AND "isOwner" = 1)
-      OR ${GLOBAL_MANUAL_COUNT} < ${JOB_LIMITS.globalManualDay})`;
+    AND (SELECT COUNT(*) FROM "Job" WHERE "userId" = ${userId}) < ${JOB_LIMITS.stored}`;
   if (changed !== 1) {
     assertQuota(await readQuota(tx, userId, key), channel);
     throw new JobQuotaError("Não foi possível reservar a cota de cadastro. Tente novamente em instantes.", 60);
   }
+  await reserveGlobal(tx, userId, channel);
+}
+
+// Roda depois da escrita de reserveQuota, na mesma transação: o erro desfaz
+// também a cota da conta.
+async function reserveGlobal(tx: Prisma.TransactionClient, userId: string, channel: JobChannel) {
+  if (channel !== "manual") return;
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { isOwner: true } });
+  if (user?.isOwner) return;
+  await tx.$executeRaw`DELETE FROM "GlobalJobHour" WHERE "hour" < unixepoch() / 3600 - 24`;
+  const changed = await tx.$executeRaw`INSERT INTO "GlobalJobHour" ("hour", "count")
+    SELECT unixepoch() / 3600, 1 WHERE ${GLOBAL_MANUAL_COUNT} < ${JOB_LIMITS.globalManualDay}
+    ON CONFLICT ("hour") DO UPDATE SET "count" = "count" + 1`;
+  if (changed !== 1) throw globalLimitError();
 }
 
 // Reserva antes da IA; falhas e duplicatas posteriores tambem consomem tentativa.

@@ -33,23 +33,24 @@ Em 29/10/2026, após autorização de publicação:
   Por isso o backup de 29/10 já tinha só 270 registros. Em 30/10: 90 vagas,
   4 contas, nenhuma linha órfã.
 - O arquivo do banco continuou com ~254 MB, ~0,6 MB de dados: páginas livres que
-  só um `VACUUM` devolve. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
+  reaproveitadas pelas próximas gravações; o Turso recusa `VACUUM` pela API. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
   escritas do Turso não diminui: é uso do mês e zera no ciclo de cobrança.
 - Risco de várias contas, em duas camadas:
   - teto de 20 contas novas em 24h (`lib/signupGuard.ts`, pelo `User.createdAt`;
     quem já tem conta entra sempre);
   - teto global de 500 cadastros manuais em 24h, somando todas as contas menos a
-    do dono, contado pela `JobCreationQuota` (apagar a vaga não devolve espaço).
+    do dono, contado por hora em `GlobalJobHour` (apagar a vaga não devolve espaço).
   Custo aceito: num ataque, cadastro de contas e cadastro manual das outras
-  contas param até a janela andar. Limites reais: a janela de cada conta é fixa
-  e sai inteira da soma ao vencer, então em 24h corridas passam até ~1.000
-  cadastros (2× o teto); logins simultâneos podem passar alguns acima das 20
-  contas. Teto exato exigiria migration. A análise por IA recusa antes de chamar o
+  contas param até a janela andar. A primeira versão somava as janelas de 24h de
+  cada conta e foi corrigida: janelas espalhadas nunca atingiam o teto (revisão
+  do PR #39: 100 contas, 10.000 cadastros em 24h; o "~2×" documentado estava
+  errado). Limite real: logins simultâneos podem passar alguns acima das 20
+  contas. A análise por IA recusa antes de chamar o
   Gemini quando a vaga não poderia ser salva.
 - Sem aviso de abuso: `alerta-volume.yml` confere de hora em hora e falha acima
   dos limites de `lib/volumeReport.ts` (cadastros, contas criando, contas
   novas, IA e estoque de vagas), o que gera e-mail do GitHub. Também falha se
-  não conseguir ler o relatório. O log público só mostra quais limites passaram.
+  não conseguir ler o relatório. O log público só mostra os limites que passaram e o valor de cada um.
   O atraso dos agendamentos do GitHub vale aqui também.
 - Ainda sem controle: custo global de IA, que só tem alerta.
 - Revisão independente somente-leitura (subagente, 30/10): sem achado alto; os
