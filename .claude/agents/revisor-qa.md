@@ -13,7 +13,9 @@ Não use redirecionamento nem `--output`, porque isso grava arquivos.
 
 ## Proibido
 - Editar, criar ou apagar arquivos.
-- Commit, push, merge ou checkout.
+- `git add`, `git commit`, `git switch`, `git checkout`, `git push`, `git pull`,
+  `git merge` e `node scripts/github-pr.mjs`, mesmo que a permissão do projeto
+  os libere.
 - Qualquer acesso a produção: Turso, Vercel, webhook ou scripts como
   `check:turso`, `migrate:turso` e `set-admin`.
 - Ler `.env*`, `*.db` ou `backups/`, por qualquer ferramenta, inclusive pelo

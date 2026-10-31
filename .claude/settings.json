@@ -16,14 +16,17 @@
       "Bash(git switch*)",
       "Bash(git checkout -b *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(git push *)",
+      "Bash(node scripts/github-pr.mjs *)"
     ],
     "ask": [
       "Bash(npm run migrate:turso*)",
       "Bash(node scripts/apply-turso-migrations.mjs*)",
       "Bash(node scripts/set-admin.mjs*)",
       "Bash(npx prisma migrate*)",
-      "Bash(git push*)",
       "Bash(npm install*)",
       "Bash(npm uninstall*)"
     ],
@@ -40,6 +43,10 @@
       "Bash(node scripts/sync-turso-schema.mjs*)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin HEAD:main*)",
       "Bash(git reset --hard*)",
       "Bash(rm -rf*)"
     ]
