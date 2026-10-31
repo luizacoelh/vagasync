@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/apiAuth";
+import { limitApi } from "@/lib/apiQuota";
 import { parseArray, stringifyArray } from "@/lib/json";
 import { ExperienceLevel } from "@prisma/client";
 import { profileInput } from "@/lib/profileInput";
@@ -12,6 +13,8 @@ export const runtime = "nodejs";
 export async function GET() {
   const { user, response } = await requireUser();
   if (!user) return response;
+  const limited = await limitApi(user.id);
+  if (limited) return limited;
 
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
@@ -32,6 +35,8 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
+  const limited = await limitApi(user.id);
+  if (limited) return limited;
 
   try {
     const { goal, interestArea, experience, skills } = profileInput(await readJobJson(req));

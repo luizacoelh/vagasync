@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { mapJob } from "@/lib/jobMapper";
 import { JobStatus, Prisma } from "@prisma/client";
 import { requireUser } from "@/lib/apiAuth";
+import { limitApi } from "@/lib/apiQuota";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,8 @@ export async function GET(
 ) {
   const { user, response } = await requireUser();
   if (!user) return response;
+  const limited = await limitApi(user.id);
+  if (limited) return limited;
 
   const { id } = await params;
   const job = await findOwnedJob(id, user.id);
@@ -42,6 +45,8 @@ export async function PATCH(
 ) {
   const { user, response } = await requireUser();
   if (!user) return response;
+  const limited = await limitApi(user.id);
+  if (limited) return limited;
 
   const { id } = await params;
   const existing = await findOwnedJob(id, user.id);
@@ -86,6 +91,8 @@ export async function DELETE(
 ) {
   const { user, response } = await requireUser();
   if (!user) return response;
+  const limited = await limitApi(user.id);
+  if (limited) return limited;
 
   const { id } = await params;
   const existing = await findOwnedJob(id, user.id);

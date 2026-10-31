@@ -2,90 +2,11 @@ import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getAppSettings } from "@/lib/appSettings";
+import { getAiUsageStats } from "@/lib/aiUsageStats";
 import AppSettingsForm from "@/components/admin/AppSettingsForm";
 import UsersTable from "@/components/admin/UsersTable";
 import AiUsagePanel from "@/components/admin/AiUsagePanel";
 import BackButton from "@/components/ui/BackButton";
-
-// Agrega os dados de AiUsage para o painel de consumo.
-// Feito no servidor para não expor a tabela inteira ao cliente.
-async function getAiUsageStats() {
-  const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
-  // Todas as entradas — agrupadas no JS porque libSQL/Turso não suporta
-  // GROUP BY via Prisma aggregation de forma confiável em todos os adapters.
-  const allUsage = await prisma.aiUsage.findMany({
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Totais gerais
-  const totalCalls = allUsage.length;
-  const totalTokens = allUsage.reduce((sum, u) => sum + (u.tokens ?? 0), 0);
-
-  // Por usuário
-  const byUserMap = new Map<string, {
-    userId: string;
-    userName: string | null;
-    userEmail: string | null;
-    totalCalls: number;
-    totalTokens: number;
-    lastUsedAt: Date | null;
-  }>();
-
-  for (const entry of allUsage) {
-    const existing = byUserMap.get(entry.userId);
-    if (existing) {
-      existing.totalCalls += 1;
-      existing.totalTokens += entry.tokens ?? 0;
-      if (!existing.lastUsedAt || entry.createdAt > existing.lastUsedAt) {
-        existing.lastUsedAt = entry.createdAt;
-      }
-    } else {
-      byUserMap.set(entry.userId, {
-        userId: entry.userId,
-        userName: entry.user.name,
-        userEmail: entry.user.email,
-        totalCalls: 1,
-        totalTokens: entry.tokens ?? 0,
-        lastUsedAt: entry.createdAt,
-      });
-    }
-  }
-
-  const byUser = Array.from(byUserMap.values()).sort(
-    (a, b) => b.totalCalls - a.totalCalls
-  );
-
-  // Por dia — últimos 14 dias
-  const recentUsage = allUsage.filter((u) => u.createdAt >= fourteenDaysAgo);
-  const byDayMap = new Map<string, { calls: number; tokens: number }>();
-
-  for (const entry of recentUsage) {
-    const date = entry.createdAt.toISOString().slice(0, 10); // "YYYY-MM-DD"
-    const existing = byDayMap.get(date);
-    if (existing) {
-      existing.calls += 1;
-      existing.tokens += entry.tokens ?? 0;
-    } else {
-      byDayMap.set(date, { calls: 1, tokens: entry.tokens ?? 0 });
-    }
-  }
-
-  // Garante que todos os 14 dias aparecem, mesmo os sem uso
-  const byDay = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (13 - i));
-    const date = d.toISOString().slice(0, 10);
-    const data = byDayMap.get(date);
-    return { date, calls: data?.calls ?? 0, tokens: data?.tokens ?? 0 };
-  });
-
-  return { byUser, byDay, totalCalls, totalTokens };
-}
 
 export default async function AdminPage() {
   const session = await auth();

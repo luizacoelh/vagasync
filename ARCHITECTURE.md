@@ -31,6 +31,14 @@ Server Action. A validação também limita URL/salário nos dois caminhos de ed
 Esta proteção é por conta: não substitui controles de tráfego ou prevenção
 de criação abusiva de múltiplas contas.
 
+O resto da API e as Server Actions de edição têm limite por conta em
+`lib/apiQuota.ts`: 120 pedidos por minuto e 5 exportações por minuto, nas chaves
+`api-general` e `api-export` da mesma tabela, sem migration. `GET /api/jobs` pagina
+em até 100 vagas (`?limit=`, `?cursor=` e o cabeçalho `X-Next-Cursor`). Dashboard
+e `/monitoradas` não paginam: trazem só o resumo, com o teto de 2.000 vagas, e a
+busca e as estatísticas dependem da lista inteira. Páginas e visitantes não
+passam por esse limite; isso cabe a um controle de tráfego na Vercel.
+
 ```
 vagasync/
   auth.ts                       # Config central do Auth.js (providers, adapter, callbacks)
@@ -77,11 +85,13 @@ vagasync/
     prisma.ts                   # Singleton do PrismaClient — escolhe adapter (local/Turso) automaticamente
     gemini.ts                   # Integração com a API do Gemini (inicialização preguiçosa)
     apiAuth.ts                  # requireUser() — checagem de sessão nas rotas de API
+    apiQuota.ts                 # Limite por conta nas rotas e actions sem cota própria
     adminAuth.ts                # requireAdmin() — checagem de sessão + isAdmin nas rotas de admin
     appSettings.ts              # Limites globais editáveis (tabela AppSettings, singleton)
     rateLimit.ts                # Limite diário de IA por usuário — atômico, sem condição de corrida
     ipRateLimit.ts              # Limite adicional de chamadas ao Gemini por IP
     aiUsage.ts                  # Registro de cada chamada à IA (tabela AiUsage)
+    aiUsageStats.ts             # Consumo de IA do painel admin, somado no banco
     jobMapper.ts                # Converte o registro do Prisma para Job (detalhe) ou JobSummary (listagens)
     jobStatus.ts / jobLocation.ts / experienceLevel.ts  # Labels e estilos dos enums
     json.ts                     # parseArray/stringifyArray (campos JSON-em-string)

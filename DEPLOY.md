@@ -296,6 +296,15 @@ até a tabela existir. Sem `GlobalJobHour`, o cadastro manual (`/api/jobs`,
 `createJob`), a análise pelo site (`/api/analyze`) e o relatório de volume
 respondem 500. O n8n não depende dela.
 
+## Proteção da main
+
+A Vercel publica toda alteração na `main`. A regra `Proteger main` no GitHub, criada
+uma vez pela dona do repositório com `node scripts/github-protect-main.mjs`, exige PR com os dois jobs do CI verdes e
+branch em dia, e bloqueia force push e exclusão da branch. Não há exceção nem
+aprovação humana obrigatória, e `scripts/github-pr.mjs` continua fazendo o merge.
+Numa emergência, ajustar em Settings > Rules > Rulesets. Segredo enviado por
+engano continua exposto mesmo com a regra: trocar o segredo, não só apagar o commit.
+
 ## Espaço do banco no Turso
 
 Apagar muitas linhas não reduz o arquivo: as páginas ficam livres e são
