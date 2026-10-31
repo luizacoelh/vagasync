@@ -44,8 +44,8 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   CSV; painel de IA soma no banco em vez de carregar toda a tabela `AiUsage`
 - [x] Permissões do agente mais restritas. São regras de texto com furos
   conhecidos: a barreira real é a regra do GitHub
-- [ ] Aplicar a regra `Proteger main`: a dona do repositório roda
-  `node scripts/github-protect-main.mjs` (`DEPLOY.md`, "Proteção da main")
+- [x] Regra `Proteger main` ativa no GitHub desde 31/10/2026
+  (`DEPLOY.md`, "Proteção da main")
 
 ### chore: revisor independente no Claude Code
 - [x] Subagente `revisor-qa` (`.claude/agents/revisor-qa.md`), sem editar
