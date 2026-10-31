@@ -18,8 +18,9 @@ type Counts = Record<keyof typeof VOLUME_ALERTS, number | bigint>;
 export async function loadVolumeReport() {
   // manualCreated vem do contador global (lib/jobCreation.ts): sem o dono, e
   // vaga apagada não some daqui. accountsCreating conta qualquer conta ativa:
-  // subir o limite se a base passar de umas 5 contas no mesmo dia. aiCalls é só a análise pelo site: a do n8n tem cota própria e pode
-  // chegar a 480 por dia sem ser abuso.
+  // subir o limite se a base passar de umas 5 contas no mesmo dia. aiCalls é
+  // só a análise pelo site: a do n8n tem cota própria e pode chegar a 480 por
+  // dia sem ser abuso.
   const [row] = await prisma.$queryRaw<Counts[]>`
     SELECT
       (SELECT COALESCE(SUM("count"), 0) FROM "GlobalJobHour"

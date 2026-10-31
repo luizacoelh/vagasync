@@ -47,12 +47,8 @@ dev.db
 dev.db-journal
 prisma/dev.db
 
-# Maestri: o papel (role.json) é versionado; o resto da pasta de cada papel
-# é gerado na máquina (AGENTS.md/CLAUDE.md com caminho absoluto, permissões
-# e servidores MCP desta sessão em .claude/)
-.maestri/roles/*/*
-!.maestri/roles/*/role.json
-
-# claude code (local) e backups do banco
+# claude code (local), editor e backups do banco
 .claude/settings.local.json
+.claude/launch.json
+.vscode/
 /backups/
