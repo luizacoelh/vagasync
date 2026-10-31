@@ -2,33 +2,53 @@
 // Abre PR e faz merge pela API do GitHub com a credencial do Git (o gh não está
 // instalado). O token fica só na memória deste processo e nunca é impresso.
 //
-//   node scripts/github-pr.mjs abrir "<título>" <arquivo-com-a-descrição>
+//   node scripts/github-pr.mjs abrir "<título>" "<descrição>"
 //   node scripts/github-pr.mjs status <número> <sha>
 //   node scripts/github-pr.mjs merge <número> <sha> [--turso-aplicado]
 //
-// O merge só acontece com o PR aberto no SHA informado e com todo o CI verde.
-// PR com migration exige --turso-aplicado: a Vercel publica a main sozinha,
-// então a migration precisa chegar ao Turso antes (ver CLAUDE.md).
+// A descrição vem como texto, nunca de um arquivo: o repositório é público, e
+// ler um caminho permitiria publicar um .env no corpo do PR.
+//
+// O merge só acontece com o PR aberto no SHA informado, com a branch em dia com
+// a main e com os dois jobs do CI verdes. PR com migration exige
+// --turso-aplicado: a Vercel publica a main sozinha, então a migration precisa
+// chegar ao Turso antes (ver CLAUDE.md).
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const REPO = "luizacoelh/vagasync";
 const API = `https://api.github.com/repos/${REPO}`;
-const CI_OBRIGATORIO = "Lint + TypeScript + Build";
+const JOBS_OBRIGATORIOS = ["Lint + TypeScript + Build", "Migrations em banco limpo + check:turso"];
 const CONCLUSOES_OK = new Set(["success", "neutral", "skipped"]);
+const POR_PAGINA = 100;
+const SHA_COMPLETO = /^[0-9a-f]{40}$/;
 
 // Decide sem rede, para poder ser testado. Devolve os motivos que impedem o merge.
-export function motivosParaNaoFazerMerge({ pr, sha, checkRuns, combinedStatus, arquivos, tursoAplicado }) {
+export function motivosParaNaoFazerMerge({
+  pr,
+  sha,
+  checkRuns,
+  totalCheckRuns,
+  combinedStatus,
+  arquivos,
+  commitsAtrasados,
+  tursoAplicado,
+}) {
   const motivos = [];
-  if (!/^[0-9a-f]{40}$/.test(sha)) motivos.push("informe o SHA completo");
+  if (!SHA_COMPLETO.test(sha)) motivos.push("informe o SHA completo");
   if (pr.state !== "open") motivos.push("PR não está aberto");
   if (pr.draft) motivos.push("PR é rascunho");
   if (pr.base?.ref !== "main") motivos.push("base do PR não é a main");
   if (pr.head?.sha !== sha) motivos.push("o SHA do PR mudou");
+  if (pr.head?.repo?.full_name?.toLowerCase() !== REPO) motivos.push("PR não vem deste repositório");
+  if (commitsAtrasados !== 0) motivos.push("branch atrás da main: atualizar e esperar o CI");
 
-  if (!checkRuns.some((run) => run.name === CI_OBRIGATORIO)) {
-    motivos.push(`CI "${CI_OBRIGATORIO}" não encontrado`);
+  if (totalCheckRuns !== checkRuns.length) motivos.push("CI incompleto na resposta da API");
+  for (const job of JOBS_OBRIGATORIOS) {
+    const execucoes = checkRuns.filter((run) => run.name === job);
+    if (!execucoes.some((run) => run.conclusion === "success")) {
+      motivos.push(`CI obrigatório sem sucesso: ${job}`);
+    }
   }
   for (const run of checkRuns) {
     if (run.status !== "completed") motivos.push(`CI em andamento: ${run.name}`);
@@ -37,6 +57,10 @@ export function motivosParaNaoFazerMerge({ pr, sha, checkRuns, combinedStatus, a
   // Sem status externo o GitHub responde "pending" com a lista vazia.
   if (combinedStatus.statuses.length > 0 && combinedStatus.state !== "success") {
     motivos.push(`status externo: ${combinedStatus.state}`);
+  }
+
+  if (pr.changed_files !== arquivos.length) {
+    motivos.push("lista de arquivos do PR incompleta");
   }
   if (!tursoAplicado && arquivos.some((nome) => nome.startsWith("prisma/migrations/"))) {
     motivos.push("PR tem migration: aplicar no Turso antes e usar --turso-aplicado");
@@ -70,33 +94,43 @@ async function api(token, caminho, { method = "GET", body } = {}) {
   return dados;
 }
 
+async function listarArquivos(token, numero) {
+  const nomes = [];
+  for (let pagina = 1; ; pagina += 1) {
+    const lote = await api(token, `/pulls/${numero}/files?per_page=${POR_PAGINA}&page=${pagina}`);
+    nomes.push(...lote.map((arquivo) => arquivo.filename));
+    if (lote.length < POR_PAGINA) return nomes;
+  }
+}
+
 async function coletarEstado(token, numero, sha) {
-  const [pr, checks, combinedStatus, arquivos] = await Promise.all([
+  const [pr, checks, combinedStatus, arquivos, comparacao] = await Promise.all([
     api(token, `/pulls/${numero}`),
-    api(token, `/commits/${sha}/check-runs?per_page=100`),
+    api(token, `/commits/${sha}/check-runs?per_page=${POR_PAGINA}`),
     api(token, `/commits/${sha}/status`),
-    api(token, `/pulls/${numero}/files?per_page=100`),
+    listarArquivos(token, numero),
+    api(token, `/compare/main...${sha}`),
   ]);
   return {
     pr,
     sha,
     checkRuns: checks.check_runs,
+    totalCheckRuns: checks.total_count,
     combinedStatus,
-    arquivos: arquivos.map((arquivo) => arquivo.filename),
+    arquivos,
+    commitsAtrasados: comparacao.behind_by,
   };
 }
 
 async function main([comando, ...args]) {
-  const token = lerToken();
-
   if (comando === "abrir") {
-    const [titulo, arquivoDescricao] = args;
-    if (!titulo || !arquivoDescricao) throw new Error("uso: abrir <título> <arquivo>");
+    const [titulo, descricao] = args;
+    if (!titulo || !descricao) throw new Error('uso: abrir "<título>" "<descrição>"');
     const head = execFileSync("git", ["branch", "--show-current"], { encoding: "utf8" }).trim();
     if (head === "main") throw new Error("abra o PR a partir de uma branch");
-    const pr = await api(token, "/pulls", {
+    const pr = await api(lerToken(), "/pulls", {
       method: "POST",
-      body: { title: titulo, head, base: "main", body: readFileSync(arquivoDescricao, "utf8") },
+      body: { title: titulo, head, base: "main", body: descricao },
     });
     console.log(`PR #${pr.number} ${pr.html_url} ${pr.head.sha}`);
     return;
@@ -104,14 +138,17 @@ async function main([comando, ...args]) {
 
   if (comando === "status" || comando === "merge") {
     const [numero, sha, flag] = args;
-    if (!/^\d+$/.test(numero ?? "") || !sha) throw new Error(`uso: ${comando} <número> <sha>`);
+    if (!/^\d+$/.test(numero ?? "") || !SHA_COMPLETO.test(sha ?? "")) {
+      throw new Error(`uso: ${comando} <número> <sha completo>`);
+    }
+    const token = lerToken();
     const estado = await coletarEstado(token, numero, sha);
     const motivos = motivosParaNaoFazerMerge({ ...estado, tursoAplicado: flag === "--turso-aplicado" });
+    if (motivos.length > 0) throw new Error(`merge recusado:\n${motivos.join("\n")}`);
     if (comando === "status") {
-      console.log(motivos.length === 0 ? "pronto para merge" : motivos.join("\n"));
+      console.log("pronto para merge");
       return;
     }
-    if (motivos.length > 0) throw new Error(`merge recusado:\n${motivos.join("\n")}`);
     const merge = await api(token, `/pulls/${numero}/merge`, {
       method: "PUT",
       body: { sha, merge_method: "merge" },
