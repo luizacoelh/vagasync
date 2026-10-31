@@ -231,7 +231,9 @@ vagasync/
   letra fora dele (ex: `ł`) cai na fonte do sistema, o que não afeta português.
 - **Teto global só no cadastro manual, com o dono de fora.** A cota de
   `lib/jobCreation.ts` é por conta; o teto de 500 em 24h fecha a soma de várias
-  contas, junto com o teto de 20 contas novas por dia (`lib/signupGuard.ts`).
+  contas, junto com o teto de contas novas por dia (`lib/signupGuard.ts`). Esses
+  dois e o teto de análises de IA do site ficam em `AppSettings`, editáveis em
+  `/admin`, e os alertas de `lib/volumeReport.ts` acompanham os valores.
   Contador próprio por hora (`GlobalJobHour`), somado em 25 horas para valer em
   qualquer intervalo de 24h. Não conta vagas, porque criar e apagar em seguida
   não pode devolver espaço, nem soma as janelas por conta, que saem inteiras

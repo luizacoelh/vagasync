@@ -10,6 +10,11 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
   const [maxDescriptionLength, setMaxDescriptionLength] = useState(
     String(initialSettings.maxDescriptionLength)
   );
+  const [newAccountsPerDay, setNewAccountsPerDay] = useState(String(initialSettings.newAccountsPerDay));
+  const [globalManualJobsPerDay, setGlobalManualJobsPerDay] = useState(
+    String(initialSettings.globalManualJobsPerDay)
+  );
+  const [globalAiPerDay, setGlobalAiPerDay] = useState(String(initialSettings.globalAiPerDay));
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +32,9 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
           dailyAiLimit: Number(dailyAiLimit),
           ipHourlyLimit: Number(ipHourlyLimit),
           maxDescriptionLength: Number(maxDescriptionLength),
+          newAccountsPerDay: Number(newAccountsPerDay),
+          globalManualJobsPerDay: Number(globalManualJobsPerDay),
+          globalAiPerDay: Number(globalAiPerDay),
         }),
       });
 
@@ -116,7 +124,65 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
               className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
             />
           </div>
+
+          <div>
+            <label
+              htmlFor="newAccountsPerDay"
+              className="block text-xs text-[#7C8494] mb-2"
+              style={{ fontFamily: "var(--font-outfit)" }}
+            >
+              Contas novas no site/24h
+            </label>
+            <input
+              id="newAccountsPerDay"
+              type="number"
+              min={1}
+              value={newAccountsPerDay}
+              onChange={(e) => setNewAccountsPerDay(e.target.value)}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="globalManualJobsPerDay"
+              className="block text-xs text-[#7C8494] mb-2"
+              style={{ fontFamily: "var(--font-outfit)" }}
+            >
+              Cadastros manuais no site/24h
+            </label>
+            <input
+              id="globalManualJobsPerDay"
+              type="number"
+              min={1}
+              value={globalManualJobsPerDay}
+              onChange={(e) => setGlobalManualJobsPerDay(e.target.value)}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="globalAiPerDay"
+              className="block text-xs text-[#7C8494] mb-2"
+              style={{ fontFamily: "var(--font-outfit)" }}
+            >
+              Análises de IA no site/24h
+            </label>
+            <input
+              id="globalAiPerDay"
+              type="number"
+              min={1}
+              value={globalAiPerDay}
+              onChange={(e) => setGlobalAiPerDay(e.target.value)}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
+            />
+          </div>
         </div>
+
+        <p className="text-xs text-[#7C8494]">
+          Mais contas novas podem aumentar o gasto com IA. Revise os tetos de IA e de cadastros ao mudar esse limite.
+        </p>
 
         <div className="flex items-center gap-3 pt-1">
           <button

@@ -296,6 +296,11 @@ até a tabela existir. Sem `GlobalJobHour`, o cadastro manual (`/api/jobs`,
 `createJob`), a análise pelo site (`/api/analyze`) e o relatório de volume
 respondem 500. O n8n não depende dela.
 
+A migration `20261031120000_configurable_site_limits` é igual: sem as colunas novas
+de `AppSettings`, análise, webhook do n8n, `/perfil`, `/admin` e o relatório de
+volume falham. As colunas são aditivas, então o código anterior segue funcionando
+depois dela.
+
 ## Proteção da main
 
 A Vercel publica toda alteração na `main`. A regra `Proteger main` no GitHub, criada

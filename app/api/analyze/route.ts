@@ -54,6 +54,12 @@ export async function POST(req: NextRequest) {
     }
 
     const ipCheck = await checkIpRateLimit(getClientIp(req), user.id, Math.ceil(description.length / 4));
+    if (ipCheck.reason === "site") {
+      return NextResponse.json(
+        { error: "A análise por IA está temporariamente limitada. Tente novamente mais tarde." },
+        { status: 429, headers: { "Retry-After": "3600" } }
+      );
+    }
     if (!ipCheck.allowed) return NextResponse.json({ error: "Limite de analises por IP atingido." }, { status: 429 });
 
     const analysis = await analyzeJobWithGemini(description);

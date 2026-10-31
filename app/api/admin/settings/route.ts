@@ -1,9 +1,18 @@
 import { readJobJson, object } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
-import { getAppSettings, updateAppSettings } from "@/lib/appSettings";
+import { getAppSettings, updateAppSettings, type AppSettings } from "@/lib/appSettings";
 
 export const runtime = "nodejs";
+
+const SETTING_KEYS = [
+  "dailyAiLimit",
+  "ipHourlyLimit",
+  "maxDescriptionLength",
+  "newAccountsPerDay",
+  "globalManualJobsPerDay",
+  "globalAiPerDay",
+] as const;
 
 export async function GET() {
   const { user, response } = await requireAdmin();
@@ -20,14 +29,16 @@ export async function PUT(req: NextRequest) {
   let body: Record<string, unknown>;
   try { body = object(await readJobJson(req)); }
   catch { return NextResponse.json({ error: "Corpo inv\u00e1lido ou muito grande." }, { status: 400 }); }
-  const { dailyAiLimit, ipHourlyLimit, maxDescriptionLength } = body;
+  const patch: Partial<AppSettings> = {};
 
-  for (const [key, value] of Object.entries({ dailyAiLimit, ipHourlyLimit, maxDescriptionLength })) {
+  for (const key of SETTING_KEYS) {
+    const value = body[key];
     if (value !== undefined && (typeof value !== "number" || value <= 0 || !Number.isSafeInteger(value) || (typeof value === "number" && value > 2147483647))) {
       return NextResponse.json({ error: `Valor inválido para ${key} — precisa ser um inteiro positivo.` }, { status: 400 });
     }
+    if (value !== undefined) patch[key] = value as number;
   }
 
-  const settings = await updateAppSettings({ dailyAiLimit: dailyAiLimit as number | undefined, ipHourlyLimit: ipHourlyLimit as number | undefined, maxDescriptionLength: maxDescriptionLength as number | undefined });
+  const settings = await updateAppSettings(patch);
   return NextResponse.json(settings);
 }
