@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { mapJob } from "@/lib/jobMapper";
+import { parseArray } from "@/lib/json";
 import { STATUS_LABELS } from "@/lib/jobStatus";
 import { requireUser } from "@/lib/apiAuth";
+import { limitApi } from "@/lib/apiQuota";
 
 export const runtime = "nodejs";
 
@@ -19,18 +20,22 @@ function csvEscape(value: string): string {
 export async function GET() {
   const { user, response } = await requireUser();
   if (!user) return response;
+  const limited = await limitApi(user.id, "export");
+  if (limited) return limited;
 
   const jobs = await prisma.job.findMany({
     // DESCARTADA só existe para a deduplicação do webhook; não é vaga do usuário.
     where: { userId: user.id, status: { not: "DESCARTADA" } },
     orderBy: { createdAt: "desc" },
+    // Só as colunas do CSV: a descrição pesa e não é exportada.
+    select: { company: true, title: true, status: true, technologies: true, createdAt: true },
   });
 
-  const rows = jobs.map(mapJob).map((job) => [
+  const rows = jobs.map((job) => [
     job.company,
     job.title,
     STATUS_LABELS[job.status],
-    job.technologies.join("; "),
+    parseArray(job.technologies).join("; "),
     new Intl.DateTimeFormat("pt-BR").format(job.createdAt),
   ]);
 

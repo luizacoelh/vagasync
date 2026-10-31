@@ -18,7 +18,7 @@ import { pathToFileURL } from "node:url";
 
 const REPO = "luizacoelh/vagasync";
 const API = `https://api.github.com/repos/${REPO}`;
-const JOBS_OBRIGATORIOS = ["Lint + TypeScript + Build", "Migrations em banco limpo + check:turso"];
+export const JOBS_OBRIGATORIOS = ["Lint + TypeScript + Build", "Migrations em banco limpo + check:turso"];
 const CONCLUSOES_OK = new Set(["success", "neutral", "skipped"]);
 const POR_PAGINA = 100;
 const SHA_COMPLETO = /^[0-9a-f]{40}$/;
@@ -68,7 +68,7 @@ export function motivosParaNaoFazerMerge({
   return motivos;
 }
 
-function lerToken() {
+export function lerToken() {
   const saida = execFileSync("git", ["credential", "fill"], {
     input: "protocol=https\nhost=github.com\n\n",
     encoding: "utf8",
@@ -79,7 +79,7 @@ function lerToken() {
   return token;
 }
 
-async function api(token, caminho, { method = "GET", body } = {}) {
+export async function api(token, caminho, { method = "GET", body } = {}) {
   const res = await fetch(`${API}${caminho}`, {
     method,
     headers: {

@@ -37,6 +37,14 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### fix(security): limites no servidor e proteção da main
+- [x] Rotas de vagas e perfil e Server Actions de edição com limite por conta
+  (120/min, 5 exportações/min), contado no banco, sem migration
+- [x] `GET /api/jobs` pagina em até 100 vagas; exportação busca só as colunas do
+  CSV; painel de IA soma no banco em vez de carregar toda a tabela `AiUsage`
+- [x] Regra `Proteger main` no GitHub e permissões do agente restritas a pushes em
+  `feat/*`, `fix/*` e `chore/*`, sem `git add -f`
+
 ### chore: revisor independente no Claude Code
 - [x] Subagente `revisor-qa` (`.claude/agents/revisor-qa.md`), sem editar
   arquivos e com Bash só para `git diff`, `git log`, `git show`, `npm test` e

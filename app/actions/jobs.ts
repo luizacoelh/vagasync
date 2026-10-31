@@ -1,5 +1,6 @@
 "use server";
 
+import { API_LIMIT_MESSAGE, allowApiRequest } from "@/lib/apiQuota";
 import { createLimitedJob, JobInputError, JobQuotaError } from "@/lib/jobCreation";
 import { jobCreateData, jobMeta } from "@/lib/jobInput";
 import { revalidatePath } from "next/cache";
@@ -15,11 +16,15 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
+// Mesmo limite por conta das rotas de API. createJob fica fora: tem cota própria.
+async function limitAction(userId: string): Promise<{ error: string } | null> {
+  return (await allowApiRequest(userId)) ? null : { error: API_LIMIT_MESSAGE };
+}
+
 // Atualiza a vaga só se ela for do usuário logado, numa ida ao banco: o dono
 // vai no WHERE em vez de um findUnique antes. Retorna false se a vaga não
 // existe ou é de outra pessoa (as duas respondem igual, sem vazar qual).
-async function updateOwnJob(jobId: string, data: Prisma.JobUpdateManyMutationInput): Promise<boolean> {
-  const userId = await requireUserId();
+async function updateOwnJob(userId: string, jobId: string, data: Prisma.JobUpdateManyMutationInput): Promise<boolean> {
   if (typeof jobId !== "string" || !jobId || jobId.length > 64) return false;
   const { count } = await prisma.job.updateMany({ where: { id: jobId, userId }, data });
   return count > 0;
@@ -67,6 +72,8 @@ export async function markJobsInterested(
   const userId = await requireUserId();
 
   try {
+    const limited = await limitAction(userId);
+    if (limited) return limited;
     const { count } = await prisma.job.updateMany({
       where: { id: { in: ids }, userId, status: JobStatus.MONITORADA },
       data: { status: JobStatus.APLICADA, appliedAt: new Date() },
@@ -90,7 +97,10 @@ export async function updateJobStatus(
   }
 
   try {
-    const updated = await updateOwnJob(jobId, { status: status as JobStatus });
+    const userId = await requireUserId();
+    const limited = await limitAction(userId);
+    if (limited) return limited;
+    const updated = await updateOwnJob(userId, jobId, { status: status as JobStatus });
     if (!updated) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath("/monitoradas");
@@ -114,7 +124,10 @@ export async function updateJobMeta(
   }
 
   try {
-    const updated = await updateOwnJob(jobId, update);
+    const userId = await requireUserId();
+    const limited = await limitAction(userId);
+    if (limited) return limited;
+    const updated = await updateOwnJob(userId, jobId, update);
     if (!updated) return { error: "Vaga não encontrada." };
     revalidatePath("/");
     revalidatePath(`/vaga/${jobId}`);
@@ -134,6 +147,8 @@ export async function toggleChecklistItem(
 ): Promise<{ ok: true } | { error: string }> {
   const userId = await requireUserId();
   if (typeof jobId !== "string" || !jobId || jobId.length > 64 || typeof done !== "boolean") return { error: "Item inv\u00e1lido." };
+  const limited = await limitAction(userId);
+  if (limited) return limited;
   const job = await prisma.job.findFirst({
     where: { id: jobId, userId },
     select: { checklist: true, checklistDone: true },
@@ -171,6 +186,8 @@ export async function deleteJobs(
   const userId = await requireUserId();
 
   try {
+    const limited = await limitAction(userId);
+    if (limited) return limited;
     const { count } = await prisma.job.deleteMany({ where: { id: { in: ids }, userId } });
     if (count === 0) return { error: "Vaga não encontrada." };
     revalidatePath("/");
@@ -208,6 +225,8 @@ async function moveStatus(
   const userId = await requireUserId();
 
   try {
+    const limited = await limitAction(userId);
+    if (limited) return limited;
     const { count } = await prisma.job.updateMany({
       where: { id: { in: ids }, userId, status: from },
       data: { status: to },
