@@ -269,6 +269,28 @@ test("teto de IA barra antes do Gemini, sem contar dono nem n8n", async () => {
   assert.deepEqual(await checkIpRateLimit(null, owner.id, 1), { allowed: true });
 });
 
+test("com o site bloqueado, repetir a análise não gasta a cota da conta", async () => {
+  const user = await account();
+  await prisma.user.update({ where: { id: user.id }, data: { dailyAiLimitOverride: 1 } });
+  await updateAppSettings({ globalAiPerDay: 1 });
+  await prisma.aiUsage.create({ data: { userId: (await account()).id, action: "analyze_job" } });
+  login(user);
+  globalThis.__geminiCalls = 0;
+  const analise = () => analyze(new NextRequest("http://localhost/api/analyze", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ description: input.description }),
+  }));
+
+  for (let i = 0; i < 3; i++) assert.equal((await analise()).status, 429);
+  assert.equal((await prisma.user.findUnique({ where: { id: user.id } })).geminiCallCount, 0);
+
+  await updateAppSettings({ globalAiPerDay: 2 });
+  globalThis.__geminiReply = { ...input, summary: "Resumo", differentials: [], location: "REMOTO", salary: null };
+  assert.equal((await analise()).status, 200);
+  assert.equal(globalThis.__geminiCalls, 1);
+});
+
 test("reservas simultâneas não passam do teto de IA", async () => {
   await updateAppSettings({ globalAiPerDay: 3 });
   const user = await account();
@@ -288,18 +310,39 @@ test("alertas acompanham os tetos editados", async () => {
   assert.deepEqual(body.alerts, ["newAccounts: 6 (limite 5)"]);
 });
 
+test("alertas de cadastros e de IA usam os tetos editados", async () => {
+  const user = await account();
+  process.env.N8N_TARGET_USER_ID = user.id;
+  await updateAppSettings({ globalManualJobsPerDay: 10, globalAiPerDay: 10 });
+  await sitewide(5, 2);
+  await prisma.aiUsage.createMany({ data: Array.from({ length: 7 }, () => ({ userId: user.id, action: "analyze_job" })) });
+  const body = await (await report()).json();
+  assert.deepEqual(body.alerts, ["manualCreated: 5 (limite 4)", "aiCalls: 7 (limite 6)"]);
+});
+
+test("análises do dono não entram no alerta, como no teto", async () => {
+  const owner = await account({ isOwner: true });
+  process.env.N8N_TARGET_USER_ID = owner.id;
+  await updateAppSettings({ globalAiPerDay: 10 });
+  await prisma.aiUsage.createMany({ data: Array.from({ length: 7 }, () => ({ userId: owner.id, action: "analyze_job" })) });
+  const body = await (await report()).json();
+  assert.equal(body.aiCalls, 0);
+  assert.equal(body.alert, false);
+});
+
 test("admin salva os tetos novos e recusa valor inválido", async () => {
   const admin = await account({ isAdmin: true });
   login(admin);
   const put = (body) => settingsRoute.PUT(new NextRequest("http://localhost/api/admin/settings", { method: "PUT", body: JSON.stringify(body) }));
 
+  await updateAppSettings({ dailyAiLimit: 7 });
   const res = await put({ newAccountsPerDay: 50, globalManualJobsPerDay: 800, globalAiPerDay: 900 });
   assert.equal(res.status, 200);
   const saved = await res.json();
   assert.equal(saved.newAccountsPerDay, 50);
   assert.equal(saved.globalManualJobsPerDay, 800);
   assert.equal(saved.globalAiPerDay, 900);
-  assert.equal(saved.dailyAiLimit, DEFAULTS.dailyAiLimit);
+  assert.equal(saved.dailyAiLimit, 7);
 
   for (const invalid of [0, -1, 1.5, "20", 2147483648]) {
     assert.equal((await put({ newAccountsPerDay: invalid })).status, 400, String(invalid));

@@ -297,9 +297,9 @@ até a tabela existir. Sem `GlobalJobHour`, o cadastro manual (`/api/jobs`,
 respondem 500. O n8n não depende dela.
 
 A migration `20261031120000_configurable_site_limits` é igual: sem as colunas novas
-de `AppSettings`, análise, webhook do n8n, `/perfil`, `/admin` e o relatório de
-volume falham. As colunas são aditivas, então o código anterior segue funcionando
-depois dela.
+de `AppSettings`, cadastro manual, cadastro de conta nova, análise, webhook do n8n,
+`/perfil`, `/admin` e o relatório de volume falham. As colunas são aditivas, então o
+código anterior segue funcionando depois dela.
 
 ## Proteção da main
 

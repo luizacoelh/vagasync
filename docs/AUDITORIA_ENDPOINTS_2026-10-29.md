@@ -54,7 +54,8 @@ Em 29/10/2026, após autorização de publicação:
   O atraso dos agendamentos do GitHub vale aqui também.
 - Custo global de IA: desde 31/10/2026 há teto de análises pelo site em 24h, 500
   por padrão, sem o dono. A coleta do n8n tem cota própria. Os três tetos do site
-  ficam em `AppSettings`, editáveis em `/admin`.
+  ficam em `AppSettings`, editáveis em `/admin`. Com o site bloqueado, a análise
+  recusa antes de gastar a cota da conta; só uma corrida na última vaga pode gastar.
 - Atualização de 31/10/2026: rotas de vagas e perfil e Server Actions de edição
   ganharam limite por conta (`lib/apiQuota.ts`); `GET /api/jobs` passou a paginar;
   exportação e painel admin deixaram de carregar colunas e linhas sem uso. A

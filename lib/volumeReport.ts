@@ -23,8 +23,8 @@ export async function loadVolumeReport() {
   // manualCreated vem do contador global (lib/jobCreation.ts): sem o dono, e
   // vaga apagada não some daqui. accountsCreating conta qualquer conta ativa:
   // subir o limite se a base passar de umas 5 contas no mesmo dia. aiCalls é
-  // só a análise pelo site: a do n8n tem cota própria e pode chegar a 480 por
-  // dia sem ser abuso.
+  // só a análise pelo site, sem o dono, como o teto: a do n8n tem cota própria e
+  // pode chegar a 480 por dia sem ser abuso.
   const [row] = await prisma.$queryRaw<Counts[]>`
     SELECT
       (SELECT COALESCE(SUM("count"), 0) FROM "GlobalJobHour"
@@ -32,7 +32,8 @@ export async function loadVolumeReport() {
       (SELECT COUNT(*) FROM "JobCreationQuota"
         WHERE channel = 'manual' AND "dayCount" > 0 AND "dayStart" > unixepoch() - 86400) AS accountsCreating,
       (SELECT COUNT(*) FROM "User" WHERE unixepoch("createdAt") > unixepoch() - 86400) AS newAccounts,
-      (SELECT COUNT(*) FROM "AiUsage" WHERE action = 'analyze_job' AND unixepoch("createdAt") > unixepoch() - 86400) AS aiCalls,
+      (SELECT COUNT(*) FROM "AiUsage" WHERE action = 'analyze_job' AND unixepoch("createdAt") > unixepoch() - 86400
+        AND "userId" NOT IN (SELECT id FROM "User" WHERE "isOwner" = 1)) AS aiCalls,
       (SELECT COUNT(*) FROM "Job") AS storedJobs`;
 
   const limits = volumeAlerts(await getAppSettings());

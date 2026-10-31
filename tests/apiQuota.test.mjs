@@ -284,6 +284,25 @@ test("painel de IA funciona no driver libSQL, o mesmo do Turso", withLibSql(asyn
   await statsScenario(libsql);
 }));
 
+test("teto de IA funciona no driver libSQL, com a dona de fora", withLibSql(async (libsql) => {
+  const { checkIpRateLimit } = await import("@/lib/ipRateLimit");
+  const { updateAppSettings, getAppSettings } = await import("@/lib/appSettings");
+  await prisma.aiUsage.deleteMany();
+  const { globalAiPerDay } = await getAppSettings();
+  await updateAppSettings({ globalAiPerDay: 2 });
+  try {
+    const member = await libsql.user.create({ data: {} });
+    const owner = await libsql.user.create({ data: { isOwner: true } });
+    assert.deepEqual(await checkIpRateLimit(null, owner.id, 1, libsql), { allowed: true });
+    assert.deepEqual(await checkIpRateLimit(null, member.id, 1, libsql), { allowed: true });
+    assert.deepEqual(await checkIpRateLimit(null, member.id, 1, libsql), { allowed: true });
+    assert.deepEqual(await checkIpRateLimit(null, member.id, 1, libsql), { allowed: false, reason: "site" });
+    assert.deepEqual(await checkIpRateLimit(null, owner.id, 1, libsql), { allowed: true });
+  } finally {
+    await updateAppSettings({ globalAiPerDay });
+  }
+}));
+
 test("createLimitedJob segue independente do limite geral", async () => {
   const id = await user();
   await exhaust(id);

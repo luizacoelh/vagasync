@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeJobWithGemini } from "@/lib/gemini";
 import { requireUser } from "@/lib/apiAuth";
 import { checkAndConsumeGeminiQuota } from "@/lib/rateLimit";
-import { checkIpRateLimit, getClientIp } from "@/lib/ipRateLimit";
+import { checkIpRateLimit, checkSiteAiLimit, getClientIp } from "@/lib/ipRateLimit";
 import { getAppSettings } from "@/lib/appSettings";
 
 // A chamada ao Gemini já levou entre 16s e 27s em teste (com retry de rate
@@ -14,6 +14,15 @@ import { getAppSettings } from "@/lib/appSettings";
 // banco usado em outras rotas do projeto.
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+// Teto de análises do site. A cota da conta só é gasta se duas tentativas
+// passarem juntas pela pré-checagem e a reserva recusar uma delas.
+function siteLimitResponse() {
+  return NextResponse.json(
+    { error: "A análise por IA está temporariamente limitada. Tente novamente mais tarde." },
+    { status: 429, headers: { "Retry-After": "3600" } }
+  );
+}
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireUser();
@@ -43,6 +52,8 @@ export async function POST(req: NextRequest) {
     // Sem cota de cadastro a vaga não poderia ser salva: não gasta IA à toa.
     await checkJobCreationQuota(user.id, "manual");
 
+    if (await checkSiteAiLimit(user.id, settings.globalAiPerDay)) return siteLimitResponse();
+
     const quota = await checkAndConsumeGeminiQuota(user.id);
     if (!quota.allowed) {
       return NextResponse.json(
@@ -54,12 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ipCheck = await checkIpRateLimit(getClientIp(req), user.id, Math.ceil(description.length / 4));
-    if (ipCheck.reason === "site") {
-      return NextResponse.json(
-        { error: "A análise por IA está temporariamente limitada. Tente novamente mais tarde." },
-        { status: 429, headers: { "Retry-After": "3600" } }
-      );
-    }
+    if (ipCheck.reason === "site") return siteLimitResponse();
     if (!ipCheck.allowed) return NextResponse.json({ error: "Limite de analises por IP atingido." }, { status: 429 });
 
     const analysis = await analyzeJobWithGemini(description);
