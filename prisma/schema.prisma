@@ -63,11 +63,15 @@ model GlobalJobHour {
 // Configuração global do app, editável via /admin sem precisar de deploy.
 // Linha única (singleton), ver lib/appSettings.ts.
 model AppSettings {
-  id                   String   @id @default("singleton")
-  dailyAiLimit         Int      @default(20)
-  ipHourlyLimit        Int      @default(30)
-  maxDescriptionLength Int      @default(8000)
-  updatedAt            DateTime @updatedAt
+  id                     String   @id @default("singleton")
+  dailyAiLimit           Int      @default(20)
+  ipHourlyLimit          Int      @default(30)
+  maxDescriptionLength   Int      @default(8000)
+  // Tetos do site inteiro em 24h
+  newAccountsPerDay      Int      @default(20)
+  globalManualJobsPerDay Int      @default(500)
+  globalAiPerDay         Int      @default(500)
+  updatedAt              DateTime @updatedAt
 }
 
 // Perfil profissional do usuário — separado de User (que é gerenciado pelo
@@ -110,6 +114,7 @@ model AiUsage {
 
   @@index([userId])
   @@index([ip, createdAt])
+  @@index([action, createdAt])
 }
 
 model Account {
