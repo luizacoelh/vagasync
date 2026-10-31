@@ -56,8 +56,9 @@ Em 29/10/2026, após autorização de publicação:
 - Atualização de 31/10/2026: rotas de vagas e perfil e Server Actions de edição
   ganharam limite por conta (`lib/apiQuota.ts`); `GET /api/jobs` passou a paginar;
   exportação e painel admin deixaram de carregar colunas e linhas sem uso. A
-  `main` ganhou regra no GitHub (`DEPLOY.md`, "Proteção da main"). Páginas
-  renderizadas e visitantes seguem sem limite por conta; dependem da Vercel.
+  regra que protege a `main` no GitHub está pronta, mas ainda não foi aplicada
+  (`DEPLOY.md`, "Proteção da main"). Páginas renderizadas e visitantes seguem sem
+  limite por conta; dependem da Vercel.
 - Revisão independente somente-leitura (subagente, 30/10): sem achado alto; os
   médios (apagar vagas burlava teto e alerta; workflow passava verde sem ler o
   relatório) e os baixos relevantes foram corrigidos antes do merge. Segunda

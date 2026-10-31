@@ -298,8 +298,8 @@ respondem 500. O n8n não depende dela.
 
 ## Proteção da main
 
-A Vercel publica toda alteração na `main`, então a regra `Proteger main` no GitHub
-(`node scripts/github-protect-main.mjs`) exige PR com os dois jobs do CI verdes e
+A Vercel publica toda alteração na `main`. A regra `Proteger main` no GitHub, criada
+uma vez pela dona do repositório com `node scripts/github-protect-main.mjs`, exige PR com os dois jobs do CI verdes e
 branch em dia, e bloqueia force push e exclusão da branch. Não há exceção nem
 aprovação humana obrigatória, e `scripts/github-pr.mjs` continua fazendo o merge.
 Numa emergência, ajustar em Settings > Rules > Rulesets. Segredo enviado por
