@@ -37,6 +37,11 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### chore: revisor independente no Claude Code
+- [x] Subagente `revisor-qa` (`.claude/agents/revisor-qa.md`), sem editar
+  arquivos e com Bash só para `git diff`, `git log`, `git show`, `npm test` e
+  `npm run lint`. Substitui o papel de revisão que ficava no Maestri
+
 ### fix(security): contador global por hora
 - [x] Teto de 500 cadastros manuais passa a valer em qualquer intervalo de 24h,
   com a tabela `GlobalJobHour`. A revisão independente do PR #39 mostrou que
