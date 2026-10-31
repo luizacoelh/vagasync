@@ -37,6 +37,11 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### feat(importar): base do cadastro por link
+- [x] Contrato de `POST /api/vaga/importar` em `lib/jobImport/types.ts` e lista
+  de sites bloqueados em `lib/jobImport/blockedSites.ts`. Rota e interface ainda
+  não existem. Decisões em `docs/PLANO_N8N_IMPORTACAO_URL.md`, seção 3.8
+
 ### feat(limites): tetos do site editáveis em /admin
 - [x] Contas novas, cadastros manuais e análises de IA do site em 24h ficam em
   `AppSettings`, editáveis sem deploy, com os padrões 20, 500 e 500
