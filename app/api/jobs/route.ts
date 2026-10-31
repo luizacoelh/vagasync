@@ -9,14 +9,15 @@ import { limitApi } from "@/lib/apiQuota";
 export const runtime = "nodejs";
 
 const MAX_PAGE_SIZE = 100;
+const MAX_CURSOR_TIME = Date.UTC(9999, 11, 31);
 
 // Cursor = data de criação + id da última vaga da página. Não depende de a vaga
 // ainda existir nem consulta a vaga de outra pessoa.
 function parseCursor(value: string) {
   const match = /^(\d{1,16})_([\w-]{1,64})$/.exec(value);
   if (!match) return null;
-  const createdAt = new Date(Number(match[1]));
-  return Number.isNaN(createdAt.getTime()) ? null : { createdAt, id: match[2] };
+  const time = Number(match[1]);
+  return time > MAX_CURSOR_TIME ? null : { createdAt: new Date(time), id: match[2] };
 }
 
 // Devolve uma página por vez. O corpo continua sendo a lista de vagas; se houver

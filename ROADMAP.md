@@ -42,8 +42,9 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   (120/min, 5 exportações/min), contado no banco, sem migration
 - [x] `GET /api/jobs` pagina em até 100 vagas; exportação busca só as colunas do
   CSV; painel de IA soma no banco em vez de carregar toda a tabela `AiUsage`
-- [x] Regra `Proteger main` no GitHub e permissões do agente restritas a pushes em
-  `feat/*`, `fix/*` e `chore/*`, sem `git add -f`
+- [x] Regra `Proteger main` no GitHub (`scripts/github-protect-main.mjs`). As
+  permissões do agente também ficaram mais restritas, mas são regras de texto com
+  furos conhecidos: a barreira real é a regra do GitHub
 
 ### chore: revisor independente no Claude Code
 - [x] Subagente `revisor-qa` (`.claude/agents/revisor-qa.md`), sem editar

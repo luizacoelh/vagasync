@@ -37,7 +37,7 @@ export async function getAiUsageStats(db: PrismaClient = prisma) {
       totalTokens: row._sum.tokens ?? 0,
       lastUsedAt: row._max.createdAt,
     }))
-    .sort((a, b) => b.totalCalls - a.totalCalls);
+    .sort((a, b) => b.totalCalls - a.totalCalls || Number(b.lastUsedAt) - Number(a.lastUsedAt));
 
   const totalCalls = byUser.reduce((sum, row) => sum + row.totalCalls, 0);
   const totalTokens = byUser.reduce((sum, row) => sum + row.totalTokens, 0);

@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -18,8 +19,12 @@ export const API_LIMIT_MESSAGE = "Muitas ações em pouco tempo. Aguarde até um
 // cadastro. Um único comando, atômico: pedidos simultâneos não passam do limite.
 // O SELECT em "User" evita erro de chave estrangeira se a sessão ainda aponta
 // para uma conta excluída; nesse caso nada é gravado e o pedido é recusado.
-export async function allowApiRequest(userId: string, limit: ApiLimit = "general"): Promise<boolean> {
-  const changed = await prisma.$executeRaw`INSERT INTO "JobCreationQuota" ("userId", channel, "minuteStart", "minuteCount", "dayStart", "dayCount")
+export async function allowApiRequest(
+  userId: string,
+  limit: ApiLimit = "general",
+  db: Pick<PrismaClient, "$executeRaw"> = prisma,
+): Promise<boolean> {
+  const changed = await db.$executeRaw`INSERT INTO "JobCreationQuota" ("userId", channel, "minuteStart", "minuteCount", "dayStart", "dayCount")
     SELECT id, ${`api-${limit}`}, unixepoch(), 1, 0, 0 FROM "User" WHERE id = ${userId}
     ON CONFLICT ("userId", channel) DO UPDATE SET
       "minuteCount" = CASE WHEN "minuteStart" <= unixepoch() - 60 THEN 1 ELSE "minuteCount" + 1 END,

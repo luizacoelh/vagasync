@@ -58,16 +58,36 @@ async function exhaust(id, limit = "general") {
     VALUES (${id}, ${`api-${limit}`}, unixepoch(), ${API_LIMITS[limit]}, 0, 0)`;
 }
 
-test("limite por conta barra o pedido seguinte e renova depois de um minuto", async () => {
-  const id = await user();
-  for (let i = 0; i < API_LIMITS.export; i++) assert.equal(await allowApiRequest(id, "export"), true);
-  assert.equal(await allowApiRequest(id, "export"), false);
+async function quotaScenario(db) {
+  const { id } = await db.user.create({ data: {} });
+  for (let i = 0; i < API_LIMITS.export; i++) assert.equal(await allowApiRequest(id, "export", db), true);
+  assert.equal(await allowApiRequest(id, "export", db), false);
 
-  await prisma.$executeRaw`UPDATE "JobCreationQuota" SET "minuteStart" = unixepoch() - 61 WHERE "userId" = ${id}`;
-  assert.equal(await allowApiRequest(id, "export"), true);
-  const [row] = await prisma.$queryRaw`SELECT "minuteCount" FROM "JobCreationQuota" WHERE "userId" = ${id}`;
-  assert.equal(Number(row.minuteCount), 1);
-});
+  // A janela vencida precisa recomeçar de verdade: sem renovar minuteStart, o
+  // contador voltaria a 1 a cada pedido e o limite nunca mais barraria.
+  await db.$executeRaw`UPDATE "JobCreationQuota" SET "minuteStart" = unixepoch() - 61 WHERE "userId" = ${id}`;
+  for (let i = 0; i < API_LIMITS.export; i++) assert.equal(await allowApiRequest(id, "export", db), true);
+  assert.equal(await allowApiRequest(id, "export", db), false);
+  const [row] = await db.$queryRaw`SELECT "minuteCount" FROM "JobCreationQuota" WHERE "userId" = ${id}`;
+  assert.equal(Number(row.minuteCount), API_LIMITS.export);
+}
+
+function withLibSql(run) {
+  return async () => {
+    const { PrismaClient } = await import("@prisma/client");
+    const { PrismaLibSql } = await import("@prisma/adapter-libsql");
+    const libsql = new PrismaClient({ adapter: new PrismaLibSql({ url }) });
+    try {
+      await run(libsql);
+    } finally {
+      await libsql.$disconnect();
+    }
+  };
+}
+
+test("limite por conta barra o pedido seguinte e renova depois de um minuto", () => quotaScenario(prisma));
+
+test("limite recusa e renova no driver libSQL, o mesmo do Turso", withLibSql(quotaScenario));
 
 test("pedidos simultâneos não passam do limite", async () => {
   const id = await user();
@@ -93,7 +113,6 @@ test("rotas sem cota própria respondem 429 com Retry-After no limite", async ()
   const id = await user();
   const own = await job(id);
   await exhaust(id);
-  await exhaust(id, "export");
   const context = { params: Promise.resolve({ id: own.id }) };
   const patch = new NextRequest("http://localhost/api/jobs/x", { method: "PATCH", body: JSON.stringify({ salary: "1" }) });
   const put = new NextRequest("http://localhost/api/profile", { method: "PUT", body: JSON.stringify({ goal: "x" }) });
@@ -103,7 +122,6 @@ test("rotas sem cota própria respondem 429 com Retry-After no limite", async ()
     await jobRoute.GET(get(), context),
     await jobRoute.PATCH(patch, context),
     await jobRoute.DELETE(get(), context),
-    await exportRoute.GET(),
     await profileRoute.GET(),
     await profileRoute.PUT(put),
   ]) {
@@ -112,6 +130,19 @@ test("rotas sem cota própria respondem 429 com Retry-After no limite", async ()
   }
   const stored = await prisma.job.findUnique({ where: { id: own.id } });
   assert.equal(stored.salary, null);
+});
+
+test("exportação tem limite próprio, separado do geral", async () => {
+  const generalBlocked = await user();
+  await exhaust(generalBlocked);
+  assert.equal((await exportRoute.GET()).status, 200);
+
+  const exportBlocked = await user();
+  await exhaust(exportBlocked, "export");
+  const res = await exportRoute.GET();
+  assert.equal(res.status, 429);
+  assert.equal(res.headers.get("retry-after"), "60");
+  assert.equal((await jobsRoute.GET(get())).status, 200);
 });
 
 test("actions devolvem o erro do limite e não alteram nada", async () => {
@@ -200,7 +231,7 @@ test("GET /api/jobs traz no máximo 100 vagas por padrão", async () => {
 
 test("GET /api/jobs recusa limite e cursor inválidos", async () => {
   await user();
-  for (const query of ["?limit=0", "?limit=101", "?limit=abc", "?limit=", "?cursor=abc", "?cursor=", "?cursor=99999999999999999_a"]) {
+  for (const query of ["?limit=0", "?limit=101", "?limit=abc", "?limit=", "?cursor=abc", "?cursor=", "?cursor=99999999999999999_a", "?cursor=9999999999999999_a", "?cursor=8640000000000000_a"]) {
     assert.equal((await jobsRoute.GET(get(query))).status, 400, query);
   }
 });
@@ -235,9 +266,12 @@ async function statsScenario(db) {
   assert.equal(ana.totalTokens, 15);
   assert.ok(ana.lastUsedAt instanceof Date && ana.lastUsedAt > old);
   assert.equal(stats.byUser[0].userId, a.id);
-  assert.ok(stats.totalCalls >= 4);
+  assert.equal(stats.totalCalls, 4);
+  assert.equal(stats.totalTokens, 16);
   assert.equal(stats.byDay.length, 14);
-  assert.ok(stats.byDay.at(-1).calls >= 3);
+  // A linha de 40 dias entra nos totais, mas não no gráfico.
+  assert.equal(stats.byDay.reduce((sum, day) => sum + day.calls, 0), 3);
+  assert.equal(stats.byDay.reduce((sum, day) => sum + day.tokens, 0), 11);
 }
 
 test("painel de IA soma no banco e mostra os últimos 14 dias", async () => {
@@ -245,17 +279,10 @@ test("painel de IA soma no banco e mostra os últimos 14 dias", async () => {
   await statsScenario(prisma);
 });
 
-test("painel de IA funciona no driver libSQL, o mesmo do Turso", async () => {
+test("painel de IA funciona no driver libSQL, o mesmo do Turso", withLibSql(async (libsql) => {
   await prisma.aiUsage.deleteMany();
-  const { PrismaClient } = await import("@prisma/client");
-  const { PrismaLibSql } = await import("@prisma/adapter-libsql");
-  const libsql = new PrismaClient({ adapter: new PrismaLibSql({ url }) });
-  try {
-    await statsScenario(libsql);
-  } finally {
-    await libsql.$disconnect();
-  }
-});
+  await statsScenario(libsql);
+}));
 
 test("createLimitedJob segue independente do limite geral", async () => {
   const id = await user();
