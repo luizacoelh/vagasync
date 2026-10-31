@@ -313,15 +313,20 @@ Seguindo 1.2: `source` continua sendo o canal. Duas opções, a decidir:
 - Estado "não consegui ler esta página" com visual próprio e o botão
   "Colar texto".
 
-### 3.8 Decisões em aberto
+### 3.8 Decisões tomadas em 31/10/2026
 
-1. Parser de HTML: dependência leve (ex.: `node-html-parser`, recomendada) ou
-   só expressões regulares.
-2. Contador de importações: reaproveitar `AiUsage` com ação `import_url`
-   (sem migration, recomendada) ou tabela própria (migration + fluxo do Turso).
-3. Confirmação do texto antes da IA (recomendada) ou análise direta.
-4. Origem da vaga importada: opção A ou B de 3.6.
-5. Lista inicial de sites bloqueados.
+1. Parser de HTML: `node-html-parser`.
+2. Contador de importações: `AiUsage` com ação `import_url`, sem migration.
+   `import_url` fica fora da contagem por IP de `lib/ipRateLimit.ts` e do
+   consumo de IA no painel admin (`app/admin/page.tsx` e `UsersTable`), com teste.
+3. Confirmação do texto antes da IA.
+4. Origem da vaga importada: `"manual"` (opção A de 3.6).
+5. Sites bloqueados: `lib/jobImport/blockedSites.ts` (LinkedIn, Indeed, Glassdoor
+   e Catho). Nesses sites o servidor aceita só texto puro dentro do limite e
+   recusa HTML ou página capturada.
+6. Extensão: uso pessoal, carregada no modo desenvolvedor, sem Chrome Web Store.
+
+Contrato da rota: `lib/jobImport/types.ts`.
 
 ---
 
