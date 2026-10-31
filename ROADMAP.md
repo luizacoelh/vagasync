@@ -41,6 +41,9 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 - [x] Subagente `revisor-qa` (`.claude/agents/revisor-qa.md`), sem editar
   arquivos e com Bash só para `git diff`, `git log`, `git show`, `npm test` e
   `npm run lint`. Substitui o papel de revisão que ficava no Maestri
+- [x] `scripts/github-pr.mjs`: PR e merge pela API, com merge só no SHA conferido,
+  branch em dia com a main e os dois jobs do CI verdes. PR com migration exige
+  `--turso-aplicado`
 
 ### fix(security): contador global por hora
 - [x] Teto de 500 cadastros manuais passa a valer em qualquer intervalo de 24h,

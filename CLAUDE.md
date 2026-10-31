@@ -8,6 +8,8 @@ Deploy na Vercel. Repo público: nunca commitar segredos nem `*.db`.
 
 ## Regras do projeto
 - Git Flow + Conventional Commits. Nunca commitar na `main`; trabalhar em `feat/*`, `fix/*`, `chore/*`.
+- PR e merge por `scripts/github-pr.mjs` (`abrir`, `status`, `merge`): só faz merge no SHA conferido, com a branch em dia
+  com a `main` e CI verde; PR com migration exige `--turso-aplicado`, depois do fluxo do Turso.
 - Toda mudança relevante atualiza `ROADMAP.md`, `ARCHITECTURE.md` e/ou `DEPLOY.md`.
 - Comunicação em português, direta e curta.
 - Next 16: `proxy.ts` substitui `middleware.ts` (nunca criar os dois). Ler `node_modules/next/dist/docs/` antes de usar API nova.
