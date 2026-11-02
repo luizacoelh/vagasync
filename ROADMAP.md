@@ -37,6 +37,14 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### feat(limites): tetos do site editáveis em /admin
+- [x] Contas novas, cadastros manuais e análises de IA do site em 24h ficam em
+  `AppSettings`, editáveis sem deploy, com os padrões 20, 500 e 500
+- [x] Teto de IA novo: conta só a análise pelo site, sem o dono, antes do Gemini
+- [x] Alertas de volume acompanham os tetos: 25% das contas novas, 40% dos
+  cadastros e 60% da IA, os mesmos 5, 200 e 300 nos valores padrão
+- [x] Índice `AiUsage(action, createdAt)`. **A migration vai para o Turso antes do merge**
+
 ### fix(security): limites no servidor e proteção da main
 - [x] Rotas de vagas e perfil e Server Actions de edição com limite por conta
   (120/min, 5 exportações/min), contado no banco, sem migration

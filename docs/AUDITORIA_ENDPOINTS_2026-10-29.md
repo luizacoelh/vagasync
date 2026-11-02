@@ -36,9 +36,9 @@ Em 29/10/2026, após autorização de publicação:
   reaproveitadas pelas próximas gravações; o Turso recusa `VACUUM` pela API. Ver `DEPLOY.md`. O contador mensal de linhas lidas e
   escritas do Turso não diminui: é uso do mês e zera no ciclo de cobrança.
 - Risco de várias contas, em duas camadas:
-  - teto de 20 contas novas em 24h (`lib/signupGuard.ts`, pelo `User.createdAt`;
+  - teto de contas novas em 24h, 20 por padrão (`lib/signupGuard.ts`, pelo `User.createdAt`;
     quem já tem conta entra sempre);
-  - teto global de 500 cadastros manuais em 24h, somando todas as contas menos a
+  - teto global de cadastros manuais em 24h, 500 por padrão, somando todas as contas menos a
     do dono, contado por hora em `GlobalJobHour` (apagar a vaga não devolve espaço).
   Custo aceito: num ataque, cadastro de contas e cadastro manual das outras
   contas param até a janela andar. A primeira versão somava as janelas de 24h de
@@ -52,7 +52,10 @@ Em 29/10/2026, após autorização de publicação:
   novas, IA e estoque de vagas), o que gera e-mail do GitHub. Também falha se
   não conseguir ler o relatório. O log público só mostra os limites que passaram e o valor de cada um.
   O atraso dos agendamentos do GitHub vale aqui também.
-- Ainda sem controle: custo global de IA, que só tem alerta.
+- Custo global de IA: desde 31/10/2026 há teto de análises pelo site em 24h, 500
+  por padrão, sem o dono. A coleta do n8n tem cota própria. Os três tetos do site
+  ficam em `AppSettings`, editáveis em `/admin`. Com o site bloqueado, a análise
+  recusa antes de gastar a cota da conta; só uma corrida na última vaga pode gastar.
 - Atualização de 31/10/2026: rotas de vagas e perfil e Server Actions de edição
   ganharam limite por conta (`lib/apiQuota.ts`); `GET /api/jobs` passou a paginar;
   exportação e painel admin deixaram de carregar colunas e linhas sem uso. A

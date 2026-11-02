@@ -6,6 +6,20 @@ export interface AppSettings {
   dailyAiLimit: number;
   ipHourlyLimit: number;
   maxDescriptionLength: number;
+  newAccountsPerDay: number;
+  globalManualJobsPerDay: number;
+  globalAiPerDay: number;
+}
+
+function toAppSettings(row: AppSettings): AppSettings {
+  return {
+    dailyAiLimit: row.dailyAiLimit,
+    ipHourlyLimit: row.ipHourlyLimit,
+    maxDescriptionLength: row.maxDescriptionLength,
+    newAccountsPerDay: row.newAccountsPerDay,
+    globalManualJobsPerDay: row.globalManualJobsPerDay,
+    globalAiPerDay: row.globalAiPerDay,
+  };
 }
 
 // AppSettings é uma tabela de uma linha só (singleton), editável em /admin
@@ -18,11 +32,7 @@ export async function getAppSettings(): Promise<AppSettings> {
     create: { id: SETTINGS_ID },
   });
 
-  return {
-    dailyAiLimit: settings.dailyAiLimit,
-    ipHourlyLimit: settings.ipHourlyLimit,
-    maxDescriptionLength: settings.maxDescriptionLength,
-  };
+  return toAppSettings(settings);
 }
 
 export async function updateAppSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
@@ -32,9 +42,5 @@ export async function updateAppSettings(patch: Partial<AppSettings>): Promise<Ap
     create: { id: SETTINGS_ID, ...patch },
   });
 
-  return {
-    dailyAiLimit: settings.dailyAiLimit,
-    ipHourlyLimit: settings.ipHourlyLimit,
-    maxDescriptionLength: settings.maxDescriptionLength,
-  };
+  return toAppSettings(settings);
 }

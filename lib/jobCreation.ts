@@ -7,7 +7,8 @@ export const JOB_LIMITS = {
   n8n: { minute: 60, day: 500 },
   stored: 2000,
   // Teto do site inteiro: a cota acima é por conta, e várias contas OAuth a
-  // somariam. Vale para o cadastro manual de quem não é o dono.
+  // somariam. Vale para o cadastro manual de quem não é o dono. O valor editado
+  // em /admin prevalece; este só vale até a linha de AppSettings existir.
   globalManualDay: 500,
 } as const;
 
@@ -19,6 +20,9 @@ export const JOB_LIMITS = {
 const GLOBAL_MANUAL_COUNT = Prisma.sql`(SELECT COALESCE(SUM("count"), 0) FROM "GlobalJobHour"
   WHERE "hour" >= unixepoch() / 3600 - 24)`;
 
+// Lido dentro do mesmo comando, para valer também na transação de reserva.
+const GLOBAL_MANUAL_LIMIT = Prisma.sql`COALESCE((SELECT "globalManualJobsPerDay" FROM "AppSettings" WHERE id = 'singleton'), ${JOB_LIMITS.globalManualDay})`;
+
 export class JobInputError extends Error {
   readonly status = 400;
 }
@@ -28,7 +32,7 @@ export class JobQuotaError extends Error {
   constructor(message: string, public readonly retryAfter?: number) { super(message); }
 }
 
-type QuotaState = { stored: number; minuteCount: number; dayCount: number; minuteLeft: number; dayLeft: number; globalManual: number; owner: number };
+type QuotaState = { stored: number; minuteCount: number; dayCount: number; minuteLeft: number; dayLeft: number; globalManual: number; globalManualLimit: number; owner: number };
 
 async function readQuota(db: Prisma.TransactionClient, userId: string, channel: string) {
   const [state] = await db.$queryRaw<QuotaState[]>`
@@ -38,6 +42,7 @@ async function readQuota(db: Prisma.TransactionClient, userId: string, channel: 
       MAX(1, COALESCE(q."minuteStart", 0) + 60 - unixepoch()) AS minuteLeft,
       MAX(1, COALESCE(q."dayStart", 0) + 86400 - unixepoch()) AS dayLeft,
       ${channel === "manual" ? GLOBAL_MANUAL_COUNT : Prisma.sql`0`} AS globalManual,
+      ${channel === "manual" ? GLOBAL_MANUAL_LIMIT : Prisma.sql`0`} AS globalManualLimit,
       EXISTS (SELECT 1 FROM "User" WHERE id = ${userId} AND "isOwner" = 1) AS owner
     FROM (SELECT 1) LEFT JOIN "JobCreationQuota" q ON q."userId" = ${userId} AND q.channel = ${channel}`;
   return state;
@@ -53,14 +58,14 @@ function assertQuota(state: QuotaState, channel: JobChannel) {
   if (Number(state.minuteCount) >= JOB_LIMITS[channel].minute) {
     throw new JobQuotaError(`Muitos cadastros em pouco tempo. Aguarde até um minuto e tente novamente.`, Number(state.minuteLeft));
   }
-  if (channel === "manual" && !Number(state.owner) && Number(state.globalManual) >= JOB_LIMITS.globalManualDay) {
+  if (channel === "manual" && !Number(state.owner) && Number(state.globalManual) >= Number(state.globalManualLimit)) {
     throw globalLimitError();
   }
 }
 
 function globalLimitError() {
   // Aparece nos logs da Vercel; o alerta de volume avisa por e-mail.
-  console.warn(`[jobs] teto global de ${JOB_LIMITS.globalManualDay} cadastros manuais em 24h atingido`);
+  console.warn("[jobs] teto global de cadastros manuais em 24h atingido");
   return new JobQuotaError("O cadastro de vagas está temporariamente limitado. Tente novamente mais tarde.", 3600);
 }
 
@@ -112,7 +117,7 @@ async function reserveGlobal(tx: Prisma.TransactionClient, userId: string, chann
   if (user?.isOwner) return;
   await tx.$executeRaw`DELETE FROM "GlobalJobHour" WHERE "hour" < unixepoch() / 3600 - 24`;
   const changed = await tx.$executeRaw`INSERT INTO "GlobalJobHour" ("hour", "count")
-    SELECT unixepoch() / 3600, 1 WHERE ${GLOBAL_MANUAL_COUNT} < ${JOB_LIMITS.globalManualDay}
+    SELECT unixepoch() / 3600, 1 WHERE ${GLOBAL_MANUAL_COUNT} < ${GLOBAL_MANUAL_LIMIT}
     ON CONFLICT ("hour") DO UPDATE SET "count" = "count" + 1`;
   if (changed !== 1) throw globalLimitError();
 }
