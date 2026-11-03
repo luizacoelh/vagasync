@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
+import { AI_ACTIONS_ONLY } from "@/lib/aiUsageStats";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ export async function GET() {
       geminiCallCount: true,
       geminiCallResetAt: true,
       createdAt: true,
-      _count: { select: { jobs: true, aiUsage: true } },
+      _count: { select: { jobs: true, aiUsage: { where: AI_ACTIONS_ONLY } } },
     },
   });
 

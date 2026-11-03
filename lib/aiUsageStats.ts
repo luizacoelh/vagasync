@@ -1,10 +1,14 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { IMPORT_USAGE_ACTION } from "@/lib/jobImport/types";
 
 const DAYS = 14;
 
 // Consumo de IA para o painel de /admin. AiUsage só cresce (a coleta do n8n
 // grava todo dia), então o banco soma e só os últimos 14 dias vêm linha a linha.
+// Importação por link também grava em AiUsage, mas não usa IA: fica de fora.
+export const AI_ACTIONS_ONLY = { action: { not: IMPORT_USAGE_ACTION } };
+
 export async function getAiUsageStats(db: PrismaClient = prisma) {
   const since = new Date();
   since.setDate(since.getDate() - DAYS);
@@ -12,12 +16,13 @@ export async function getAiUsageStats(db: PrismaClient = prisma) {
   const [grouped, recentUsage] = await Promise.all([
     db.aiUsage.groupBy({
       by: ["userId"],
+      where: AI_ACTIONS_ONLY,
       _count: { _all: true },
       _sum: { tokens: true },
       _max: { createdAt: true },
     }),
     db.aiUsage.findMany({
-      where: { createdAt: { gte: since } },
+      where: { ...AI_ACTIONS_ONLY, createdAt: { gte: since } },
       select: { createdAt: true, tokens: true },
     }),
   ]);

@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAppSettings } from "@/lib/appSettings";
+import { IMPORT_USAGE_ACTION } from "@/lib/jobImport/types";
 
 // Análises pelo site em 24h, sem o dono. A coleta do n8n grava outra ação em
 // AiUsage e tem cota própria, então fica fora dessa conta.
@@ -36,7 +37,10 @@ export async function checkIpRateLimit(
     const user = await tx.user.updateMany({ where: { id: userId }, data: { geminiCallCount: { increment: 0 } } });
     if (user.count !== 1) return { allowed: false };
     if (ip) {
-      const count = await tx.aiUsage.count({ where: { ip, createdAt: { gte: new Date(Date.now() - 3600000) } } });
+      // Importação por link tem limite próprio (lib/jobImport/quota.ts) e não gasta IA.
+      const count = await tx.aiUsage.count({
+        where: { ip, action: { not: IMPORT_USAGE_ACTION }, createdAt: { gte: new Date(Date.now() - 3600000) } },
+      });
       if (count >= settings.ipHourlyLimit) return { allowed: false, reason: "ip" };
     }
     if (await siteAiLimitReached(tx, userId, settings.globalAiPerDay)) {

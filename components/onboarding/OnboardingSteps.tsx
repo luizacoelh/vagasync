@@ -16,13 +16,12 @@ const ICON = {
 
 const STEPS = [
   {
-    title: "Cole a vaga",
-    text: "Copie o texto da vaga do LinkedIn, da Gupy ou de onde for e cole aqui.",
+    title: "Cole o link ou o texto da vaga",
+    text: "Cole o link da Gupy, do Remotar ou do site da empresa. No LinkedIn e em sites que não deixam ler, copie e cole o texto.",
     icon: (
       <svg {...ICON}>
-        <rect x="8" y="2" width="8" height="4" rx="1" />
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-        <path d="M9 12h6M9 16h4" />
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
       </svg>
     ),
   },
@@ -48,7 +47,7 @@ const STEPS = [
   },
 ];
 
-// Os três passos do VagaSync ("Cole a vaga → IA analisa → Acompanhe"). Aparece
+// Os três passos do VagaSync ("Cole o link ou o texto → IA analisa → Acompanhe"). Aparece
 // para o visitante no topo do dashboard e para quem acabou de criar a conta
 // enquanto o dashboard ainda está vazio (components/ui/EmptyState.tsx).
 export default function OnboardingSteps() {

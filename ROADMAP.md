@@ -37,6 +37,20 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ## Entregas anteriores concluídas
 
+### feat(importar): cadastro de vaga pelo link
+- [x] Aba "Link da vaga" (padrão) em `/nova-vaga`, confirmação "É esta vaga?" com o
+  texto editável antes da IA, link salvo junto com a vaga
+- [x] `POST /api/vaga/importar` com proteção de rede (`lib/safeFetch.ts`) e leitura
+  de JSON-LD, Remotar, Gupy, issues do GitHub e texto principal da página
+- [x] LinkedIn, Indeed, Glassdoor, Catho, captcha e login levam a "Colar texto" com
+  o link preenchido; link já cadastrado avisa sem baixar
+- [x] Link colado no campo de texto vai para a aba Link, sem gastar IA
+- [x] Onboarding, dashboard vazio e convite do visitante mostram "Adicionar pelo
+  link"; visitante tem um link de exemplo sem rede e sem IA
+- [ ] Conferir com links reais da Gupy em produção (o leitor segue o formato
+  conhecido da página, sem amostra real nos testes)
+- [ ] Extensão do navegador (uso pessoal, modo desenvolvedor)
+
 ### feat(limites): tetos do site editáveis em /admin
 - [x] Contas novas, cadastros manuais e análises de IA do site em 24h ficam em
   `AppSettings`, editáveis sem deploy, com os padrões 20, 500 e 500

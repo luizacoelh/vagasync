@@ -77,6 +77,7 @@ Em 29/10/2026, após autorização de publicação:
 | `/api/jobs/[id]` GET/PATCH/DELETE | Sessão e proprietário no filtro; metadados limitados |
 | `/api/jobs/export` GET | Sessão, somente vagas próprias, neutralização de fórmulas CSV |
 | `/api/profile` GET/PUT | Sessão e perfil próprio; textos até 1.000 caracteres, até 100 skills de 100 caracteres |
+| `/api/vaga/importar` POST | Sessão; corpo até 8 KiB e link até 2.000; SSRF bloqueado (`lib/safeFetch.ts`); 20/h e 60/dia por conta, 40/h por IP; não grava vaga nem chama IA |
 | `/api/analyze` POST | Sessão; descrição até min(configuração, 8.000); cota individual e reserva IP antes do Gemini |
 | `/api/admin/settings` GET/PUT | Papel admin revalidado no banco; números positivos limitados ao inteiro do banco |
 | `/api/admin/users` GET e `/[id]` PATCH | Papel admin revalidado; dono protegido, sem autopromoção; boolean validado |

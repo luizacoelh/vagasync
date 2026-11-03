@@ -1,4 +1,5 @@
 import type { Job, JobAnalysis, JobSummary } from "@/types/job";
+import type { ImportedJob } from "@/lib/jobImport/types";
 
 // Vagas fictícias do modo visitante: quem chega sem login vê o dashboard,
 // /monitoradas e a página da vaga preenchidos com isto, sem tocar no banco.
@@ -251,4 +252,19 @@ export const EXAMPLE_ANALYSIS: JobAnalysis = {
   ],
   salary: null,
   location: "HIBRIDO",
+};
+
+// Link de exemplo da aba "Link da vaga" de /nova-vaga, só para o visitante:
+// a "busca" devolve EXAMPLE_IMPORT na hora (sem rede) e, como o texto é o
+// EXAMPLE_JOB, a análise que aparece depois é a EXAMPLE_ANALYSIS (sem IA).
+// Domínio .example (RFC 2606): não existe e nunca aponta para um site real.
+export const EXAMPLE_IMPORT_URL = "https://empresa-exemplo.example/vagas/estagio-desenvolvimento-web";
+
+export const EXAMPLE_IMPORT: ImportedJob = {
+  texto: EXAMPLE_JOB,
+  titulo: EXAMPLE_ANALYSIS.title,
+  empresa: EXAMPLE_ANALYSIS.company,
+  urlFinal: EXAMPLE_IMPORT_URL,
+  site: "empresa-exemplo.example",
+  avisos: [],
 };
