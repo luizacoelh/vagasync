@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getAppSettings } from "@/lib/appSettings";
-import { getAiUsageStats } from "@/lib/aiUsageStats";
+import { AI_ACTIONS_ONLY, getAiUsageStats } from "@/lib/aiUsageStats";
 import AppSettingsForm from "@/components/admin/AppSettingsForm";
 import UsersTable from "@/components/admin/UsersTable";
 import AiUsagePanel from "@/components/admin/AiUsagePanel";
@@ -39,7 +39,7 @@ export default async function AdminPage() {
         dailyAiLimitOverride: true,
         geminiCallCount: true,
         createdAt: true,
-        _count: { select: { jobs: true, aiUsage: true } },
+        _count: { select: { jobs: true, aiUsage: { where: AI_ACTIONS_ONLY } } },
       },
     }),
     getAiUsageStats(),

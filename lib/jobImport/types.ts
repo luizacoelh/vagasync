@@ -20,6 +20,8 @@ export const IMPORT_LIMITS = {
 // fica fora das contas de IA. Cada link buscado conta, inclusive os que caem em
 // "colar_texto"; link já cadastrado e site bloqueado não contam, porque não
 // baixam nada.
+export const IMPORT_USAGE_ACTION = "import_url";
+
 export const IMPORT_QUOTA = {
   perHour: 20,
   perDay: 60,
