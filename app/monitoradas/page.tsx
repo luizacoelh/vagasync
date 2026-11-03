@@ -122,7 +122,12 @@ export default async function MonitoradasPage({
           <DemoBanner text="Exemplo: o VagaSync busca vagas de estágio e júnior automaticamente e elas chegam aqui para você avaliar." />
         )}
 
-        <MonitoredJobList groups={groups} notice={guest ? null : notice} />
+        <MonitoredJobList
+          groups={groups}
+          notice={guest ? null : notice}
+          // O n8n só alimenta a conta de N8N_TARGET_USER_ID (lib/n8nWebhook.ts).
+          comingSoon={!guest && session.user.id !== process.env.N8N_TARGET_USER_ID}
+        />
       </div>
     </main>
   );

@@ -51,6 +51,9 @@ export async function checkAndConsumeGeminiQuota(userId: string): Promise<RateLi
   }
 
   const limit = user.dailyAiLimitOverride ?? settings.dailyAiLimit;
+  // Limite 0 (conta excluída, lib/accountDeletion.ts) nunca libera: sem isto a
+  // tentativa 2 resetaria a janela e daria uma chamada por dia.
+  if (limit <= 0) return { allowed: false, remaining: 0, limit };
   const now = new Date();
   const windowStart = new Date(now.getTime() - WINDOW_MS);
 

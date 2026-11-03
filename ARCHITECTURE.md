@@ -28,6 +28,26 @@ vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
   IP, em `AiUsage` com a ação `import_url`. Essa ação fica fora do limite de IA
   por IP, do painel e da contagem do admin.
 
+### Exclusão de conta (`/perfil`)
+
+- `app/actions/account.ts` (`deleteMyAccount`) exige sessão e a palavra
+  `EXCLUIR`; a regra fica em `lib/accountDeletion.ts`, numa transação.
+- Apaga `Job`, `UserProfile`, `Account` e `Session`; limpa nome, e-mail, foto e
+  `isAdmin`; zera a IA da conta (`dailyAiLimitOverride = 0`, que
+  `lib/rateLimit.ts` recusa sempre). Depois faz `signOut`.
+- IP em `AiUsage`: o da última hora fica, senão excluir a conta liberaria os
+  limites por IP; cada exclusão limpa o IP com mais de 1h de todas as contas
+  excluídas. O `/admin` mostra "Excluída" e a PATCH recusa alterar a conta.
+  A marca da conta excluída fica em `lib/deletedAccount.ts`.
+- A linha de `User` fica anônima ("Conta excluída") de propósito: o
+  `onDelete: Cascade` levaria `createdAt`, `AiUsage` e `JobCreationQuota`, e os
+  tetos de contas novas, de IA e de cadastro ganhariam espaço a cada exclusão.
+- Sem `Account`, entrar de novo com o mesmo Google/GitHub cria outra conta, que
+  conta no teto de contas novas. O JWT não é revogado (aceito): um cookie
+  guardado continua numa conta vazia e sem IA, e pode recriar perfil e vagas
+  nela; com esse cookie, um login OAuth liga o novo `Account` à conta excluída.
+  `isOwner` é recusado e o botão nem aparece para a dona.
+
 ### Proteção de armazenamento de vagas
 
 `lib/jobInput.ts` valida tipos, tamanhos, listas e metadados no servidor.
