@@ -53,6 +53,15 @@ before(async () => {
       const n = Number(path.slice(6));
       res.writeHead(302, { location: `/loop/${n + 1}` });
       res.end();
+    } else if (path.startsWith("/tres/")) {
+      const n = Number(path.slice(6));
+      if (n < 3) {
+        res.writeHead(301, { location: `/tres/${n + 1}` });
+        res.end("corpo do redirecionamento");
+      } else {
+        res.writeHead(200, { "content-type": "text/html" });
+        res.end("<html><body>chegou</body></html>");
+      }
     } else if (path === "/grande") {
       res.writeHead(200, { "content-type": "text/html" });
       const chunk = Buffer.alloc(64 * 1024, "a");
@@ -134,6 +143,7 @@ test("recusa cada faixa interna ou reservada e aceita endereço público", () =>
     "169.254.169.254", "100.64.0.1", "0.0.0.0", "224.0.0.1", "255.255.255.255",
     "::1", "::", "fc00::1", "fd12:3456::1", "fe80::1", "ff02::1",
     "::ffff:10.0.0.1", "::ffff:127.0.0.1", "::ffff:7f00:1", "::ffff:8.8.8.8", "64:ff9b::a00:1",
+    "198.18.0.1", "192.0.0.1", "192.0.2.1", "2001:db8::1", "2002::1", "2001::1",
   ]) {
     assert.equal(safe.isPublicAddress(address), false, address);
   }
@@ -185,7 +195,8 @@ test("redirecionamento para a rede interna, outra porta ou site bloqueado é rec
   assert.equal(blocked, "site_bloqueado");
 });
 
-test("no máximo 3 redirecionamentos", async () => {
+test("até 3 redirecionamentos passam; o quarto é recusado", async () => {
+  assert.match((await safe.safeFetch(at("/tres/0"), opts())).body, /chegou/);
   assert.equal((await safe.safeFetch(at("/loop/1"), { ...opts(), maxRedirects: 3 }).catch((e) => e)).code, "leitura_falhou");
 });
 
@@ -249,6 +260,18 @@ test("último recurso: texto principal sem menu, rodapé e scripts", () => {
   assert.doesNotMatch(result.texto, /Menu|Rodapé|console\.log/);
 });
 
+test("página de vaga com script da Cloudflare ou reCAPTCHA não vira captcha", () => {
+  const html = `<script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script><div class="g-recaptcha"></div><main>${"Requisitos da vaga. ".repeat(30)}</main>`;
+  const text = extract.extractFromHtml(html).texto;
+  assert.ok(text.length >= 300);
+  assert.equal(extract.pageProblem(html, text.length), null);
+});
+
+test("página ASP.NET inteira dentro de <form> continua legível", () => {
+  const html = `<html><body><form id="aspnetForm"><div><h1>Vaga de Suporte</h1><p>${"Atendimento e suporte técnico a usuários. ".repeat(10)}</p></div></form></body></html>`;
+  assert.match(extract.extractFromHtml(html).texto, /suporte técnico/);
+});
+
 test("detecta captcha, login e página só com JavaScript", () => {
   assert.equal(extract.pageProblem('<html><div id="cf-chl-widget"></div>Just a moment...</html>', 30), "desafio_ou_captcha");
   assert.equal(extract.pageProblem('<form><input type="password"></form>', 40), "exige_login");
@@ -290,6 +313,8 @@ function deps(overrides = {}) {
         calls.fetch.push(url);
         return { status: 200, url, contentType: "text/html", body: fixture("jsonld.html") };
       },
+      // Sem DNS nos testes; os casos de endereço interno trocam esta função.
+      checkUrl: async () => {},
       ...overrides,
     },
   };
@@ -334,11 +359,33 @@ test("LinkedIn e Indeed vão para colar texto sem baixar e sem gastar cota", asy
   }
 });
 
-test("endereço interno é recusado antes da cota", async () => {
-  const { deps: d, calls } = deps();
-  const result = await imp.importJobFromUrl(u("http://192.168.0.1/admin"), d);
-  assert.equal(result.motivo, "url_recusada");
-  assert.equal(calls.reserve, 0);
+test("endereço interno é recusado antes da cota, escrito no link ou pelo DNS", async () => {
+  const literal = deps({ checkUrl: (url) => safe.checkPublicUrl(url) });
+  assert.equal((await imp.importJobFromUrl(u("http://192.168.0.1/admin"), literal.deps)).motivo, "url_recusada");
+  assert.equal(literal.calls.reserve, 0);
+
+  const dns = deps({ checkUrl: (url) => safe.checkPublicUrl(url, { resolve: async () => ["127.0.0.1"] }) });
+  assert.equal((await imp.importJobFromUrl(u("https://127.0.0.1.nip.io/"), dns.deps)).motivo, "url_recusada");
+  assert.equal(dns.calls.reserve + dns.calls.fetch.length, 0);
+});
+
+test("redirecionamento para o login: o link devolvido é o enviado, não o do login", async () => {
+  const { deps: d } = deps({
+    fetchPage: async () => ({
+      status: 200,
+      url: "https://empresa.com/login?next=/vaga/1",
+      contentType: "text/html",
+      body: '<form><input type="password"></form><p>Entre</p>',
+    }),
+  });
+  const result = await imp.importJobFromUrl(u("https://empresa.com/vaga/1"), d);
+  assert.equal(result.motivo, "exige_login");
+  assert.equal(result.url, "https://empresa.com/vaga/1");
+});
+
+test("duplicata com e sem a barra final", async () => {
+  const { deps: d } = deps({ findJobByUrl: async (urls) => (urls.includes("https://site.com/vaga/") ? "job-barra" : null) });
+  assert.deepEqual(await imp.importJobFromUrl(u("https://site.com/vaga"), d), { status: "duplicada", jobId: "job-barra" });
 });
 
 test("limite atingido não baixa a página", async () => {
@@ -441,10 +488,13 @@ test("rota: duplicata e site bloqueado sem rede e sem registrar importação", a
   assert.equal(blocked.motivo, "site_bloqueado");
   assert.equal(await prisma.aiUsage.count(), 0);
 
-  // A vaga de outra conta não conta como duplicata.
+  // A vaga de outra conta não conta como duplicata. Endereço interno: a rota
+  // responde sem acessar a rede.
+  await prisma.job.update({ where: { id: job.id }, data: { url: "http://10.0.0.1/vaga" } });
+  assert.equal((await (await route.POST(post({ url: "http://10.0.0.1/vaga" }))).json()).status, "duplicada");
   await login();
-  const other = await (await route.POST(post({ url: "https://empresa.gupy.io/jobs/7" }))).json();
-  assert.notEqual(other.status, "duplicada");
+  const other = await (await route.POST(post({ url: "http://10.0.0.1/vaga" }))).json();
+  assert.equal(other.motivo, "url_recusada");
 });
 
 test("rota responde 429 no limite por hora da conta", async () => {
@@ -452,9 +502,11 @@ test("rota responde 429 no limite por hora da conta", async () => {
   await prisma.aiUsage.createMany({
     data: Array.from({ length: types.IMPORT_QUOTA.perHour }, () => ({ userId: user.id, action: "import_url" })),
   });
-  const res = await route.POST(post({ url: "https://site.com/vaga" }));
+  // IP público escrito no link: passa pela checagem sem DNS e para na cota.
+  const res = await route.POST(post({ url: "https://8.8.8.8/vaga" }));
   assert.equal(res.status, 429);
   assert.match((await res.json()).error, /Limite de importações/);
+  assert.equal(await prisma.job.count(), 0);
 });
 
 test("cota de importação: por hora, por dia e por IP", async () => {
@@ -478,6 +530,13 @@ test("cota de importação: por hora, por dia e por IP", async () => {
   assert.equal(await quota.reserveImport(b.id, "198.51.100.7"), false);
   assert.equal(await quota.reserveImport(b.id, "198.51.100.8"), true);
   assert.equal(await quota.reserveImport("conta-que-nao-existe", null), false);
+});
+
+test("cota de importação segura pedidos simultâneos", async () => {
+  const user = await prisma.user.create({ data: {} });
+  const results = await Promise.all(Array.from({ length: 30 }, () => quota.reserveImport(user.id, null)));
+  assert.equal(results.filter(Boolean).length, types.IMPORT_QUOTA.perHour);
+  assert.equal(await prisma.aiUsage.count({ where: { userId: user.id } }), types.IMPORT_QUOTA.perHour);
 });
 
 test("importações ficam fora do limite de IA por IP, do painel e da contagem do admin", async () => {

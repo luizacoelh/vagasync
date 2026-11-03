@@ -20,7 +20,8 @@ const BLOCK_TAGS = new Set([
   "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main", "nav",
   "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul",
 ]);
-const NOISE = "script, style, noscript, svg, template, iframe, nav, footer, header, aside, form, button, select";
+// <form> fica: páginas ASP.NET guardam o conteúdo inteiro dentro de um.
+const NOISE = "script, style, noscript, svg, template, iframe, nav, footer, header, aside, button, select";
 
 function clean(text: string): string {
   return text
@@ -310,17 +311,19 @@ function fromMainText(root: HTMLElement): Extracted {
 
 // ---------- Problemas da página ----------
 
+// Só decide quando a página quase não tem texto: com a vaga lida, um script da
+// Cloudflare ou um reCAPTCHA no formulário de candidatura não atrapalham, e texto
+// curto aparece com o aviso "texto_incompleto" em vez de ser descartado.
 export function pageProblem(html: string, textLength: number): PageProblem | null {
+  if (textLength >= 300) return null;
   const head = html.slice(0, 200_000).toLowerCase();
   if (
     /cf-chl|challenge-platform|just a moment\.\.\.|attention required|g-recaptcha|h-captcha|hcaptcha\.com|captcha-delivery|px-captcha/.test(head)
   ) {
     return "desafio_ou_captcha";
   }
-  if (textLength < 300 && /type=["']?password|faça login|faca login|entre na sua conta|sign in to continue|log in to continue/.test(head)) {
-    return "exige_login";
-  }
-  if (textLength < 120) return "pagina_so_javascript";
+  if (/type=["']?password/.test(head)) return "exige_login";
+  if (textLength < 80) return "pagina_so_javascript";
   return null;
 }
 

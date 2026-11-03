@@ -6,7 +6,7 @@ import {
   type ImportFallbackReason,
   type ImportResponse,
 } from "@/lib/jobImport/types";
-import { parsePublicUrl, safeFetch, SafeFetchError, type SafeFetchResult } from "@/lib/safeFetch";
+import { checkPublicUrl, safeFetch, SafeFetchError, type SafeFetchResult } from "@/lib/safeFetch";
 
 // Lógica de POST /api/vaga/importar, sem Next nem sessão, para os testes
 // trocarem a rede e o banco. A rota cuida de login, corpo e limites.
@@ -39,6 +39,12 @@ export function canonicalUrl(url: URL): string {
   return copy.href;
 }
 
+// Com e sem a barra final, para achar a vaga salva das duas formas.
+function urlVariants(urls: string[]): string[] {
+  const all = urls.flatMap((url) => (url.endsWith("/") ? [url, url.slice(0, -1)] : [url, `${url}/`]));
+  return [...new Set(all)];
+}
+
 export function siteOf(url: string): string {
   try {
     return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
@@ -55,6 +61,9 @@ function cut(text: string, max: number): string {
   return (at > max * 0.8 ? slice.slice(0, at) : slice).trimEnd();
 }
 
+// Na falha, o link que volta para "Colar texto" é o que a usuária enviou: um
+// redirecionamento pode ter levado à página de login, e esse link não deve ser
+// salvo com a vaga.
 function fallback(motivo: ImportFallbackReason, url: string, mensagem = IMPORT_MESSAGES[motivo]): ImportResponse {
   return { status: "colar_texto", motivo, mensagem, url };
 }
@@ -71,6 +80,8 @@ export type ImportDeps = {
   // Reserva a cota de importação. false = limite atingido (a rota responde 429).
   reserve: () => Promise<boolean>;
   fetchPage?: (url: string) => Promise<SafeFetchResult>;
+  // Formato do link e DNS, antes da cota: endereço interno não gasta importação.
+  checkUrl?: (url: string) => Promise<void>;
   maxTextChars: number;
 };
 
@@ -102,14 +113,15 @@ export async function importJobFromUrl(input: URL, deps: ImportDeps): Promise<Im
   const typed = new URL(input.href);
   typed.hash = "";
 
-  const existing = await deps.findJobByUrl([...new Set([link, typed.href])]);
+  const existing = await deps.findJobByUrl(urlVariants([link, typed.href]));
   if (existing) return { status: "duplicada", jobId: existing };
 
   if (isBlockedHost(input.hostname)) return fallback("site_bloqueado", link);
   try {
-    parsePublicUrl(link);
-  } catch {
-    return fallback("url_recusada", link);
+    await (deps.checkUrl ?? ((url: string) => checkPublicUrl(url)))(link);
+  } catch (error) {
+    if (error instanceof SafeFetchError && error.code === "url_recusada") return fallback("url_recusada", link);
+    // Falha de DNS: segue, e a leitura responde "leitura_falhou".
   }
 
   if (!(await deps.reserve())) return { status: "limite" };
@@ -120,14 +132,13 @@ export async function importJobFromUrl(input: URL, deps: ImportDeps): Promise<Im
     page = await fetchPage(githubApi ?? link);
   } catch (error) {
     const code = error instanceof SafeFetchError ? error.code : "leitura_falhou";
-    const where = error instanceof SafeFetchError && error.url && !githubApi ? canonicalUrl(new URL(error.url)) : link;
     console.warn(`[importar] ${siteOf(link)}: ${code}`);
-    return fallback(code, where);
+    return fallback(code, link);
   }
 
   const urlFinal = githubApi ? link : canonicalUrl(new URL(page.url));
   if (urlFinal !== link) {
-    const again = await deps.findJobByUrl([urlFinal]);
+    const again = await deps.findJobByUrl(urlVariants([urlFinal]));
     if (again) return { status: "duplicada", jobId: again };
   }
 
@@ -135,10 +146,10 @@ export async function importJobFromUrl(input: URL, deps: ImportDeps): Promise<Im
   if (bad) {
     console.warn(`[importar] ${siteOf(urlFinal)}: HTTP ${page.status}`);
     if (page.contentType.includes("html") && pageProblem(page.body, 0) === "desafio_ou_captcha") {
-      return fallback("desafio_ou_captcha", urlFinal);
+      return fallback("desafio_ou_captcha", link);
     }
-    if (page.status === 404 || page.status === 410) return fallback("leitura_falhou", urlFinal, NOT_FOUND_MESSAGE);
-    return fallback(bad, urlFinal);
+    if (page.status === 404 || page.status === 410) return fallback("leitura_falhou", link, NOT_FOUND_MESSAGE);
+    return fallback(bad, link);
   }
 
   let extracted: Extracted | null;
@@ -150,9 +161,9 @@ export async function importJobFromUrl(input: URL, deps: ImportDeps): Promise<Im
   } else {
     extracted = extractFromHtml(page.body);
     const problem = pageProblem(page.body, extracted.texto.length);
-    if (problem) return fallback(problem, urlFinal);
+    if (problem) return fallback(problem, link);
   }
-  if (!extracted || extracted.texto.trim() === "") return fallback("pagina_so_javascript", urlFinal);
+  if (!extracted || extracted.texto.trim() === "") return fallback("pagina_so_javascript", link);
 
   const avisos: ImportAviso[] = [];
   const max = Math.min(deps.maxTextChars, IMPORT_LIMITS.textChars);

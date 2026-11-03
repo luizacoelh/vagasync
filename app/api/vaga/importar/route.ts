@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/apiAuth";
+import { limitApi } from "@/lib/apiQuota";
 import { getAppSettings } from "@/lib/appSettings";
 import { getClientIp } from "@/lib/ipRateLimit";
 import { readJobJson, object } from "@/lib/jobInput";
@@ -20,6 +21,10 @@ const LIMIT_MESSAGE = `Limite de importações por link atingido (${IMPORT_QUOTA
 export async function POST(req: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
+  // Limite geral também nos pedidos que não gastam a cota de importação
+  // (link inválido, duplicata, site bloqueado).
+  const limited = await limitApi(user.id);
+  if (limited) return limited;
 
   let url: URL;
   try {

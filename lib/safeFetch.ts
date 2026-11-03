@@ -140,14 +140,20 @@ async function defaultResolve(hostname: string): Promise<string[]> {
 }
 
 // Todos os endereços do nome precisam ser públicos: se um só for interno, recusa.
-async function resolvePublic(url: URL, options: SafeFetchOptions): Promise<string> {
+async function resolvePublic(url: URL, options: SafeFetchOptions): Promise<string[]> {
   const host = url.hostname.replace(/^\[|\]$/g, "");
   const allow = options.allowAddress ?? isPublicAddress;
   const addresses = isIP(host) ? [host] : await (options.resolve ?? defaultResolve)(host).catch(() => {
     throw new SafeFetchError("leitura_falhou", url.href);
   });
   if (addresses.length === 0 || !addresses.every(allow)) throw new SafeFetchError("url_recusada", url.href);
-  return addresses[0];
+  return addresses;
+}
+
+// Checagem antes de gastar a cota: formato do link e DNS. Não substitui a de
+// safeFetch, que resolve de novo e fixa o IP na conexão.
+export async function checkPublicUrl(rawUrl: string, options: SafeFetchOptions = {}): Promise<void> {
+  await resolvePublic(parsePublicUrl(rawUrl, options.allowedPorts), options);
 }
 
 type RawResponse = { status: number; location: string | null; contentType: string; body: Buffer };
@@ -166,10 +172,10 @@ function decoder(encoding: string | undefined): zlib.Gunzip | zlib.Inflate | zli
   }
 }
 
-function requestOnce(url: URL, address: string, maxBytes: number, signal: AbortSignal): Promise<RawResponse> {
+function requestOnce(url: URL, addresses: string[], maxBytes: number, signal: AbortSignal): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const client = url.protocol === "https:" ? https : http;
-    const family = isIP(address);
+    const list = addresses.map((address) => ({ address, family: isIP(address) }));
     const req = client.request(
       url,
       {
@@ -184,10 +190,11 @@ function requestOnce(url: URL, address: string, maxBytes: number, signal: AbortS
         // Conecta no IP já validado; o certificado continua sendo conferido
         // contra o nome do site (servername vem da URL).
         lookup: (_hostname, options, callback) => {
+          // Com all: true o Node tenta cada endereço validado (IPv6 e IPv4).
           if ((options as { all?: boolean }).all) {
-            (callback as unknown as (err: null, list: { address: string; family: number }[]) => void)(null, [{ address, family }]);
+            (callback as unknown as (err: null, all: typeof list) => void)(null, list);
           } else {
-            callback(null, address, family);
+            callback(null, list[0].address, list[0].family);
           }
         },
       },
@@ -196,7 +203,8 @@ function requestOnce(url: URL, address: string, maxBytes: number, signal: AbortS
         const location = typeof res.headers.location === "string" ? res.headers.location : null;
         const contentType = String(res.headers["content-type"] ?? "").toLowerCase();
         if (status >= 300 && status < 400 && location) {
-          res.resume();
+          // Não lê o corpo do redirecionamento.
+          res.destroy();
           resolve({ status, location, contentType, body: Buffer.alloc(0) });
           return;
         }
@@ -259,6 +267,7 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
   const maxBytes = options.maxBytes ?? SAFE_FETCH_LIMITS.maxBytes;
   const maxRedirects = options.maxRedirects ?? SAFE_FETCH_LIMITS.maxRedirects;
   const allowedPorts = options.allowedPorts ?? [80, 443];
+  let url = parsePublicUrl(rawUrl, allowedPorts);
 
   const controller = new AbortController();
   let timedOut = false;
@@ -273,14 +282,13 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
   // O finally também aborta: sem isso a rejeição ficaria sem tratamento.
   deadline.catch(() => {});
 
-  let url = parsePublicUrl(rawUrl, allowedPorts);
   try {
     for (let hop = 0; ; hop++) {
       if (options.isBlockedHost?.(url.hostname)) throw new SafeFetchError("site_bloqueado", url.href);
-      const address = await Promise.race([resolvePublic(url, options), deadline]);
+      const addresses = await Promise.race([resolvePublic(url, options), deadline]);
       let res: RawResponse;
       try {
-        res = await Promise.race([requestOnce(url, address, maxBytes, controller.signal), deadline]);
+        res = await Promise.race([requestOnce(url, addresses, maxBytes, controller.signal), deadline]);
       } catch (error) {
         if (error instanceof SafeFetchError) throw error;
         if (timedOut) throw new SafeFetchError("tempo_esgotado", url.href);
