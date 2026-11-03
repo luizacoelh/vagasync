@@ -52,3 +52,4 @@ prisma/dev.db
 .claude/launch.json
 .vscode/
 /backups/
+.claude/worktrees/

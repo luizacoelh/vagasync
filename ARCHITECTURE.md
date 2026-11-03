@@ -6,6 +6,28 @@ fica no [`README.md`](./README.md); passo a passo de deploy no
 
 ## Estrutura do projeto
 
+### Cadastro por link (`/api/vaga/importar`)
+
+A aba "Link da vaga" de `/nova-vaga` (padrão) manda só o link. A rota exige login,
+nunca grava vaga e nunca chama a IA: devolve o texto para a confirmação "É esta
+vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
+`lib/jobImport/types.ts`.
+
+- `lib/safeFetch.ts`: proteção contra SSRF. Só http/https nas portas 80/443, DNS
+  resolvido no servidor e todo endereço interno ou reservado recusado, conexão no
+  IP validado, até 3 redirecionamentos validados, 8 s, 2 MB descomprimidos, só HTML
+  ou JSON, sem cookies e sem JavaScript. Identifica-se como VagaSync; não finge
+  ser navegador nem contorna bloqueio.
+- `lib/jobImport/extract.ts`: JSON-LD `JobPosting`, `__NEXT_DATA__` (Remotar,
+  Gupy), issues do GitHub pela API e, por último, o texto principal da página.
+  Salário, modalidade e local de campos à parte entram no texto para a IA.
+- `lib/jobImport/importUrl.ts`: duplicata (link sem parâmetros de rastreio, antes
+  e depois dos redirecionamentos), sites bloqueados (`blockedSites.ts`), status
+  HTTP, captcha e login viram "colar texto" com o link preservado.
+- `lib/jobImport/quota.ts`: 20 por hora e 60 por dia por conta, 40 por hora por
+  IP, em `AiUsage` com a ação `import_url`. Essa ação fica fora do limite de IA
+  por IP, do painel e da contagem do admin.
+
 ### Proteção de armazenamento de vagas
 
 `lib/jobInput.ts` valida tipos, tamanhos, listas e metadados no servidor.
@@ -100,6 +122,8 @@ vagasync/
     n8nWebhook.ts               # Auth do webhook do n8n + vagas do usuário que entram na comparação
     demoJobs.ts                 # Vagas fictícias do modo visitante + análise pronta da vaga de exemplo
     safeRedirect.ts             # Só deixa voltar para caminho interno depois do login
+    safeFetch.ts                # Baixa a página da vaga sem alcançar a rede interna (SSRF)
+    jobImport/                  # Cadastro por link: contrato, sites bloqueados, extração, cota
   prisma/
     schema.prisma                # User/Account/Session/VerificationToken (Auth.js) + UserProfile + AiUsage + AppSettings + Job
     prisma.config.ts            # Config do CLI — sempre aponta para o SQLite local

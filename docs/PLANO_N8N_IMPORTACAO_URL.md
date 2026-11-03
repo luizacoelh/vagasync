@@ -1,7 +1,9 @@
 # Plano — correções do n8n, novas fontes e cadastro de vaga por URL
 
 Documento de trabalho. **Status:** E0 (seção 1.1, 1.2 e contagem por busca)
-integrada na main pelo PR #36 (`da20d99`); E1–E6 e novas fontes ainda pendentes.
+integrada na main pelo PR #36 (`da20d99`). E1–E5 (cadastro por link) feitas em
+02/11/2026 na branch `feat/importar-por-link`; extensão, Sólides e novas fontes
+ainda pendentes. A captura enviada pela extensão saiu do contrato até essa etapa.
 Execução agora pelo Codex. Diagnóstico feito em 28/10/2026, depois dos PRs #33 e #34.
 A issue #35 (fontes do Google no build) fica fora deste plano.
 
