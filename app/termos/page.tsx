@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 export default function TermsPage() {
   return (
@@ -37,7 +38,7 @@ export default function TermsPage() {
         <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: "var(--font-outfit)" }}>
           Termos de Uso
         </h1>
-        <p className="text-xs text-[#7C8494] mb-10">Última atualização: julho de 2026</p>
+        <p className="text-xs text-[#7C8494] mb-10">Última atualização: novembro de 2026</p>
 
         <div className="space-y-8 text-sm leading-relaxed text-[#C4C7D0]">
           <section>
@@ -105,6 +106,21 @@ export default function TermsPage() {
             <p>
               Este documento pode ser atualizado conforme o projeto evolui. O uso contínuo do
               serviço após uma alteração implica concordância com os novos termos.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="mb-3 text-xs font-medium uppercase tracking-wide text-[#7C8494]"
+              style={{ fontFamily: "var(--font-outfit)" }}
+            >
+              Contato
+            </h2>
+            <p>
+              Dúvidas, problemas ou pedidos sobre a sua conta:{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#85B7EB] underline underline-offset-2">
+                {CONTACT_EMAIL}
+              </a>.
             </p>
           </section>
         </div>

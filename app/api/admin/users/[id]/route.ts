@@ -1,6 +1,7 @@
 import { readJobJson, object } from "@/lib/jobInput";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isDeletedAccount } from "@/lib/deletedAccount";
 import { requireAdmin } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
@@ -34,13 +35,19 @@ export async function PATCH(
     );
   }
 
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { isOwner: true, name: true, email: true },
+  });
+  // Conta excluída (lib/accountDeletion.ts) fica sem IA e sem admin: devolver
+  // isso daria acesso a quem ainda tem o JWT antigo.
+  if (target && isDeletedAccount(target)) {
+    return NextResponse.json({ error: "Conta excluída não pode ser alterada." }, { status: 400 });
+  }
+
   // Ninguem pode alterar o isAdmin do owner pela UI — nem outros admins.
   // O owner so pode ser definido diretamente no banco via SQL/seed.
   if (isAdmin !== undefined) {
-    const target = await prisma.user.findUnique({
-      where: { id },
-      select: { isOwner: true },
-    });
     if (target?.isOwner) {
       return NextResponse.json(
         { error: "O acesso de admin do dono da instância não pode ser alterado pela interface." },

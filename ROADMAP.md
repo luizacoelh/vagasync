@@ -11,6 +11,19 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ---
 
+## Preparação para o lançamento (feat/preparar-lancamento)
+- [x] "Excluir minha conta" em `/perfil` (`lib/accountDeletion.ts`): apaga vagas,
+  perfil, vínculos de login, nome, e-mail e foto; mantém a linha de `User`
+  anônima e o `AiUsage` sem IP para os tetos de contas, IA e cadastro não
+  ganharem espaço com excluir e recriar. A conta da dona é recusada.
+- [x] `/monitoradas` mostra "Em breve" para contas que o n8n não alimenta
+  (só `N8N_TARGET_USER_ID` recebe vagas).
+- [x] `/privacidade` e `/termos`: contato (`lib/site.ts`), cadastro pelo link,
+  registro de IP para limites e exclusão da conta.
+- Antes de divulgar (painéis, fora do código): tela de consentimento do Google
+  OAuth em produção, limite de gastos da Gemini API, `newAccountsPerDay` em
+  `/admin` ajustado para o dia da divulgação.
+
 ## Proteção de criação independente da IA (PR #37) e auditoria complementar
 
 - PR #37 integrado no commit `96981a2` (implementação `77b9b1c`).

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 export default function PrivacyPage() {
   return (
@@ -37,7 +38,7 @@ export default function PrivacyPage() {
         <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: "var(--font-outfit)" }}>
           Política de Privacidade
         </h1>
-        <p className="text-xs text-[#7C8494] mb-10">Última atualização: julho de 2026</p>
+        <p className="text-xs text-[#7C8494] mb-10">Última atualização: novembro de 2026</p>
 
         <div className="space-y-8 text-sm leading-relaxed text-[#C4C7D0]">
           <section>
@@ -51,7 +52,8 @@ export default function PrivacyPage() {
               Ao entrar com Google ou GitHub, recebemos seu nome, e-mail e foto de perfil públicos
               dessas plataformas, usados apenas para identificar sua conta dentro do VagaSync.
               As vagas que você cadastra (empresa, cargo, descrição, e a análise gerada por IA)
-              ficam associadas à sua conta e visíveis apenas para você.
+              ficam associadas à sua conta e visíveis apenas para você. Para aplicar os limites de
+              uso, registramos a data e o IP de cada análise por IA e de cada busca de vaga por link.
             </p>
           </section>
 
@@ -67,6 +69,20 @@ export default function PrivacyPage() {
               tecnologias, requisitos, perguntas e checklist. Esse envio segue os termos de uso e
               privacidade do próprio Google para a Gemini API — o VagaSync não armazena esse
               texto em nenhum serviço além do banco de dados do projeto.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="mb-3 text-xs font-medium uppercase tracking-wide text-[#7C8494]"
+              style={{ fontFamily: "var(--font-outfit)" }}
+            >
+              Cadastro pelo link
+            </h2>
+            <p>
+              Quando você cola o link de uma vaga, o servidor do VagaSync abre essa página pública
+              para preencher o formulário. Nada é salvo até você confirmar a vaga. Sites que exigem
+              login, como o LinkedIn, não são acessados: nesses casos você cola o texto.
             </p>
           </section>
 
@@ -92,8 +108,15 @@ export default function PrivacyPage() {
             </h2>
             <p>
               Não compartilhamos suas informações com terceiros além do Google Gemini (para análise
-              das vagas). Você pode excluir qualquer vaga cadastrada a qualquer momento. Se quiser
-              remover sua conta completamente, entre em contato.
+              das vagas). Você pode excluir qualquer vaga a qualquer momento e exportar suas
+              candidaturas em CSV no Perfil. Em Perfil, &quot;Excluir minha conta&quot; apaga suas vagas, seu
+              perfil, seu nome, e-mail e foto e o vínculo com o Google ou GitHub. Para manter os
+              limites do site, ficam a data de criação da conta e o registro de uso (datas e
+              quantidade de análises e de buscas por link), sem nome nem e-mail. O IP do uso da
+              última hora antes da exclusão fica guardado por mais algum tempo, pelo mesmo motivo. Dúvidas ou pedidos sobre seus dados:{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#85B7EB] underline underline-offset-2">
+                {CONTACT_EMAIL}
+              </a>.
             </p>
           </section>
         </div>

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parseArray } from "@/lib/json";
 import ProfileForm from "@/components/profile/ProfileForm";
+import DeleteAccount from "@/components/profile/DeleteAccount";
 import BackButton from "@/components/ui/BackButton";
 import { getAppSettings } from "@/lib/appSettings";
 import { UserProfile } from "@/types/profile";
@@ -24,7 +25,7 @@ export default async function PerfilPage({
     prisma.userProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { geminiCallCount: true, dailyAiLimitOverride: true },
+      select: { geminiCallCount: true, dailyAiLimitOverride: true, isOwner: true },
     }),
     getAppSettings(),
   ]);
@@ -77,6 +78,11 @@ export default async function PerfilPage({
         </p>
 
         <ProfileForm initialProfile={profile} isOnboarding={isOnboarding} usedToday={usedToday} dailyLimit={dailyLimit} />
+        {!isOnboarding && !aiUser?.isOwner && (
+          <div className="mt-4">
+            <DeleteAccount />
+          </div>
+        )}
       </div>
     </main>
   );

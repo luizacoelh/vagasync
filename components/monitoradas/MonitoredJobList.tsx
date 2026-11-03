@@ -46,9 +46,12 @@ function plural(count: number, one: string, many: string) {
 export default function MonitoredJobList({
   groups,
   notice = null,
+  comingSoon = false,
 }: {
   groups: JobGroup[];
   notice?: MonitoredNotice | null;
+  // Conta que o n8n ainda não alimenta (só N8N_TARGET_USER_ID recebe vagas).
+  comingSoon?: boolean;
 }) {
   // Atualização otimista: a vaga some no clique, antes de a Server Action
   // responder, e volta se o servidor recusar. A resposta da action já traz a
@@ -200,11 +203,12 @@ export default function MonitoredJobList({
         {errorNode}
         <GlassPanel plateClassName="p-8 text-center">
           <p className="text-lg font-medium" style={OUTFIT}>
-            Nenhuma vaga monitorada por enquanto.
+            {comingSoon ? "Em breve para a sua conta" : "Nenhuma vaga monitorada por enquanto."}
           </p>
           <p className="mt-2 text-sm text-[#7C8494]">
-            Quando o monitoramento automático encontrar vagas novas, elas aparecem aqui para você
-            avaliar.
+            {comingSoon
+              ? "O monitoramento automático ainda não está disponível para todas as contas. Enquanto isso, cadastre vagas pelo link ou colando o texto em \"Nova vaga\"."
+              : "Quando o monitoramento automático encontrar vagas novas, elas aparecem aqui para você avaliar."}
           </p>
         </GlassPanel>
         {toastNode}

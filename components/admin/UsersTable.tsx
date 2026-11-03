@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import GlassPanel from "@/components/ui/Glass";
+import { isDeletedAccount } from "@/lib/deletedAccount";
 
 interface AdminUser {
   id: string;
@@ -104,6 +105,14 @@ export default function UsersTable({
                 <td className="px-3 py-3 text-[#C4C7D0]">{u._count.jobs}</td>
                 <td className="px-3 py-3 text-[#C4C7D0]">{u._count.aiUsage}</td>
                 <td className="px-3 py-3 text-[#C4C7D0]">{u.geminiCallCount}</td>
+                {isDeletedAccount(u) ? (
+                  // Conta excluída (lib/accountDeletion.ts): sem IA nem admin, e a
+                  // rota PATCH recusa alterar.
+                  <td colSpan={2} className="px-3 py-3 text-xs text-[#7C8494]">
+                    Excluída
+                  </td>
+                ) : (
+                <>
                 <td className="px-3 py-3">
                   <input
                     type="number"
@@ -141,6 +150,8 @@ export default function UsersTable({
                   />
                   )}
                 </td>
+                </>
+                )}
               </tr>
             ))}
           </tbody>
