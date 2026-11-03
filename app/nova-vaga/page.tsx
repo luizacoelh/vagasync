@@ -1,114 +1,163 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { JobAnalysis, JobLocation } from "@/types/job";
-import { LOCATION_LABELS } from "@/lib/jobLocation";
+import type { JobAnalysis } from "@/types/job";
 import { createJob } from "@/app/actions/jobs";
-import DetailSection from "@/components/ui/DetailSection";
-import TechBadge from "@/components/ui/TechBadge";
-import ChecklistItem from "@/components/job/ChecklistItem";
-import GlassPanel from "@/components/ui/Glass";
 import BackButton from "@/components/ui/BackButton";
 import { useLoginGate } from "@/components/auth/LoginGate";
-import { EXAMPLE_ANALYSIS, EXAMPLE_JOB } from "@/lib/demoJobs";
+import { EXAMPLE_ANALYSIS, EXAMPLE_IMPORT, EXAMPLE_IMPORT_URL, EXAMPLE_JOB } from "@/lib/demoJobs";
+import InputTabs, { panelId, tabId, type InputTab } from "@/components/nova-vaga/InputTabs";
+import LinkPanel from "@/components/nova-vaga/LinkPanel";
+import TextPanel from "@/components/nova-vaga/TextPanel";
+import JobPreview, { emptyPreviewFields, type PreviewFields } from "@/components/nova-vaga/JobPreview";
+import { isOnlyLink, okResult, useLinkImport, validateImportUrl } from "@/components/nova-vaga/useLinkImport";
+import { MAX_DESCRIPTION_LENGTH } from "@/components/nova-vaga/ui";
+
+// Fluxo de /nova-vaga:
+// - aba "Link da vaga" (padrão): POST /api/vaga/importar → "É esta vaga?" com o
+//   texto editável → /api/analyze → prévia, com o urlFinal no "Link da vaga";
+// - aba "Colar texto": o fluxo de sempre, com o link opcional da vaga.
+// Nada é gravado antes de "Salvar vaga" (createJob).
 
 type Step = "input" | "preview";
 
-// Mesmo limite validado no servidor (app/api/analyze/route.ts) — aqui é só
-// pra dar feedback imediato, o servidor sempre revalida.
-const MAX_DESCRIPTION_LENGTH = 8000;
-
-// Texto digitado por um visitante que clicou em Analisar/Salvar: o login sai
-// do site (Google/GitHub), então o texto fica guardado na aba e volta aqui.
+// Rascunho de um visitante que clicou em Buscar/Analisar/Salvar: o login sai
+// do site (Google/GitHub), então o que ele digitou fica guardado na aba e
+// volta aqui. Uma chave por campo: texto, link da aba de texto e link da aba Link.
 const DRAFT_KEY = "vagasync:nova-vaga-rascunho";
+const DRAFT_URL_KEY = "vagasync:nova-vaga-rascunho-link";
+const LINK_DRAFT_KEY = "vagasync:nova-vaga-link";
 
-function todayInputValue(): string {
-  return new Date().toISOString().slice(0, 10);
+const LINK_HINT = "Isso é um link — busque a vaga por aqui.";
+
+function takeDraft(key: string): string | null {
+  const value = sessionStorage.getItem(key);
+  if (value !== null) sessionStorage.removeItem(key);
+  return value;
+}
+
+function saveDraft(entries: Record<string, string>) {
+  try {
+    for (const [key, value] of Object.entries(entries)) {
+      if (value) sessionStorage.setItem(key, value);
+    }
+  } catch {
+    // sem sessionStorage o rascunho só não volta depois do login
+  }
+}
+
+// O link de exemplo não existe de verdade: não vai junto para depois do login.
+function draftableUrl(url: string): string {
+  const value = url.trim();
+  return value === EXAMPLE_IMPORT_URL ? "" : value;
 }
 
 export default function NovaVagaPage() {
   const router = useRouter();
   const { isGuest, requireLogin } = useLoginGate();
+  const { link, setLink, result, setResult, isFetching, fetchJob, setConfirmText } = useLinkImport();
 
+  const [tab, setTab] = useState<InputTab>("link");
   const [step, setStep] = useState<Step>("input");
   const [description, setDescription] = useState("");
-  const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
+  const [linkHint, setLinkHint] = useState<string | null>(null);
 
-  const [company, setCompany] = useState("");
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
-  const [url, setUrl] = useState("");
-  const [location, setLocation] = useState<JobLocation>("NAO_INFORMADO");
-  const [salary, setSalary] = useState("");
-  const [appliedAt, setAppliedAt] = useState(todayInputValue());
+  const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
+  // Texto que foi para a IA (da aba de texto ou da confirmação do link); é o
+  // que vai como descrição para createJob.
+  const [analyzedText, setAnalyzedText] = useState("");
+  const [fields, setFields] = useState<PreviewFields>(() => emptyPreviewFields());
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
-  // Depois do login, devolve o texto que o visitante tinha colado.
+  // Depois do login, devolve o que o visitante tinha digitado.
   useEffect(() => {
     if (isGuest) return;
     try {
-      const draft = sessionStorage.getItem(DRAFT_KEY);
-      if (!draft) return;
-      sessionStorage.removeItem(DRAFT_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage só existe no cliente
-      setDescription(draft);
+      const draft = takeDraft(DRAFT_KEY);
+      const draftUrl = takeDraft(DRAFT_URL_KEY);
+      const draftLink = takeDraft(LINK_DRAFT_KEY);
+      /* eslint-disable react-hooks/set-state-in-effect -- sessionStorage só existe no cliente */
+      if (draft) setDescription(draft);
+      if (draftUrl) setFields((f) => ({ ...f, url: draftUrl }));
+      if (draftLink) {
+        setLink(draftLink);
+        setTab("link");
+      } else if (draft || draftUrl) {
+        setTab("texto");
+      }
+      /* eslint-enable react-hooks/set-state-in-effect */
     } catch {
       // sessionStorage bloqueado: segue sem rascunho
     }
-  }, [isGuest]);
+  }, [isGuest, setLink]);
 
-  function askLogin(message: string): boolean {
-    if (!isGuest) return false;
-    try {
-      sessionStorage.setItem(DRAFT_KEY, description);
-    } catch {
-      // sem sessionStorage o texto só não volta depois do login
-    }
-    return requireLogin(message);
+  // O erro fica no topo; na confirmação do link o botão pode estar bem abaixo.
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [error]);
+
+  function setField<K extends keyof PreviewFields>(field: K, value: PreviewFields[K]) {
+    setFields((f) => ({ ...f, [field]: value }));
   }
 
-  function applyAnalysis(data: JobAnalysis) {
+  function handleTabChange(next: InputTab) {
+    setTab(next);
+    setError(null);
+  }
+
+  function applyAnalysis(data: JobAnalysis, text: string, url?: string) {
     setAnalysis(data);
-    setCompany(data.company);
-    setTitle(data.title);
-    setSummary(data.summary);
-    // Pré-preenche com o que a IA achou no texto — continua editável.
-    setSalary(data.salary ?? "");
-    setLocation(data.location ?? "NAO_INFORMADO");
+    setAnalyzedText(text);
+    setFields((f) => ({
+      ...f,
+      company: data.company,
+      title: data.title,
+      summary: data.summary,
+      // Pré-preenche com o que a IA achou no texto — continua editável.
+      salary: data.salary ?? "",
+      location: data.location ?? "NAO_INFORMADO",
+      ...(url !== undefined && { url }),
+    }));
     setStep("preview");
   }
 
-  async function handleAnalyze() {
+  // url: link que vai para a prévia (o urlFinal, quando a vaga veio pelo link).
+  async function analyze(text: string, url?: string) {
     setError(null);
 
-    if (description.trim().length < 20) {
+    if (text.trim().length < 20) {
       setError("Cole a descrição completa da vaga (texto muito curto).");
       return;
     }
 
-    if (description.length > MAX_DESCRIPTION_LENGTH) {
-      setError(`Descrição muito longa (${description.length}/${MAX_DESCRIPTION_LENGTH} caracteres).`);
+    if (text.length > MAX_DESCRIPTION_LENGTH) {
+      setError(`Descrição muito longa (${text.length}/${MAX_DESCRIPTION_LENGTH} caracteres).`);
       return;
     }
 
-    // Visitante: a vaga de exemplo mostra uma análise pronta (sem gastar IA);
-    // qualquer outro texto pede login.
-    if (isGuest && description.trim() === EXAMPLE_JOB.trim()) {
-      applyAnalysis(EXAMPLE_ANALYSIS);
+    // Visitante: a vaga de exemplo (pelo texto ou pelo link de exemplo) mostra
+    // uma análise pronta, sem gastar IA; qualquer outro texto pede login.
+    if (isGuest && text.trim() === EXAMPLE_JOB.trim()) {
+      applyAnalysis(EXAMPLE_ANALYSIS, text, url);
       return;
     }
-    if (askLogin("Entre para a IA analisar esta vaga. O texto que você colou continua aqui.")) return;
+    if (isGuest) {
+      saveDraft({ [DRAFT_KEY]: text, [DRAFT_URL_KEY]: draftableUrl(url ?? fields.url) });
+      requireLogin("Entre para a IA analisar esta vaga. O texto que você colou continua aqui.");
+      return;
+    }
 
     setIsAnalyzing(true);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({ description: text }),
       });
 
       const data = await res.json();
@@ -118,7 +167,7 @@ export default function NovaVagaPage() {
         return;
       }
 
-      applyAnalysis(data as JobAnalysis);
+      applyAnalysis(data as JobAnalysis, text, url);
     } catch {
       setError("Falha de conexão. Tente novamente.");
     } finally {
@@ -126,35 +175,98 @@ export default function NovaVagaPage() {
     }
   }
 
+  function handleAnalyzeText() {
+    // Só um link no lugar do texto: a IA leria só o endereço. Leva para a aba Link.
+    if (isOnlyLink(description)) {
+      setError(null);
+      setLink(description.trim());
+      setResult({ kind: "idle" });
+      setDescription("");
+      setTab("link");
+      setLinkHint(LINK_HINT);
+      return;
+    }
+    void analyze(description);
+  }
+
+  function handleAnalyzeImported() {
+    if (result.kind !== "ok") return;
+    void analyze(result.texto, result.vaga.urlFinal);
+  }
+
+  async function handleFetch() {
+    setError(null);
+    setLinkHint(null);
+
+    const invalid = validateImportUrl(link);
+    if (invalid) {
+      setResult({ kind: "invalido", error: invalid });
+      return;
+    }
+    const value = link.trim();
+
+    if (isGuest && value === EXAMPLE_IMPORT_URL) {
+      setResult(okResult(EXAMPLE_IMPORT));
+      return;
+    }
+    if (isGuest) {
+      saveDraft({ [LINK_DRAFT_KEY]: value });
+      requireLogin("Entre para o VagaSync buscar esta vaga. O link que você colou continua aqui.");
+      return;
+    }
+
+    await fetchJob(value);
+  }
+
+  function handleLinkChange(value: string) {
+    setLink(value);
+    if (result.kind === "invalido") setResult({ kind: "idle" });
+  }
+
+  // Alternativa de colar o texto: aba de texto com o link já no "Link da vaga".
+  function handlePasteText(url: string) {
+    setError(null);
+    setLinkHint(null);
+    setField("url", url);
+    setTab("texto");
+    requestAnimationFrame(() => document.getElementById("description")?.focus());
+  }
+
   async function handleSave() {
     if (!analysis) return;
-    if (askLogin("Entre para salvar a vaga e acompanhar a candidatura.")) return;
+    if (isGuest) {
+      saveDraft({ [DRAFT_KEY]: analyzedText, [DRAFT_URL_KEY]: draftableUrl(fields.url) });
+      requireLogin("Entre para salvar a vaga e acompanhar a candidatura.");
+      return;
+    }
     setError(null);
     setIsSaving(true);
 
     try {
-      const result = await createJob({
-        description,
-        company,
-        title,
-        summary,
+      const url = fields.url.trim();
+      const salary = fields.salary.trim();
+      const saved = await createJob({
+        description: analyzedText,
+        company: fields.company,
+        title: fields.title,
+        summary: fields.summary,
         requirements: analysis.requirements,
         differentials: analysis.differentials,
         technologies: analysis.technologies,
         questions: analysis.questions,
         checklist: analysis.checklist,
-        url: url.trim() === "" ? undefined : url.trim(),
-        location,
-        salary: salary.trim() === "" ? undefined : salary.trim(),
-        appliedAt,
+        url: url === "" ? undefined : url,
+        location: fields.location,
+        salary: salary === "" ? undefined : salary,
+        appliedAt: fields.appliedAt,
       });
 
-      if ("error" in result) {
-        setError(result.error);
+      if ("error" in saved) {
+        setError(saved.error);
         return;
       }
 
-      router.push(`/vaga/${result.id}?created=true`);
+      router.push(`/vaga/${saved.id}?created=true`);
     } catch {
       setError("Falha de conexão. Tente novamente.");
     } finally {
@@ -162,16 +274,12 @@ export default function NovaVagaPage() {
     }
   }
 
+  // Volta para a aba de onde veio (a confirmação do link continua lá). O link
+  // da vaga não é apagado.
   function handleBack() {
     setStep("input");
     setAnalysis(null);
-    setCompany("");
-    setTitle("");
-    setSummary("");
-    setUrl("");
-    setLocation("NAO_INFORMADO");
-    setSalary("");
-    setAppliedAt(todayInputValue());
+    setFields((f) => emptyPreviewFields(f.url));
     setError(null);
   }
 
@@ -208,260 +316,66 @@ export default function NovaVagaPage() {
         </h1>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-[#E5534B]/40 bg-[#E5534B]/10 px-4 py-3 text-sm text-[#E5534B]">
+          <div
+            ref={errorRef}
+            role="alert"
+            className="mb-6 scroll-mt-4 rounded-xl border border-[#E5534B]/40 bg-[#E5534B]/10 px-4 py-3 text-sm text-[#E5534B]"
+          >
             {error}
           </div>
         )}
 
         {step === "input" && (
-          <GlassPanel plateClassName="p-6">
-            <label
-              htmlFor="description"
-              className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-              style={{ fontFamily: "var(--font-outfit)" }}
-            >
-              Descrição da vaga
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Cole aqui o texto da vaga — pode ser do LinkedIn, Gupy, Indeed, site da empresa ou qualquer outro lugar."
-              rows={12}
-              maxLength={MAX_DESCRIPTION_LENGTH}
-              className="glass-input mt-2 w-full rounded-xl px-4 py-3 text-sm text-[#E4E6EB] placeholder:text-[#4B4F5C] resize-none"
-            />
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setDescription(EXAMPLE_JOB)}
-                className="text-xs text-[#85B7EB] hover:text-[#378ADD] transition-colors"
-                style={{ fontFamily: "var(--font-outfit)" }}
-              >
-                Ver como funciona com uma vaga de exemplo
-              </button>
-              <span className="text-xs text-[#7C8494] shrink-0">
-                {description.length}/{MAX_DESCRIPTION_LENGTH}
-              </span>
+          <>
+            <InputTabs tab={tab} onChange={handleTabChange} />
+
+            <div role="tabpanel" id={panelId("link")} aria-labelledby={tabId("link")} hidden={tab !== "link"}>
+              <LinkPanel
+                link={link}
+                onLinkChange={handleLinkChange}
+                onFetch={handleFetch}
+                isFetching={isFetching}
+                result={result}
+                hint={linkHint}
+                onExample={
+                  isGuest
+                    ? () => {
+                        setLink(EXAMPLE_IMPORT_URL);
+                        setResult({ kind: "idle" });
+                        setLinkHint(null);
+                      }
+                    : undefined
+                }
+                onConfirmTextChange={setConfirmText}
+                onAnalyze={handleAnalyzeImported}
+                onPasteText={handlePasteText}
+                isAnalyzing={isAnalyzing}
+              />
             </div>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="mt-4 w-full rounded-xl py-3 font-medium text-[#08131F] transition-shadow disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                fontFamily: "var(--font-outfit)",
-                background: "linear-gradient(155deg, #85B7EB, #378ADD)",
-                boxShadow: "0 0 0 1px rgba(255,255,255,0.25) inset, 0 8px 20px -8px rgba(55,138,221,0.6)",
-              }}
-            >
-              {isAnalyzing ? "Analisando..." : "Analisar"}
-            </button>
-          </GlassPanel>
+            <div role="tabpanel" id={panelId("texto")} aria-labelledby={tabId("texto")} hidden={tab !== "texto"}>
+              <TextPanel
+                description={description}
+                onDescriptionChange={setDescription}
+                url={fields.url}
+                onUrlChange={(value) => setField("url", value)}
+                onExample={() => setDescription(EXAMPLE_JOB)}
+                onAnalyze={handleAnalyzeText}
+                isAnalyzing={isAnalyzing}
+              />
+            </div>
+          </>
         )}
 
         {step === "preview" && analysis && (
-          <div className="space-y-4">
-            <GlassPanel plateClassName="p-6 space-y-4">
-              <div>
-                <label
-                  htmlFor="company"
-                  className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                  style={{ fontFamily: "var(--font-outfit)" }}
-                >
-                  Empresa
-                </label>
-                <input
-                  id="company"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-[#E4E6EB]"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="title"
-                  className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                  style={{ fontFamily: "var(--font-outfit)" }}
-                >
-                  Cargo
-                </label>
-                <input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-[#E4E6EB]"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="summary"
-                  className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                  style={{ fontFamily: "var(--font-outfit)" }}
-                >
-                  Resumo
-                </label>
-                <textarea
-                  id="summary"
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  rows={4}
-                  className="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-[#C4C7D0] leading-relaxed resize-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="url"
-                  className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                  style={{ fontFamily: "var(--font-outfit)" }}
-                >
-                  Link da vaga (opcional)
-                </label>
-                <input
-                  id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-[#E4E6EB] placeholder:text-[#4B4F5C]"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label
-                    htmlFor="location"
-                    className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                    style={{ fontFamily: "var(--font-outfit)" }}
-                  >
-                    Local
-                  </label>
-                  <select
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value as JobLocation)}
-                    className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
-                  >
-                    {Object.entries(LOCATION_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="salary"
-                    className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                    style={{ fontFamily: "var(--font-outfit)" }}
-                  >
-                    Salário / bolsa
-                  </label>
-                  <input
-                    id="salary"
-                    value={salary}
-                    onChange={(e) => setSalary(e.target.value)}
-                    placeholder="Não informado"
-                    className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB] placeholder:text-[#4B4F5C]"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="appliedAt"
-                    className="block text-xs font-medium text-[#7C8494] uppercase tracking-wide mb-2"
-                    style={{ fontFamily: "var(--font-outfit)" }}
-                  >
-                    Data da candidatura
-                  </label>
-                  <input
-                    id="appliedAt"
-                    type="date"
-                    value={appliedAt}
-                    onChange={(e) => setAppliedAt(e.target.value)}
-                    className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
-                  />
-                </div>
-              </div>
-
-              <DetailSection label="Tecnologias">
-                <div className="flex flex-wrap gap-2">
-                  {analysis.technologies.map((tech) => (
-                    <TechBadge key={tech} tech={tech} />
-                  ))}
-                </div>
-              </DetailSection>
-
-              <DetailSection label="Requisitos">
-                <ul className="space-y-1 text-sm text-[#C4C7D0]">
-                  {analysis.requirements.map((req, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="text-[#378ADD]">–</span>
-                      {req}
-                    </li>
-                  ))}
-                </ul>
-              </DetailSection>
-
-              {analysis.differentials.length > 0 && (
-                <DetailSection label="Diferenciais">
-                  <ul className="space-y-1 text-sm text-[#C4C7D0]">
-                    {analysis.differentials.map((item, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-[#4ADE80]">+</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </DetailSection>
-              )}
-
-              <DetailSection label="Perguntas prováveis">
-                <ul className="space-y-1 text-sm text-[#C4C7D0]">
-                  {analysis.questions.map((q, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="text-[#378ADD]">?</span>
-                      {q}
-                    </li>
-                  ))}
-                </ul>
-              </DetailSection>
-
-              <DetailSection label="Checklist">
-                <ul className="space-y-1">
-                  {analysis.checklist.map((item, i) => (
-                    <ChecklistItem key={i} text={item} />
-                  ))}
-                </ul>
-              </DetailSection>
-            </GlassPanel>
-
-            <div className="flex gap-3">
-              <button
-                onClick={handleBack}
-                disabled={isSaving}
-                className="glass-btn flex-1 rounded-xl py-3 font-medium text-[#C4C7D0] disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ fontFamily: "var(--font-outfit)" }}
-              >
-                Voltar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1 rounded-xl py-3 font-medium text-[#08131F] transition-shadow disabled:cursor-not-allowed disabled:opacity-50"
-                style={{
-                  fontFamily: "var(--font-outfit)",
-                  background: "linear-gradient(155deg, #85B7EB, #378ADD)",
-                  boxShadow: "0 0 0 1px rgba(255,255,255,0.25) inset, 0 8px 20px -8px rgba(55,138,221,0.6)",
-                }}
-              >
-                {isSaving ? "Salvando..." : "Salvar vaga"}
-              </button>
-            </div>
-          </div>
+          <JobPreview
+            analysis={analysis}
+            fields={fields}
+            onFieldChange={setField}
+            onBack={handleBack}
+            onSave={handleSave}
+            isSaving={isSaving}
+          />
         )}
       </div>
     </main>
