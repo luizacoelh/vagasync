@@ -68,7 +68,10 @@ export default function PrivacyPage() {
               O texto da vaga que você cola é enviado à API do Google Gemini para gerar o resumo,
               tecnologias, requisitos, perguntas e checklist. Esse envio segue os termos de uso e
               privacidade do próprio Google para a Gemini API — o VagaSync não armazena esse
-              texto em nenhum serviço além do banco de dados do projeto.
+              texto em nenhum serviço além do banco de dados do projeto. O VagaSync usa o plano
+              gratuito da Gemini API, em que o Google pode usar o conteúdo enviado para melhorar os
+              próprios produtos, inclusive com revisão humana. Não inclua no texto da vaga dados
+              pessoais que você não queira compartilhar.
             </p>
           </section>
 
