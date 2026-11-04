@@ -56,7 +56,11 @@ export default function ProfileForm({
       }
 
       if (isOnboarding) {
-        router.push("/");
+        // Navegação completa, sem o cache do roteador: staleTimes.dynamic
+        // (next.config.ts) guardava o redirect de "/" para o onboarding, e o
+        // router.push voltava para esta tela com o formulário vazio. Salvar de
+        // novo apagava o perfil recém-preenchido.
+        window.location.assign("/");
         return;
       }
 
