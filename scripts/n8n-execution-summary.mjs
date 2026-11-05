@@ -65,6 +65,7 @@ function searchLabel(url) {
     const u = new URL(url);
     if (u.hostname === "api.github.com") return `github ${u.pathname.split("/").slice(2, 4).join("/")}`;
     if (u.hostname.endsWith("remotar.com.br")) return `remotar ${u.searchParams.get("search")}`;
+    if (u.hostname.endsWith("getonbrd.com")) return `getonbrd ${u.searchParams.get("query")}`;
     if (u.hostname.endsWith("gupy.io")) {
       const q = new URLSearchParams(decodeURIComponent(u.pathname.split("/").pop()));
       for (const k of ["type", "sortBy", "sortOrder"]) q.delete(k);
