@@ -105,7 +105,9 @@ Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Checar j�
   (também em espanhol), `EXIGE_INGLES` (inclui "inglés avanzado", "nivel de
   inglés B2", "bilingüe"), `EXIGE_ANOS` (2+ anos/años; faixa que começa em 0
   ou 1, como "entre 0 y 4 años" ou "1 a 2 anos", passa), `CATEGORIAS_REMOTAR`
-  e o teste de idioma (`idiomaAceito`). Para trocar de estado, mude
+  e o teste de idioma (`idiomaAceito`). No Remotar, `TAGS_REMOTAR_FORA` recusa
+  as etiquetas sênior, pleno, inglês e internacional; "espanhol" vale desde
+  05/11/2026. Para trocar de estado, mude
   `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a busca `state=` da Gupy em "Fontes".
   - **Vaga de fora do Brasil** (Himalayas com lista de países que não é só o
     Brasil, e todo o GetOnBoard): só **remota** e **aberta a quem mora no
