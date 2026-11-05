@@ -17,8 +17,11 @@ não fala com o servidor nem guarda login: só lê a página quando você clica 
    texto da vaga antes de clicar: a seleção tem prioridade.
 4. O `/nova-vaga` abre com o texto e o link. Confira e clique em Analisar.
 
-Se o ícone mostrar "!", passe o mouse para ver o motivo. A captura fica guardada
-por 10 minutos; se você não estava logado, entre e abra `/nova-vaga` de novo.
+Se o ícone mostrar "!", passe o mouse para ver o motivo. A vaga vai só para a
+aba que a extensão abre e fica guardada por até 10 minutos. Se você não estava
+logado, entre no VagaSync e clique no ícone de novo na página da vaga. Se já
+houver texto em `/nova-vaga`, ele é mantido e aparece o botão "Usar a vaga da
+extensão".
 
 ## Como funciona
 - `background.js`: no clique, roda `captureJob` na aba (permissão `activeTab`,
@@ -27,4 +30,5 @@ por 10 minutos; se você não estava logado, entre e abra `/nova-vaga` de novo.
   `<article>`, `<body>`. Até 8.000 caracteres.
 - `bridge.js`: content script só em `/nova-vaga` do VagaSync; troca mensagens
   com a página por `window.postMessage`. Contrato em `lib/extensionCapture.ts`.
-- Servidor local: troque `SITE` em `background.js` por `http://localhost:3000`.
+- Servidor local: troque `SITE` em `background.js` por `http://localhost:3000`
+  e acrescente `http://localhost:3000/nova-vaga*` em `matches` no `manifest.json`.

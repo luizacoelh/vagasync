@@ -8,7 +8,7 @@
   "permissions": ["activeTab", "scripting", "storage"],
   "content_scripts": [
     {
-      "matches": ["https://vagasync.vercel.app/nova-vaga*", "http://localhost:3000/nova-vaga*"],
+      "matches": ["https://vagasync.vercel.app/nova-vaga*"],
       "js": ["bridge.js"],
       "run_at": "document_start"
     }

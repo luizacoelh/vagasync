@@ -19,26 +19,39 @@ chrome.action.onClicked.addListener(async (tab) => {
       args: [MAX_TEXT],
     });
     if (!result || !result.text) return badge("!", "Não achei o texto da vaga. Selecione o texto e clique de novo.");
-    await chrome.storage.session.set({ captura: { ...result, at: Date.now() } });
+    // O id vai no fragmento da URL aberta: só essa aba recebe a captura (outra
+    // aba /nova-vaga aberta não pega a vaga de outro clique). O fragmento não
+    // vai ao servidor.
+    const id = crypto.randomUUID();
+    await chrome.storage.session.set({ captura: { ...result, id, at: Date.now() } });
     badge("", "Enviar esta vaga para o VagaSync");
-    await chrome.tabs.create({ url: `${SITE}/nova-vaga` });
+    await chrome.tabs.create({ url: `${SITE}/nova-vaga#captura=${id}` });
   } catch {
     badge("!", "Esta página não deixa a extensão ler. Copie e cole o texto no VagaSync.");
   }
 });
 
-// Pedidos do bridge.js: "pegar" devolve a captura (até 10 min), "apagar" limpa.
+// Pedidos do bridge.js: "pegar" devolve a captura do id pedido (até 10 min),
+// "apagar" limpa. Cada clique novo substitui a captura anterior.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return;
   if (message?.type === "pegar") {
-    chrome.storage.session.get("captura").then(({ captura }) => {
-      const fresh = captura && Date.now() - (captura.at ?? 0) <= MAX_AGE;
-      if (captura && !fresh) chrome.storage.session.remove("captura");
-      sendResponse(fresh ? { text: captura.text, url: captura.url } : null);
-    });
+    chrome.storage.session
+      .get("captura")
+      .then(({ captura }) => {
+        const fresh = captura && Date.now() - (captura.at ?? 0) <= MAX_AGE;
+        if (captura && !fresh) chrome.storage.session.remove("captura");
+        const mine = fresh && typeof message.id === "string" && message.id === captura.id;
+        sendResponse(mine ? { text: captura.text, url: captura.url } : null);
+      })
+      .catch(() => sendResponse(null));
     return true;
   }
-  if (message?.type === "apagar") chrome.storage.session.remove("captura");
+  if (message?.type === "apagar") {
+    chrome.storage.session.get("captura").then(({ captura }) => {
+      if (captura?.id === message.id) chrome.storage.session.remove("captura");
+    });
+  }
 });
 
 function badge(text, title) {
@@ -53,7 +66,7 @@ function badge(text, title) {
 function captureJob(maxText) {
   const clean = (s) =>
     String(s ?? "")
-      .replace(/ /g, " ")
+      .replace(/\u00a0/g, " ")
       .replace(/[ \t]+/g, " ")
       .replace(/\n\s*\n\s*\n+/g, "\n\n")
       .trim();

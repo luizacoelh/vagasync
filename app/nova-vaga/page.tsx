@@ -8,7 +8,8 @@ import BackButton from "@/components/ui/BackButton";
 import { useLoginGate } from "@/components/auth/LoginGate";
 import { EXAMPLE_ANALYSIS, EXAMPLE_IMPORT, EXAMPLE_IMPORT_URL, EXAMPLE_JOB } from "@/lib/demoJobs";
 import InputTabs, { panelId, tabId, type InputTab } from "@/components/nova-vaga/InputTabs";
-import { useExtensionCapture } from "@/components/nova-vaga/useExtensionCapture";
+import { ackExtensionCapture, useExtensionCapture } from "@/components/nova-vaga/useExtensionCapture";
+import type { ExtensionCapture } from "@/lib/extensionCapture";
 import LinkPanel from "@/components/nova-vaga/LinkPanel";
 import TextPanel from "@/components/nova-vaga/TextPanel";
 import JobPreview, { emptyPreviewFields, type PreviewFields } from "@/components/nova-vaga/JobPreview";
@@ -75,15 +76,28 @@ export default function NovaVagaPage() {
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const [captured, setCaptured] = useState(false);
+  const [pendingCapture, setPendingCapture] = useState<ExtensionCapture | null>(null);
 
-  // Vaga lida pela extensão do navegador (extension/): preenche a aba de texto
-  // para a pessoa conferir e analisar. Não chama a IA sozinha.
-  useExtensionCapture(!isGuest && step === "input", (capture) => {
+  function applyCapture(capture: ExtensionCapture) {
     setDescription(capture.text);
     if (capture.url) setFields((f) => ({ ...f, url: capture.url ?? f.url }));
     setTab("texto");
     setError(null);
     setCaptured(true);
+    setPendingCapture(null);
+  }
+
+  // Vaga lida pela extensão do navegador (extension/): preenche a aba de texto
+  // para a pessoa conferir e analisar. Não chama a IA sozinha. Se já houver
+  // texto ou link na tela (rascunho restaurado depois do login, por exemplo),
+  // não sobrescreve: oferece a troca.
+  useExtensionCapture(!isGuest && step === "input", (capture) => {
+    if (description.trim() || link.trim()) {
+      setPendingCapture(capture);
+      return false;
+    }
+    applyCapture(capture);
+    return true;
   });
 
   // Depois do login, devolve o que o visitante tinha digitado.
@@ -337,9 +351,25 @@ export default function NovaVagaPage() {
           </div>
         )}
 
-        {step === "input" && captured && (
+        {step === "input" && captured && !pendingCapture && (
           <div className="mb-4 rounded-xl border border-[#378ADD]/35 bg-[#378ADD]/10 px-4 py-3 text-sm text-[#C4C7D0]">
             Vaga trazida pela extensão. Confira o texto, apague o que não for da vaga e clique em Analisar.
+          </div>
+        )}
+
+        {step === "input" && pendingCapture && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-[#378ADD]/35 bg-[#378ADD]/10 px-4 py-3 text-sm text-[#C4C7D0]">
+            <span className="flex-1">A extensão trouxe uma vaga, mas já há um texto aqui. Ele foi mantido.</span>
+            <button
+              type="button"
+              onClick={() => {
+                applyCapture(pendingCapture);
+                ackExtensionCapture();
+              }}
+              className="glass-btn rounded-xl px-3.5 py-1.5 text-xs font-medium text-[#E4E6EB]"
+            >
+              Usar a vaga da extensão
+            </button>
           </div>
         )}
 

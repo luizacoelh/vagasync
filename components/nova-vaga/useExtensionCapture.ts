@@ -3,11 +3,17 @@
 import { useEffect, useRef } from "react";
 import { CAPTURE_MESSAGES, parseExtensionCapture, type ExtensionCapture } from "@/lib/extensionCapture";
 
+// Avisa a extensão que a captura foi usada (ela apaga a cópia guardada).
+export function ackExtensionCapture() {
+  window.postMessage({ type: CAPTURE_MESSAGES.received }, window.location.origin);
+}
+
 // Recebe a vaga capturada pela extensão (contrato em lib/extensionCapture.ts).
 // Só aceita mensagem da própria janela e da mesma origem (o content script da
-// extensão roda nesta página). Visitante não recebe: a captura fica guardada na
-// extensão até a pessoa entrar e abrir /nova-vaga de novo.
-export function useExtensionCapture(enabled: boolean, onCapture: (capture: ExtensionCapture) => void) {
+// extensão roda nesta página). Visitante não recebe. onCapture devolve true
+// quando aplicou a captura; com false (já havia texto na tela) a página guarda a
+// captura e só confirma depois, se a pessoa escolher usá-la.
+export function useExtensionCapture(enabled: boolean, onCapture: (capture: ExtensionCapture) => boolean) {
   const handler = useRef(onCapture);
   useEffect(() => {
     handler.current = onCapture;
@@ -19,8 +25,7 @@ export function useExtensionCapture(enabled: boolean, onCapture: (capture: Exten
       if (event.source !== window || event.origin !== window.location.origin) return;
       const capture = parseExtensionCapture(event.data);
       if (!capture) return;
-      handler.current(capture);
-      window.postMessage({ type: CAPTURE_MESSAGES.received }, window.location.origin);
+      if (handler.current(capture)) ackExtensionCapture();
     }
     window.addEventListener("message", onMessage);
     window.postMessage({ type: CAPTURE_MESSAGES.ready }, window.location.origin);
