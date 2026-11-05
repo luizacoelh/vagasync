@@ -206,4 +206,6 @@ model Job {
   createdAt    DateTime    @default(now())
 
   @@index([userId])
+  // Amostra de /monitoradas (lib/monitoredSample.ts)
+  @@index([userId, source, createdAt])
 }

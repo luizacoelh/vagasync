@@ -4,31 +4,30 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createLimitedJob, JobInputError, JobQuotaError } from "@/lib/jobCreation";
-import { sampleHoursLeftFor, sampleTargetUserId, SAMPLE_DAYS } from "@/lib/monitoredSample";
+import { API_LIMIT_MESSAGE, allowApiRequest } from "@/lib/apiQuota";
+import { getMonitoredSample, sampleHoursLeftFor, sampleTargetUserId } from "@/lib/monitoredSample";
 
 // "Tenho interesse" na amostra de /monitoradas: copia a vaga do robô para a
 // conta de quem vê, como cadastro manual (mesma cota de lib/jobCreation.ts) e
 // sem chamar a IA, porque a análise já existe. Só vale durante a amostra e para
-// vagas que estão na amostra (conta-alvo, MONITORADA, últimos SAMPLE_DAYS dias).
+// vagas que a página mostra (getMonitoredSample). A deduplicação por link não é
+// atômica: dois cliques simultâneos podem gerar duas cópias, cada uma na cota.
 export async function copySampleJob(jobId: unknown): Promise<{ ok: true; id: string } | { error: string }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Não autenticado." };
   const userId = session.user.id;
   if (typeof jobId !== "string" || !jobId || jobId.length > 64) return { error: "Vaga não encontrada." };
 
+  if (!(await allowApiRequest(userId))) return { error: API_LIMIT_MESSAGE };
   const target = sampleTargetUserId();
   if (!target || (await sampleHoursLeftFor(userId)) <= 0) {
     return { error: "A amostra de vagas monitoradas terminou para a sua conta." };
   }
 
   try {
-    const source = await prisma.job.findFirst({
-      where: {
-        id: jobId,
-        userId: target,
-        status: "MONITORADA",
-        createdAt: { gte: new Date(Date.now() - SAMPLE_DAYS * 24 * 3600000) },
-      },
+    if (!(await getMonitoredSample()).some((job) => job.id === jobId)) return { error: "Essa vaga saiu da amostra." };
+    const source = await prisma.job.findUnique({
+      where: { id: jobId },
       select: {
         company: true,
         title: true,

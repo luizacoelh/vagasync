@@ -23,6 +23,10 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (monitoredTrialHours.trim() === "") {
+      setError("Informe as horas da amostra de monitoradas (0 desliga).");
+      return;
+    }
     setIsSaving(true);
 
     try {

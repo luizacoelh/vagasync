@@ -3,13 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { getAppSettings } from "@/lib/appSettings";
 import { parseArray } from "@/lib/json";
 import { compareSkills } from "@/lib/skillGap";
+import { isDeletedAccount } from "@/lib/deletedAccount";
 
 // Amostra de /monitoradas para contas novas. O n8n só alimenta a conta de
 // N8N_TARGET_USER_ID (lib/n8nWebhook.ts); durante AppSettings.monitoredTrialHours
-// depois de criar a conta, as outras contas veem as vagas MONITORADAS mais
-// recentes dessa conta, só os campos públicos da vaga (sem status, notas,
-// datas de candidatura nem checklist). "Tenho interesse" copia a vaga para a
-// conta de quem vê, sem chamar a IA (app/actions/monitoredSample.ts).
+// depois de criar a conta, as outras contas veem as vagas que o robô trouxe
+// para essa conta (source "n8n") nos últimos SAMPLE_DAYS dias, só os campos
+// públicos (sem status, notas, datas de candidatura nem checklist). O filtro
+// não olha o status: a vaga continua na amostra depois que a dona a triou, para
+// a amostra não revelar em quais vagas ela marcou interesse ou descartou.
+// "Tenho interesse" copia a vaga para a conta de quem vê, sem chamar a IA
+// (app/actions/monitoredSample.ts).
 
 export const SAMPLE_DAYS = 7;
 export const SAMPLE_LIMIT = 30;
@@ -59,23 +63,28 @@ export async function sampleHoursLeftFor(
   const target = sampleTargetUserId();
   if (!target || userId === target) return 0;
   const [user, settings] = await Promise.all([
-    db.user.findUnique({ where: { id: userId }, select: { createdAt: true, email: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { createdAt: true, email: true, name: true } }),
     getAppSettings(),
   ]);
-  // email nulo: conta excluída (lib/accountDeletion.ts) não usa a amostra.
-  if (!user || user.email === null) return 0;
+  // Conta excluída (lib/accountDeletion.ts) não usa a amostra.
+  if (!user || isDeletedAccount(user)) return 0;
   return trialHoursLeft(user.createdAt, settings.monitoredTrialHours);
+}
+
+// Mesmo filtro na página e na Server Action. Índice (userId, source, createdAt).
+export function sampleWhere(target: string) {
+  return {
+    userId: target,
+    source: "n8n",
+    createdAt: { gte: new Date(Date.now() - SAMPLE_DAYS * 24 * HOUR) },
+  };
 }
 
 export async function getMonitoredSample(db: Pick<PrismaClient, "job"> = prisma): Promise<SampleJob[]> {
   const target = sampleTargetUserId();
   if (!target) return [];
   const rows = await db.job.findMany({
-    where: {
-      userId: target,
-      status: "MONITORADA",
-      createdAt: { gte: new Date(Date.now() - SAMPLE_DAYS * 24 * HOUR) },
-    },
+    where: sampleWhere(target),
     orderBy: { createdAt: "desc" },
     take: SAMPLE_LIMIT,
     select: SAMPLE_SELECT,

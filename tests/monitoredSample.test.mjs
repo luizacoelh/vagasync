@@ -79,17 +79,20 @@ test("amostra só para conta nova que não é a dona nem excluída", async () =>
   await prisma.appSettings.update({ where: { id: "singleton" }, data: { monitoredTrialHours: 24 } });
 });
 
-test("a amostra traz só MONITORADAS recentes da conta-alvo e sem campos privados", async () => {
+test("a amostra traz as vagas recentes do robô da conta-alvo, triadas ou não, sem campos privados", async () => {
   const visible = await robotJob();
-  await robotJob({ status: "APLICADA" });
-  await robotJob({ createdAt: new Date(Date.now() - 10 * 24 * HOUR) });
+  // Triada pela dona: continua na amostra, para não revelar a triagem.
+  const triaged = await robotJob({ status: "DESCARTADA" });
+  const old = await robotJob({ createdAt: new Date(Date.now() - 10 * 24 * HOUR) });
+  const manual = await robotJob({ source: "manual", status: "APLICADA" });
   const other = await newUser(1);
-  await prisma.job.create({ data: { userId: other.id, company: "X", title: "Y", description: "Z", status: "MONITORADA" } });
+  const foreign = await prisma.job.create({ data: { userId: other.id, company: "X", title: "Y", description: "Z", status: "MONITORADA", source: "n8n" } });
+  const ids = new Set((await lib.getMonitoredSample()).map((j) => j.id));
+  assert.ok(ids.has(visible.id));
+  assert.ok(ids.has(triaged.id));
+  for (const job of [old, manual, foreign]) assert.ok(!ids.has(job.id));
   const sample = await lib.getMonitoredSample();
-  assert.ok(sample.some((j) => j.id === visible.id));
   assert.ok(sample.every((j) => !("status" in j) && !("description" in j)));
-  const ids = new Set((await prisma.job.findMany({ where: { userId: target.id, status: "MONITORADA", createdAt: { gte: new Date(Date.now() - 7 * 24 * HOUR) } } })).map((j) => j.id));
-  assert.ok(sample.every((j) => ids.has(j.id)));
 });
 
 test("ordena pelas skills do perfil", () => {
@@ -127,8 +130,8 @@ test("fora da amostra ou vaga fora do feed, nada é copiado", async () => {
   assert.equal(await prisma.job.count({ where: { userId: old.id } }), 0);
 
   const fresh = await newUser(1);
-  const applied = await robotJob({ status: "APLICADA" });
-  assert.match((await copySampleJob(applied.id)).error, /saiu da amostra/);
+  const manual = await robotJob({ source: "manual" });
+  assert.match((await copySampleJob(manual.id)).error, /saiu da amostra/);
   const foreign = await prisma.job.create({ data: { userId: old.id, company: "X", title: "Y", description: "Z", status: "MONITORADA" } });
   assert.match((await copySampleJob(foreign.id)).error, /saiu da amostra/);
   assert.equal(await prisma.job.count({ where: { userId: fresh.id } }), 0);

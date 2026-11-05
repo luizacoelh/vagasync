@@ -53,11 +53,14 @@ vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
 - O n8n só alimenta a conta de `N8N_TARGET_USER_ID`. Nas primeiras
   `AppSettings.monitoredTrialHours` horas (padrão 24, 0 desliga, editável em
   `/admin`), as outras contas veem em `/monitoradas` as vagas MONITORADAS dos
-  últimos 7 dias dessa conta (até 30), só campos públicos: empresa, título,
+  últimos 7 dias trazidas pelo robô (`source = "n8n"`, triadas ou não, para não
+  revelar a triagem da dona; até 30), só campos públicos: empresa, título,
   local, salário, resumo, tecnologias e link (`lib/monitoredSample.ts`).
 - "Tenho interesse" (`app/actions/monitoredSample.ts`) copia a vaga para a conta
   de quem vê como cadastro manual (mesma cota), sem IA; confere de novo a
-  amostra e que a vaga ainda está nela. Link repetido devolve a cópia existente.
+  amostra e que a vaga está entre as mostradas; passa pelo limite de `lib/apiQuota.ts`.
+  Link repetido devolve a cópia existente (não atômico: clique duplo pode copiar duas vezes).
+  Índice `Job(userId, source, createdAt)` para a leitura da amostra.
 - Depois da amostra, a aba mostra "Em breve". Conta excluída não vê a amostra.
 - A lista da amostra e as monitoradas da dona são ordenadas pelas skills do
   perfil de quem vê (`sortBySkillMatch`, mesmo critério de `lib/skillGap.ts`).
