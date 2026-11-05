@@ -8,6 +8,20 @@ import MonitoredJobList, {
 } from "@/components/monitoradas/MonitoredJobList";
 import DemoBanner from "@/components/onboarding/DemoBanner";
 import { getDemoMonitoredRows } from "@/lib/demoJobs";
+import MonitoredSample, { type SampleCard } from "@/components/monitoradas/MonitoredSample";
+import { parseArray } from "@/lib/json";
+import {
+  getMonitoredSample,
+  sampleHoursLeftFor,
+  sampleTargetUserId,
+  skillMatchCount,
+  sortBySkillMatch,
+} from "@/lib/monitoredSample";
+
+// Só link http(s) vira <a href> na amostra.
+function safeUrl(url: string | null): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null;
+}
 
 // Fuso usado só para agrupar por dia e escrever "Hoje"/"Ontem". Fixo em
 // Brasília por enquanto; se o app ganhar usuários em outros fusos, o ideal é
@@ -56,6 +70,37 @@ export default async function MonitoradasPage({
   // createdAt só serve para agrupar por dia aqui no servidor; não vai para o cliente.
   const notice = parseNotice(await searchParams);
 
+  const isTarget = !guest && session.user.id === sampleTargetUserId();
+  const [skills, sampleHours] = guest
+    ? [[] as string[], 0]
+    : await Promise.all([
+        prisma.userProfile
+          .findUnique({ where: { userId: session.user.id }, select: { skills: true } })
+          .then((p) => parseArray(p?.skills)),
+        isTarget ? Promise.resolve(0) : sampleHoursLeftFor(session.user.id),
+      ]);
+
+  // Conta nova dentro da amostra (AppSettings.monitoredTrialHours): vagas do
+  // robô, só leitura, ordenadas pelas skills do perfil de quem vê.
+  if (sampleHours > 0) {
+    const sample: SampleCard[] = sortBySkillMatch(await getMonitoredSample(), skills).map((job) => ({
+      id: job.id,
+      company: job.company,
+      title: job.title,
+      location: job.location as SampleCard["location"],
+      salary: job.salary,
+      summary: job.summary,
+      technologies: job.technologies,
+      url: safeUrl(job.url),
+      matches: skillMatchCount(job.technologies, skills),
+    }));
+    return (
+      <MonitoradasFrame subtitle="Vagas encontradas automaticamente pelo robô do VagaSync.">
+        <MonitoredSample jobs={sample} hoursLeft={sampleHours} />
+      </MonitoradasFrame>
+    );
+  }
+
   // Visitante vê vagas de exemplo (lib/demoJobs.ts), já no formato de JobSummary.
   const rows = guest
     ? getDemoMonitoredRows()
@@ -70,7 +115,8 @@ export default async function MonitoradasPage({
   const { todayKey, yesterdayKey } = getTodayAndYesterdayKeys();
 
   // A lista já vem da mais nova para a mais antiga, então basta agrupar
-  // vagas consecutivas do mesmo dia.
+  // vagas consecutivas do mesmo dia. Dentro de cada dia, as que pedem mais
+  // skills do perfil vêm primeiro.
   const groups: JobGroup[] = [];
   for (const { createdAt, ...job } of rows) {
     const key = dayKey(createdAt);
@@ -82,6 +128,29 @@ export default async function MonitoradasPage({
     }
   }
 
+  for (const group of groups) group.jobs = sortBySkillMatch(group.jobs, skills);
+
+  return (
+    <MonitoradasFrame
+      subtitle={`Vagas encontradas automaticamente. Marque as que te interessam para levá-las ao seu dashboard e descarte o resto.${
+        rows.length > 0 ? ` ${rows.length} ${rows.length === 1 ? "vaga aguardando" : "vagas aguardando"} sua avaliação.` : ""
+      }`}
+    >
+      {guest && (
+        <DemoBanner text="Exemplo: o VagaSync busca vagas de estágio e júnior automaticamente e elas chegam aqui para você avaliar." />
+      )}
+
+      <MonitoredJobList
+        groups={groups}
+        notice={guest ? null : notice}
+        // O n8n só alimenta a conta de N8N_TARGET_USER_ID (lib/n8nWebhook.ts).
+        comingSoon={!guest && !isTarget}
+      />
+    </MonitoradasFrame>
+  );
+}
+
+function MonitoradasFrame({ subtitle, children }: { subtitle: string; children: React.ReactNode }) {
   return (
     <main className="min-h-screen text-[#E4E6EB] px-4 py-16">
       <div className="studio-backdrop">
@@ -111,23 +180,9 @@ export default async function MonitoradasPage({
         <h1 className="mb-2 text-2xl font-semibold" style={{ fontFamily: "var(--font-outfit)" }}>
           Vagas monitoradas
         </h1>
-        <p className="mb-8 text-sm text-[#7C8494]">
-          Vagas encontradas automaticamente. Marque as que te interessam para levá-las ao seu
-          dashboard e descarte o resto.
-          {rows.length > 0 &&
-            ` ${rows.length} ${rows.length === 1 ? "vaga aguardando" : "vagas aguardando"} sua avaliação.`}
-        </p>
+        <p className="mb-8 text-sm text-[#7C8494]">{subtitle}</p>
 
-        {guest && (
-          <DemoBanner text="Exemplo: o VagaSync busca vagas de estágio e júnior automaticamente e elas chegam aqui para você avaliar." />
-        )}
-
-        <MonitoredJobList
-          groups={groups}
-          notice={guest ? null : notice}
-          // O n8n só alimenta a conta de N8N_TARGET_USER_ID (lib/n8nWebhook.ts).
-          comingSoon={!guest && session.user.id !== process.env.N8N_TARGET_USER_ID}
-        />
+        {children}
       </div>
     </main>
   );
