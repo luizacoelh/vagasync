@@ -15,6 +15,7 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
     String(initialSettings.globalManualJobsPerDay)
   );
   const [globalAiPerDay, setGlobalAiPerDay] = useState(String(initialSettings.globalAiPerDay));
+  const [monitoredTrialHours, setMonitoredTrialHours] = useState(String(initialSettings.monitoredTrialHours));
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +23,10 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (monitoredTrialHours.trim() === "") {
+      setError("Informe as horas da amostra de monitoradas (0 desliga).");
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -35,6 +40,7 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
           newAccountsPerDay: Number(newAccountsPerDay),
           globalManualJobsPerDay: Number(globalManualJobsPerDay),
           globalAiPerDay: Number(globalAiPerDay),
+          monitoredTrialHours: Number(monitoredTrialHours),
         }),
       });
 
@@ -175,6 +181,25 @@ export default function AppSettingsForm({ initialSettings }: { initialSettings: 
               min={1}
               value={globalAiPerDay}
               onChange={(e) => setGlobalAiPerDay(e.target.value)}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="monitoredTrialHours"
+              className="block text-xs text-[#7C8494] mb-2"
+              style={{ fontFamily: "var(--font-outfit)" }}
+            >
+              Amostra de monitoradas p/ contas novas (horas, 0 desliga)
+            </label>
+            <input
+              id="monitoredTrialHours"
+              type="number"
+              min={0}
+              max={720}
+              value={monitoredTrialHours}
+              onChange={(e) => setMonitoredTrialHours(e.target.value)}
               className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-[#E4E6EB]"
             />
           </div>

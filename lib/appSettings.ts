@@ -9,6 +9,7 @@ export interface AppSettings {
   newAccountsPerDay: number;
   globalManualJobsPerDay: number;
   globalAiPerDay: number;
+  monitoredTrialHours: number;
 }
 
 function toAppSettings(row: AppSettings): AppSettings {
@@ -19,6 +20,7 @@ function toAppSettings(row: AppSettings): AppSettings {
     newAccountsPerDay: row.newAccountsPerDay,
     globalManualJobsPerDay: row.globalManualJobsPerDay,
     globalAiPerDay: row.globalAiPerDay,
+    monitoredTrialHours: row.monitoredTrialHours,
   };
 }
 

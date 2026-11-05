@@ -26,6 +26,9 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   nos testes de 04/11 muitos sites recusaram a leitura.
 - [x] Extensão do navegador para uso pessoal (`extension/`, modo
   desenvolvedor): leva a vaga da aba aberta para "Colar texto" em `/nova-vaga`.
+- [x] Amostra de `/monitoradas` para contas novas por `monitoredTrialHours`
+  (migration `20261105120000_monitored_trial`, editável em `/admin`); vagas
+  ordenadas pelas skills do perfil.
 - Antes de divulgar (painéis, fora do código): tela de consentimento do Google
   OAuth em produção, limite de gastos da Gemini API, `newAccountsPerDay` em
   `/admin` ajustado para o dia da divulgação.

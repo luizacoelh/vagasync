@@ -14,6 +14,8 @@ const SETTING_KEYS = [
   "globalAiPerDay",
 ] as const;
 
+const MAX_TRIAL_HOURS = 720;
+
 export async function GET() {
   const { user, response } = await requireAdmin();
   if (!user) return response;
@@ -37,6 +39,18 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: `Valor inválido para ${key} — precisa ser um inteiro positivo.` }, { status: 400 });
     }
     if (value !== undefined) patch[key] = value as number;
+  }
+
+  // Amostra de /monitoradas para contas novas: 0 desliga, até 30 dias.
+  const trial = body.monitoredTrialHours;
+  if (trial !== undefined) {
+    if (typeof trial !== "number" || !Number.isSafeInteger(trial) || trial < 0 || trial > MAX_TRIAL_HOURS) {
+      return NextResponse.json(
+        { error: `Valor inválido para monitoredTrialHours — inteiro de 0 a ${MAX_TRIAL_HOURS}.` },
+        { status: 400 },
+      );
+    }
+    patch.monitoredTrialHours = trial;
   }
 
   const settings = await updateAppSettings(patch);
