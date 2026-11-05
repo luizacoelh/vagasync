@@ -8,6 +8,7 @@ import BackButton from "@/components/ui/BackButton";
 import { useLoginGate } from "@/components/auth/LoginGate";
 import { EXAMPLE_ANALYSIS, EXAMPLE_IMPORT, EXAMPLE_IMPORT_URL, EXAMPLE_JOB } from "@/lib/demoJobs";
 import InputTabs, { panelId, tabId, type InputTab } from "@/components/nova-vaga/InputTabs";
+import { useExtensionCapture } from "@/components/nova-vaga/useExtensionCapture";
 import LinkPanel from "@/components/nova-vaga/LinkPanel";
 import TextPanel from "@/components/nova-vaga/TextPanel";
 import JobPreview, { emptyPreviewFields, type PreviewFields } from "@/components/nova-vaga/JobPreview";
@@ -73,6 +74,17 @@ export default function NovaVagaPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
+  const [captured, setCaptured] = useState(false);
+
+  // Vaga lida pela extensão do navegador (extension/): preenche a aba de texto
+  // para a pessoa conferir e analisar. Não chama a IA sozinha.
+  useExtensionCapture(!isGuest && step === "input", (capture) => {
+    setDescription(capture.text);
+    if (capture.url) setFields((f) => ({ ...f, url: capture.url ?? f.url }));
+    setTab("texto");
+    setError(null);
+    setCaptured(true);
+  });
 
   // Depois do login, devolve o que o visitante tinha digitado.
   useEffect(() => {
@@ -322,6 +334,12 @@ export default function NovaVagaPage() {
             className="mb-6 scroll-mt-4 rounded-xl border border-[#E5534B]/40 bg-[#E5534B]/10 px-4 py-3 text-sm text-[#E5534B]"
           >
             {error}
+          </div>
+        )}
+
+        {step === "input" && captured && (
+          <div className="mb-4 rounded-xl border border-[#378ADD]/35 bg-[#378ADD]/10 px-4 py-3 text-sm text-[#C4C7D0]">
+            Vaga trazida pela extensão. Confira o texto, apague o que não for da vaga e clique em Analisar.
           </div>
         )}
 

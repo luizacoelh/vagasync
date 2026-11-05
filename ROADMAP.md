@@ -24,6 +24,8 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   (o cache do roteador guardava o redirect e voltava ao formulário vazio).
 - [x] `/nova-vaga` abre em "Colar texto"; o link virou a segunda opção, porque
   nos testes de 04/11 muitos sites recusaram a leitura.
+- [x] Extensão do navegador para uso pessoal (`extension/`, modo
+  desenvolvedor): leva a vaga da aba aberta para "Colar texto" em `/nova-vaga`.
 - Antes de divulgar (painéis, fora do código): tela de consentimento do Google
   OAuth em produção, limite de gastos da Gemini API, `newAccountsPerDay` em
   `/admin` ajustado para o dia da divulgação.
