@@ -5,9 +5,11 @@ import { OUTFIT } from "./ui";
 
 export type InputTab = "link" | "texto";
 
+// "Colar texto" primeiro: funciona em qualquer site. Muitos sites não deixam o
+// servidor ler a página, e o link fica como atalho.
 const TABS: { id: InputTab; label: string }[] = [
-  { id: "link", label: "Link da vaga" },
   { id: "texto", label: "Colar texto" },
+  { id: "link", label: "Link da vaga" },
 ];
 
 export function tabId(tab: InputTab) {
@@ -18,7 +20,7 @@ export function panelId(tab: InputTab) {
   return `nova-vaga-painel-${tab}`;
 }
 
-// Abas "Link da vaga" / "Colar texto" no padrão WAI-ARIA: só a aba ativa entra
+// Abas "Colar texto" / "Link da vaga" no padrão WAI-ARIA: só a aba ativa entra
 // no Tab; setas, Home e End trocam de aba.
 export default function InputTabs({ tab, onChange }: { tab: InputTab; onChange: (tab: InputTab) => void }) {
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>) {

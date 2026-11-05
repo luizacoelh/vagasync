@@ -8,7 +8,7 @@ fica no [`README.md`](./README.md); passo a passo de deploy no
 
 ### Cadastro por link (`/api/vaga/importar`)
 
-A aba "Link da vaga" de `/nova-vaga` (padrão) manda só o link. A rota exige login,
+A aba "Link da vaga" de `/nova-vaga` (a segunda; "Colar texto" é a padrão desde 05/11/2026, porque muitos sites recusam a leitura) manda só o link. A rota exige login,
 nunca grava vaga e nunca chama a IA: devolve o texto para a confirmação "É esta
 vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
 `lib/jobImport/types.ts`.

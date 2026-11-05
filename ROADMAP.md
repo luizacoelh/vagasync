@@ -20,6 +20,10 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   (só `N8N_TARGET_USER_ID` recebe vagas).
 - [x] `/privacidade` e `/termos`: contato (`lib/site.ts`), cadastro pelo link,
   registro de IP para limites e exclusão da conta.
+- [x] Onboarding: depois de salvar o perfil, navegação completa para `/`
+  (o cache do roteador guardava o redirect e voltava ao formulário vazio).
+- [x] `/nova-vaga` abre em "Colar texto"; o link virou a segunda opção, porque
+  nos testes de 04/11 muitos sites recusaram a leitura.
 - Antes de divulgar (painéis, fora do código): tela de consentimento do Google
   OAuth em produção, limite de gastos da Gemini API, `newAccountsPerDay` em
   `/admin` ajustado para o dia da divulgação.
