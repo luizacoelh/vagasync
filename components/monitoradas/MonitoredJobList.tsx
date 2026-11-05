@@ -207,7 +207,7 @@ export default function MonitoredJobList({
           </p>
           <p className="mt-2 text-sm text-[#7C8494]">
             {comingSoon
-              ? "O monitoramento automático ainda não está disponível para todas as contas. Enquanto isso, cadastre vagas pelo link ou colando o texto em \"Nova vaga\"."
+              ? "O monitoramento automático ainda não está disponível para todas as contas. Enquanto isso, cadastre vagas colando o texto ou o link em \"Nova vaga\"."
               : "Quando o monitoramento automático encontrar vagas novas, elas aparecem aqui para você avaliar."}
           </p>
         </GlassPanel>

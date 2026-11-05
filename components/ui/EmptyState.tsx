@@ -7,7 +7,7 @@ import OnboardingSteps from "@/components/onboarding/OnboardingSteps";
 // quando a primeira vaga é salva, então não precisa de flag no banco.
 export default function EmptyState({
   title = "Nenhuma vaga adicionada ainda.",
-  subtitle = "Cole o link ou a descrição de uma vaga para começar a organizar suas candidaturas.",
+  subtitle = "Cole a descrição ou o link de uma vaga para começar a organizar suas candidaturas.",
   showCta = true,
 }: {
   title?: string;
@@ -32,7 +32,7 @@ export default function EmptyState({
         <p className="mt-1 text-sm text-[#7C8494]">{subtitle}</p>
       </div>
       <OnboardingSteps />
-      {/* /nova-vaga abre na aba "Link da vaga"; a aba "Colar texto" fica ao lado. */}
+      {/* /nova-vaga abre na aba "Colar texto"; a aba "Link da vaga" fica ao lado. */}
       <div className="text-center">
         <Link
           href="/nova-vaga"
@@ -43,10 +43,10 @@ export default function EmptyState({
             boxShadow: "0 0 0 1px rgba(255,255,255,0.25) inset, 0 8px 20px -8px rgba(55,138,221,0.6)",
           }}
         >
-          Adicionar pelo link
+          Adicionar uma vaga
         </Link>
         <p className="mt-2 text-xs text-[#7C8494]">
-          Funciona com Gupy, Remotar e sites de empresas. Também dá para colar o texto da vaga.
+          Cole o texto da vaga de qualquer site. Na Gupy, no Remotar e em sites de empresas, o link também funciona.
         </p>
       </div>
     </section>

@@ -58,7 +58,7 @@ export default function NovaVagaPage() {
   const { isGuest, requireLogin } = useLoginGate();
   const { link, setLink, result, setResult, isFetching, fetchJob, setConfirmText } = useLinkImport();
 
-  const [tab, setTab] = useState<InputTab>("link");
+  const [tab, setTab] = useState<InputTab>("texto");
   const [step, setStep] = useState<Step>("input");
   const [description, setDescription] = useState("");
   const [linkHint, setLinkHint] = useState<string | null>(null);

@@ -63,7 +63,7 @@ function GuestIntro() {
   return (
     <section className="mb-10">
       <p className="max-w-2xl text-sm text-[#A9B2C0]">
-        Cole o link ou o texto de uma vaga e o VagaSync monta o resumo, as tecnologias, as
+        Cole o texto de uma vaga e o VagaSync monta o resumo, as tecnologias, as
         perguntas prováveis e um checklist do que estudar. Depois é só acompanhar cada
         candidatura até a oferta.
       </p>
@@ -72,13 +72,13 @@ function GuestIntro() {
       </div>
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <LoginButton label="Começar agora" primary />
-        {/* /nova-vaga abre na aba "Link da vaga", com um link de exemplo para o visitante */}
+        {/* /nova-vaga abre na aba "Colar texto", com uma vaga de exemplo para o visitante */}
         <Link
           href="/nova-vaga"
           className="glass-btn rounded-xl px-4 py-2 text-sm font-medium text-[#E4E6EB]"
           style={{ fontFamily: "var(--font-outfit)" }}
         >
-          Adicionar pelo link
+          Adicionar uma vaga
         </Link>
         <span className="text-xs text-[#7C8494]">Grátis, entrando com Google ou GitHub.</span>
       </div>
