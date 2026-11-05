@@ -48,6 +48,21 @@ vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
   nela; com esse cookie, um login OAuth liga o novo `Account` à conta excluída.
   `isOwner` é recusado e o botão nem aparece para a dona.
 
+### Extensão do navegador (`extension/`, uso pessoal)
+
+- Manifest V3, carregada no modo desenvolvedor (sem Chrome Web Store). No clique,
+  `background.js` lê a aba ativa (`activeTab` + `scripting`): seleção, JSON-LD
+  `JobPosting`, blocos conhecidos (LinkedIn, Indeed, Gupy), `<main>`/`<article>`,
+  `<body>`; guarda em `chrome.storage.session` com um id e abre
+  `/nova-vaga#captura=<id>`: só essa aba recebe a vaga.
+- `bridge.js` (content script só em `/nova-vaga`) entrega a captura à página por
+  `window.postMessage` (`pronto` → `captura` → `recebido`). A página valida com
+  `lib/extensionCapture.ts` (texto até 8.000, link só http/https) e só preenche a
+  aba "Colar texto" (se já houver texto ou link, mantém e oferece a troca): nada
+  vai ao servidor nem à IA sem o clique em Analisar.
+- Lê sites que bloqueiam o servidor (LinkedIn, Indeed), porque usa a página que a
+  pessoa já abriu no próprio navegador.
+
 ### Amostra de `/monitoradas` para contas novas
 
 - O n8n só alimenta a conta de `N8N_TARGET_USER_ID`. Nas primeiras

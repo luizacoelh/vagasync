@@ -5,7 +5,9 @@ integrada na main pelo PR #36 (`da20d99`). E1–E6 (cadastro por link e revisão
 independente) integradas pelo PR #46 (`18b5774`) em 02/11/2026. Fora deste ciclo,
 só com decisão nova: extensão, Sólides e novas fontes. A captura enviada pela
 extensão saiu do contrato até essa etapa. Diagnóstico feito em 28/10/2026,
-depois dos PRs #33 e #34.
+depois dos PRs #33 e #34. Atualização de 05/11/2026: novas fontes remotas da
+América Latina e em espanhol (PR #51) e extensão para uso pessoal
+(`extension/`) feitas; Sólides segue pendente.
 A issue #35 (fontes do Google no build) fica fora deste plano.
 
 ### Pré-requisito novo: PR 0 — proteção de cadastro
