@@ -348,3 +348,14 @@ test("Fontes inclui o GetOnBoard e as buscas do Himalayas abertas ao Brasil", ()
   for (const u of gob) assert.match(decodeURIComponent(u), /expand=\["company","location_tenants","location_regions"\]/);
   assert.ok(urls.some((u) => u.includes("himalayas.app") && u.includes("q=desarrollador&country=Brazil")));
 });
+
+test("Remotar: etiqueta Espanhol passa; Inglês e Sênior continuam fora", () => {
+  const comTag = (tag) => {
+    const r = remotar([["Estágio em Desenvolvimento Web", "Nimbus", "Programação"]]);
+    r.data[0].jobTags.push({ tag: { name: tag } });
+    return r;
+  };
+  assert.equal(montar([comTag("Espanhol")]).length, 1);
+  assert.equal(montar([comTag("Inglês")]).length, 0);
+  assert.equal(montar([comTag("Sênior")]).length, 0);
+});
