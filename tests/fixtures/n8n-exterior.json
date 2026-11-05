@@ -1,0 +1,438 @@
+{
+  "_origem": "Respostas reais de 05/11/2026 (User-Agent VagaSync-n8n), cortadas: descrições encurtadas e só os campos que o nó usa. Himalayas: /jobs/api/search?country=Brazil e buscas por país. GetOnBoard: /api/v0/search/jobs com expand de company e locais.",
+  "himalayas": {
+    "latamEspanhol": [
+      {
+        "title": "Analista de Datos | 100% Remoto | LATAM",
+        "companyName": "Prometeo Talent",
+        "seniority": [
+          "Entry-level"
+        ],
+        "locationRestrictions": [
+          "Anguilla",
+          "Antigua and Barbuda",
+          "Argentina",
+          "Aruba",
+          "Bahamas",
+          "Barbados",
+          "Belize",
+          "Bermuda",
+          "Bolivia",
+          "Bonaire, Sint Eustatius and Saba",
+          "Brazil",
+          "Cayman Islands",
+          "Chile",
+          "Colombia",
+          "Costa Rica",
+          "Cuba",
+          "Dominica",
+          "Dominican Republic",
+          "Ecuador",
+          "El Salvador",
+          "Falkland Islands (Malvinas)",
+          "Grenada",
+          "Guatemala",
+          "Guyana",
+          "Haiti",
+          "Honduras",
+          "Jamaica",
+          "Mexico",
+          "Montserrat",
+          "Nicaragua",
+          "Panama",
+          "Paraguay",
+          "Peru",
+          "Puerto Rico",
+          "Saint Kitts and Nevis",
+          "Saint Lucia",
+          "Saint Vincent and the Grenadines",
+          "South Georgia and the South Sandwich Islands",
+          "Suriname",
+          "Trinidad and Tobago",
+          "Turks and Caicos Islands",
+          "Uruguay",
+          "Venezuela",
+          "Virgin Islands, British",
+          "Virgin Islands, U.S."
+        ],
+        "pubDate": 1793533451,
+        "applicationLink": "https://himalayas.app/companies/prometeo-talent/jobs/analista-de-datos-100-remoto-latam?utm_source=api",
+        "guid": "https://himalayas.app/companies/prometeo-talent/jobs/analista-de-datos-100-remoto-latam",
+        "description": "<h3>Sobre nosotros</h3><p><strong><a href=\"https://himalayas.app/companies/prometeo-talent\">Prometeo Talent</a></strong> es una agencia de reclutamiento con una sólida presencia en América y Europa. Nos especializamos en conectar empresas con profesionales excepcionales en tecnología e ingeniería.</p><p>Actualmente, estamos trabajando junto a una empresa de Estados Unidos especializada en medir la efectividad de las estrategias de marketing en distintos canales. Su trabajo consiste en ayudar a las organizaciones a entender mejor a sus consumidores, sus hábitos de compra y el comportamiento del mercado a través del análisis de datos.</p><p>Estamos buscando un/a <strong>Analista de Datos</strong> que se sume a su equipo global. Es una excelente oportunidad tanto para personas recién graduadas como para profesionales que están dando sus primeros pasos en el mundo de Data Analytics y disfrutan trabajar con datos.</p><p>En este rol vas a trabajar con grandes volúmenes de información de consumidores y retail, utilizando datos para encontrar patrones, responder preguntas de negocio y generar información útil para la toma de decisiones.</p><h3>¿Qué vas a hacer?</h3><ul>\n<li><p>Extraer, consultar y transformar datos utilizando SQL, trabajando con bases de datos relacionales y data warehouses en la nube.</p></li>\n<li><p>Analizar grandes volúmenes de datos transaccionales y de consumidores para encontrar tendencias, patrones y oportunidades.</p></li>\n<li><p>Crear y mantener datasets que sirvan como base para reportes y análisis recurrentes.</p></li>\n<li><p>Calcular métricas de negocio como household penetration, market share, purchasing behavior, y category trends.</p></li>\n<li><p>Trabajar con datos sin procesar y datos semiestructurados, realizando tareas de limpieza y categorización cuando sea necesario.</p></li>\n<li><p>Revisar y validar los resultados para asegurarte de que los datos sean correctos y consistentes.</p></li>\n<li><p>Trabajar junto a otros equipos para responder preguntas de negocio y dar soporte a distintos reportes y análisis.</p></li>\n<li><p>Convertir datos complejos en conclusiones claras que ayuden a tomar mejores decisiones.</p></li>\n</ul><h3>Requerimientos</h3><ul>\n<li><p>Entre 0 y 4 años de experiencia en Data Analytics, Reporting, Business Intelligence o roles similares.</p></li>\n<li><p>Buen nivel de comprensión y comunicación escrita en inglés.</p></li>\n<li><p>Buen manejo de SQL, incluyendo joins, filtros, agregaciones, GROUP BY y lógica condicional.</p></li>\n<li><p>"
+      },
+      {
+        "title": "Desarrollador Net Jr - 100% remoto",
+        "companyName": "MindTech",
+        "seniority": [
+          "Entry-level"
+        ],
+        "locationRestrictions": [
+          "Anguilla",
+          "Antigua and Barbuda",
+          "Argentina",
+          "Aruba",
+          "Bahamas",
+          "Barbados",
+          "Belize",
+          "Bermuda",
+          "Bolivia",
+          "Bonaire, Sint Eustatius and Saba",
+          "Brazil",
+          "Canada",
+          "Cayman Islands",
+          "Chile",
+          "Colombia",
+          "Costa Rica",
+          "Cuba",
+          "Curaçao",
+          "Dominica",
+          "Dominican Republic",
+          "Ecuador",
+          "El Salvador",
+          "Falkland Islands (Malvinas)",
+          "French Guiana",
+          "Greenland",
+          "Grenada",
+          "Guadeloupe",
+          "Guatemala",
+          "Guyana",
+          "Haiti",
+          "Honduras",
+          "Jamaica",
+          "Martinique",
+          "Mexico",
+          "Montserrat",
+          "Nicaragua",
+          "Panama",
+          "Paraguay",
+          "Peru",
+          "Puerto Rico",
+          "Saint Barthélemy",
+          "Saint Kitts and Nevis",
+          "Saint Lucia",
+          "Saint Martin (French part)",
+          "Saint Pierre and Miquelon",
+          "Saint Vincent and the Grenadines",
+          "Sint Maarten (Dutch part)",
+          "Suriname",
+          "Trinidad and Tobago",
+          "Turks and Caicos Islands",
+          "United States",
+          "United States Minor Outlying Islands",
+          "Uruguay",
+          "Venezuela",
+          "Virgin Islands, British",
+          "Virgin Islands, U.S."
+        ],
+        "pubDate": 1793537536,
+        "applicationLink": "https://himalayas.app/companies/mindtech/jobs/desarrollador-net-jr-100-remoto?utm_source=api",
+        "guid": "https://himalayas.app/companies/mindtech/jobs/desarrollador-net-jr-100-remoto",
+        "description": "<h3><strong>Sobre Mindtech</strong></h3><p>Mindtech es tu puerta de entrada a proyectos tecnológicos emocionantes y con impacto. Nos especializamos en staff augmentation y outsourcing de software de punta a punta, conectando el talento de América Latina con oportunidades a nivel global. Nuestro enfoque ágil garantiza a nuestros clientes un servicio excepcional y soluciones innovadoras.</p><h3><strong>Sobre el puesto</strong></h3><p><em>Estamos buscando un/a <strong>.NET Developer Jr</strong> para sumarse a un equipo de desarrollo, participando en la construcción y mantenimiento de aplicaciones y servicios basados en tecnologías Microsoft.</em></p><em><p>El rol está orientado a perfiles en etapa inicial que quieran desarrollarse en entornos profesionales, colaborando con desarrolladores más experimentados y adquiriendo buenas prácticas en desarrollo backend, APIs y metodologías ágiles.</p></em><h3><strong>Requisitos</strong></h3><ul>\n<li><em>1 a 2 años de experiencia en desarrollo de software (idealmente en entornos .NET).</em></li>\n<li><em>Experiencia trabajando con <strong>C# y .NET Framework</strong>.</em></li>\n<li><em>Experiencia con <strong>ASP.NET, MVC y Web API</strong>.</em></li>\n<li><em>Conocimiento de <strong>bases de datos relacionales</strong> (SQL Server).</em></li>\n<li><em>Familiaridad con herramientas de control de versiones (<strong>Git u otras</strong>).</em></li>\n<li><em>Conocimientos básicos de <strong>HTML, CSS y JavaScript</strong>.</em></li>\n<li><em>Capacidad para debuggear y resolver problemas en código existente.</em></li>\n<li><em>Conocimiento básico de <strong>metodologías ágiles</strong>.</em></li>\n</ul><h3><strong>Responsabilidades</strong></h3><ul>\n<li><em>Apoyar en el diseño, desarrollo y mantenimiento de aplicaciones utilizando tecnologías .NET.</em></li>\n<li><em>Colaborar en la creación y mantenimiento de APIs RESTful y microservicios.</em></li>\n<li><em>Asistir en la identificación y resolución de problemas en aplicaciones existentes.</em></li>\n<li><em>Participar en reuniones de equipo para comprender requerimientos técnicos y funcionales.</em></li>\n<li><em>Contribuir en revisiones de código, aplicando buenas prácticas definidas por el equipo.</em></li>\n<li><em>Colaborar en tareas básicas relacionadas a CI/CD y automatización de procesos.</em></li>\n</ul><h4><em><strong>Deseables</strong></em></h4><em><ul>\n<li><p>Conocimiento de servicios en <strong>Azure</strong>.</p></li>\n<li><p>Experiencia con <strong>pruebas unitarias</strong> (NUnit, xUnit u otros).</p></li>\n<li><p>Experiencia con herramientas de <strong>CI/CD</strong>"
+      }
+    ],
+    "soEspanha": {
+      "title": "DBA Oracle Jr",
+      "companyName": "Logicalis Spain",
+      "seniority": [
+        "Entry-level"
+      ],
+      "locationRestrictions": [
+        "Spain"
+      ],
+      "pubDate": 1793353623,
+      "applicationLink": "https://himalayas.app/companies/logicalis-com/jobs/dba-oracle-jr-6515382843?utm_source=api",
+      "guid": "https://himalayas.app/companies/logicalis-com/jobs/dba-oracle-jr-6515382843",
+      "description": "<p>Desde <strong><a href=\"https://himalayas.app/companies/logicalis-com\">Logicalis Spain</a></strong> estamos buscando incorporar a <strong>una persona con experiencia en administración de bases de datos Oracle</strong> para uno de nuestros proyectos en modalidad <strong>100% remota</strong>.</p><p>La persona seleccionada formará parte del equipo encargado de la administración y mantenimiento de las bases de datos corporativas de nuestro cliente, una importante entidad bancaria en España.</p><h3>Funciones a realizar</h3><ul>\n<li><p>Instalación, configuración y parcheo de Oracle en versiones 12c, 18c y 19c.</p></li>\n<li><p>Participación en procesos de creación y migración de bases de datos Oracle.</p></li>\n<li><p>Actualización de versiones de Oracle (upgrades).</p></li>\n<li><p>Administración y mantenimiento de entornos Legacy y Multitenant.</p></li>\n<li><p>Soporte en la gestión de entornos Oracle RAC y Data Guard.</p></li>\n<li><p>Mantenimiento y resolución de incidencias en bases de datos Oracle.</p></li>\n</ul><h3>Requisitos imprescindibles</h3><ul>\n<li><p>Experiencia de <strong>2–3 años en administración de bases de datos Oracle</strong>, principalmente en versiones 12c, 18c y 19c.</p></li>\n<li><p>Conocimientos prácticos en instalación, mantenimiento y resolución de incidencias.</p></li>\n<li><p>Conocimientos de backup y recuperación con Oracle RMAN.</p></li>\n<li><p>Conocimientos de Oracle RAC y Data Guard.</p></li>\n<li><p><strong>Valorable experiencia previa como DBA Oracle en entornos bancarios.</strong></p></li>\n</ul><h3>Condiciones</h3><ul>\n<li><p><strong>Modalidad:</strong> 100% remoto.</p></li>\n<li><p><strong>Horario:</strong> tres turnos posibles (mañana, mediodía y tarde), pendientes de concretar.</p></li>\n<li><p><strong>Jornada intensiva:</strong> los viernes y durante julio y agosto.</p></li>\n<li><p><strong>Salario:</strong> dentro de la banda de 26.000 € a 34.000 € brutos anuales, según experiencia, en 14 pagas.</p></li>\n<li><p><strong>Guardias e intervenciones:</strong> disponibilidad cuando sean necesarias, con remuneración adicional.</p></li>\n</ul><h3>Beneficios</h3><ul>\n<li><p>Día libre por cumpleaños y un día adicional de asuntos propios.</p></li>\n<li><p>Plan de retribución flexible: tarjeta restaurante y transporte.</p></li>\n<li><p>Seguro médico privado y acceso a WellHub.</p></li>\n<li><p>Descuentos corporativos en productos, servicios y formaciones.</p></li>\n<li><p>Formación continua y certificaciones adaptadas al puesto.</p></li>\n</ul><p><strong>"
+    },
+    "soEuropa": {
+      "title": "Junior Data Scientist",
+      "companyName": "Seedtag",
+      "seniority": [
+        "Entry-level"
+      ],
+      "locationRestrictions": [
+        "Belgium",
+        "France",
+        "Germany",
+        "Italy",
+        "Netherlands",
+        "Spain",
+        "United Kingdom"
+      ],
+      "pubDate": 1793218714,
+      "applicationLink": "https://himalayas.app/companies/seedtag/jobs/junior-data-scientist?utm_source=api",
+      "guid": "https://himalayas.app/companies/seedtag/jobs/junior-data-scientist",
+      "description": "<p>We’re looking for a Junior Data Scientist to join our tech team and help build the future of neuro-contextual advertising at global scale.</p><h4>Who We Are</h4><p>At <a href=\"https://himalayas.app/companies/seedtag\">Seedtag</a>, our mission is to transform advertising by proving that effectiveness and user privacy can truly coexist.</p><p>As the leading Neuro-Contextual Advertising Company, we combine Artificial Intelligence, Natural Language Processing, Computer Vision, and neuroscience to understand not only what content is about, but how it makes people feel and what they intend to do next.</p><p>Our proprietary AI, Liz, enables brands to connect with audiences across the open web and Connected TV without cookies or user tracking. Founded in 2014 by two ex-Googlers, <a href=\"https://himalayas.app/companies/seedtag\">Seedtag</a> has grown to 500+ <a href=\"https://himalayas.app/companies/seedtag\">Seedtag</a>gers in 17 countries, backed by €250M in funding, and operates today as a global ad-tech leader.</p><p>If you enjoy solving complex engineering challenges and building AI-driven systems at scale, you’ll feel right at home here.</p><h4>Your Challenge</h4><p>As our Junior Data Scientist, you will join our Insights team to transform contextual, audience, and campaign data into actionable insights for clients and commercial teams, leveraging Liz, <a href=\"https://himalayas.app/companies/seedtag\">Seedtag</a>'s AI.</p><h3>Your main responsibilities will include:</h3><ul>\n<li><p>Data Pipelines &amp; Analytics: Build and maintain pipelines to analyse campaign performance, audience behaviour, and contextual data across the open web and CTV.</p></li>\n<li><p>Analytical Models: Develop models for audience profiling, content analysis, campaign comparisons, and pre-campaign planning.</p></li>\n<li><p>Data Products: Turn analyses into scalable data products using tools such as dbt, Trino, and Airflow, ensuring data quality and reliability.</p></li>\n<li><p>AI Agents &amp; Automation: Prototype LLM-based agents and workflows using techniques such as embeddings, classification, clustering, and summarisation.</p></li>\n<li><p>Experimentation &amp; Evaluation: Design and evaluate experiments to ensure automated insights are accurate, reliable, and actionable.</p></li>\n<li><p>Data Quality &amp; Troubleshooting: Investigate data anomalies, identify root causes, and improve pipeline reliability.</p></li>\n<li><p>Data Storytelling: Communicate findings through clear visualisations and actionable recommendations for Product, Sales, and clients.</p></li>\n</ul><h4>"
+    },
+    "mundoIngles": {
+      "title": "Full Stack Developer Intern",
+      "companyName": "ASG Company",
+      "seniority": [
+        "Entry-level"
+      ],
+      "locationRestrictions": [],
+      "pubDate": 1793820616,
+      "applicationLink": "https://himalayas.app/companies/asg-company/jobs/full-stack-developer-intern?utm_source=api",
+      "guid": "https://himalayas.app/companies/asg-company/jobs/full-stack-developer-intern",
+      "description": "<p><strong>What is this job about?</strong><br>ASG Platform is looking for a Full Stack Developer Intern to assist our demanding customer website infrastructure and our Full Stack Developers. Our projects require implementing our pre-approved UI, constructing our API, connecting the two, and setting up our server infrastructure with our client's current systems. </p><p><strong>The main functions are as follows:</strong><br>- Help the Full Stack Developers to build the core and support systems for a communication platform.<br>- Help maintenance of the core and support systems by constantly updating the source codes and allied repositories.<br>- Assist the Full Stack Developers with technical documentation and maintain active tech repositories for all tech activities carried out.</p><p><strong>Job Location and Compensation</strong><br>- This job is a remote position. You can work anywhere in the Philippines.<br>- Your working shift will be 7 AM - 5 PM Central Standard Time in the USA with a one-hour break. (8 PM - 6 AM Philippine time)<br>- Applicants can expect a salary of PHP 20,000 - PHP 25,000 per month</p><h3>Benefits</h3><h3>Work from home set up</h3><h3>Health care insurance</h3><p>Paid training provided<br>Full-time job<br>Bonuses</p><h3>PTO</h3><h3>What do you need to qualify?</h3><ul>\n<li>Bachelor’s/College Degree, Computer Science or equivalent.<br>- At least 1 year experience in Writing HTML, CSS, and JavaScript. Being up on the latest practices is a must, e.g., HTML5, CSS3, and ECMAScript 6 (minimum).<br>- At least 1 year of experience with a relevant back-end programming language (i.e. PHP, Python, Ruby, or JavaScript).<br>- Knowledgeable database design and management, including being up on the latest practices and associated versions.<br>- It will be important that you like working in a team, as team collaboration is necessary for all of our positions. <br>- Requires great internet with a backup source in case your primary internet source is interrupted for any reason. <br><br><em><strong>‼️ Job opening exclusive only to Filipino locals ‼️</strong></em>\n</li>\n</ul><p>All your information will be kept confidential according to EEO guidelines.</p><p>"
+    }
+  },
+  "getonbrd": {
+    "latamSemBrasil": {
+      "id": "front-end-angular-flutter-grupo-mariposa-remote-5d9d",
+      "type": "job",
+      "attributes": {
+        "title": "Front-end (Angular Flutter)",
+        "functions": "<ol><li>Desarrollar funcionalidades en aplicaciones móviles con Flutter, con el acompañamiento de desarrolladores con más experiencia.</li><li>Apoyar el desarrollo y mantenimiento de aplicaciones web en Angular.</li><li>Construir pantallas a partir de prototipos entregados por el equipo de UI/UX.</li><li>Consumir APIs e integrar funcionalidades básicas del dispositivo.</li><li>Corregir errores y escribir pruebas unitarias básicas.</li><li>Participar en ceremonias ágiles y revisiones de código, recibiendo y aplicando retroalimentación.</li></ol>",
+        "description": "<ol><li>Hasta 1 año de experiencia en desarrollo frontend y/o móvil (se valoran prácticas, proyectos personales, académicos o freelance).</li><li><strong>Flutter / Dart:</strong><ul><li>Conocimientos de Dart y del sistema de widgets de Flutter.</li><li>Bases en manejo de estado con <strong>Riverpod</strong>.</li><li>Consumo de APIs REST con Dio o http.</li><li>Navegación entre pantallas (go_router o Navigator).</li><li>Construcción de interfaces responsive.</li></ul></li><li><strong>Angular:</strong><ul><li>Conocimientos básicos de componentes, servicios, routing y formularios.</li><li>Nociones de <strong>Signals</strong> y standalone components.</li><li>Bases de TypeScript.</li></ul></li><li>Conocimientos de HTML y CSS.</li><li>Manejo básico de Git (commits, ramas, pull requests).</li><li>Ganas de aprender, proactividad y disposición para recibir retroalimentación.</li><li>Buenas habilidades de comunicación y trabajo en equipo.</li></ol>",
+        "desirable": "<ul><li>Portafolio o repositorio en GitHub con proyectos en Flutter o Angular.</li><li>Alguna app publicada o en desarrollo (personal o académica).</li><li>Nociones de microfrontends en Angular.</li><li>Conocimientos básicos de testing (flutter_test).</li><li>Nociones de arquitectura limpia o separación por capas.</li><li>Familiaridad con Figma o herramientas de diseño.</li><li>Experiencia o conocimiento de metodologías ágiles.</li></ul>",
+        "benefits": "<ul><li>Ambiente de trabajo colaborativo y dinámico.</li><li>Desarrollo profesional continuo y oportunidades de crecimiento.</li><li>Flexibilidad de horarios y equilibrio entre vida laboral y personal.</li></ul>",
+        "remote": true,
+        "remote_modality": "remote_local",
+        "countries": [
+          "Remote"
+        ],
+        "lang": "es",
+        "category_name": "Mobile Development",
+        "published_at": 1790811351,
+        "seniority": {
+          "data": {
+            "id": 2,
+            "type": "seniority"
+          }
+        },
+        "modality": {
+          "data": {
+            "id": 1,
+            "type": "modality"
+          }
+        },
+        "location_tenants": {
+          "data": [
+            {
+              "id": "mexico",
+              "type": "country",
+              "attributes": {
+                "name": "Mexico"
+              }
+            },
+            {
+              "id": "chile",
+              "type": "country",
+              "attributes": {
+                "name": "Chile"
+              }
+            },
+            {
+              "id": "argentina",
+              "type": "country",
+              "attributes": {
+                "name": "Argentina"
+              }
+            },
+            {
+              "id": "peru",
+              "type": "country",
+              "attributes": {
+                "name": "Peru"
+              }
+            },
+            {
+              "id": "ecuador",
+              "type": "country",
+              "attributes": {
+                "name": "Ecuador"
+              }
+            }
+          ]
+        },
+        "location_regions": {
+          "data": [
+            {
+              "id": "central_america",
+              "type": "region",
+              "attributes": {
+                "name": "Central America"
+              }
+            }
+          ]
+        },
+        "company": {
+          "data": {
+            "id": "grupo-mariposa",
+            "type": "company",
+            "attributes": {
+              "name": "Grupo Mariposa"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/front-end-angular-flutter-grupo-mariposa-remote-5d9d"
+      }
+    },
+    "soColombia": {
+      "id": "ai-trainee-aprendiz-de-inteligencia-artificial-factor-it-remote",
+      "type": "job",
+      "attributes": {
+        "title": "Aprendiz de Inteligencia Artificial Contrato Sena",
+        "functions": "<p>Apoyar la integración de modelos de IA Generativa mediante APIs y herramientas definidas por el equipo.</p><p>Participar en la construcción de pruebas de concepto (PoC) con LLMs, asistentes virtuales y automatización inteligente.</p><p>Preparar, organizar y validar datos usados en soluciones de IA.</p><p>Crear y mantener prompts, plantillas conversacionales y configuraciones básicas de interacción con modelos.</p><p>Ejecutar pruebas funcionales sobre soluciones de IA y documentar resultados, incidencias y mejoras.</p><p>Documentar arquitecturas, flujos y configuraciones técnicas de los proyectos.</p><p>Participar en reuniones técnicas, sesiones de refinamiento y seguimiento de proyectos.</p><p>Investigar nuevos modelos, frameworks y herramientas de IA.</p><p>Apoyar el monitoreo del desempeño de las soluciones implementadas.</p>",
+        "description": "<ul><li>Estar habilitado/a para firmar contrato de aprendizaje SENA, en una de estas dos modalidades:<ul><li>Tecnólogo/a en Análisis y Desarrollo de Software (ADSO) o afines, del SENA u otra institución reconocida, que esté por iniciar o cursando su etapa productiva.</li><li>Estudiante universitario de Ingeniería de Sistemas, Ingeniería Informática, Ingeniería de Software, Ciencia de Datos, Ciencias de la Computación o carreras afines, que esté cursando su semestre de práctica o el último semestre de la carrera, con aval de su institución para hacer la práctica bajo contrato de aprendizaje.</li></ul></li><li>Fundamentos de programación, idealmente en Python.</li><li>Conceptos básicos de Inteligencia Artificial y Machine Learning.</li><li>Conocimientos básicos de APIs y servicios web.</li><li>Manejo de Git y control de versiones.</li><li>Conceptos básicos de bases de datos SQL.</li><li>Inglés técnico básico a intermedio.</li></ul><h3>Habilidades blandas</h3><ul><li>Comunicación asertiva, trabajo en equipo, pensamiento analítico, organización, innovación y capacidad de aprendizaje.</li></ul>",
+        "desirable": "<ul><li>Conocimientos iniciales de LLMs (GPT, Claude, Gemini) y prompt engineering.</li><li>LangChain o herramientas similares, y conceptos básicos de RAG.</li><li>GitHub Copilot u otras herramientas de IA para desarrollo.</li><li>Certificaciones introductorias en IA Generativa, como Google Cloud Generative AI Fundamentals o AWS AI Practitioner.</li><li>Proyectos académicos, bootcamps, hackathons o proyectos personales en software, datos o IA (comparte tu GitHub o portafolio).</li><li>",
+        "benefits": "<p>Contrato de aprendizaje SENA, con apoyo de sostenimiento mensual según la normativa vigente para tu nivel de formación.</p><p>Afiliación a seguridad social.</p><p>Modalidad: remota en [Medellín / Bogotá].</p><p>Duración: [6 meses / según el periodo de práctica avalado por tu institución].</p>",
+        "remote": true,
+        "remote_modality": "remote_local",
+        "countries": [
+          "Remote"
+        ],
+        "lang": "lang_not_specified",
+        "category_name": "Machine Learning & AI",
+        "published_at": 1792443222,
+        "seniority": {
+          "data": {
+            "id": 1,
+            "type": "seniority"
+          }
+        },
+        "modality": {
+          "data": {
+            "id": 4,
+            "type": "modality"
+          }
+        },
+        "location_tenants": {
+          "data": [
+            {
+              "id": "colombia",
+              "type": "country",
+              "attributes": {
+                "name": "Colombia"
+              }
+            }
+          ]
+        },
+        "location_regions": {
+          "data": []
+        },
+        "company": {
+          "data": {
+            "id": "factor-it-y-compania-sac",
+            "type": "company",
+            "attributes": {
+              "name": "Factor IT"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/ai-trainee-aprendiz-de-inteligencia-artificial-factor-it-remote"
+      }
+    },
+    "remotoIngles": {
+      "id": "conversational-ai-qa-specialist-evolution-collect-llc-remote",
+      "type": "job",
+      "attributes": {
+        "title": "Conversational AI QA Specialist",
+        "functions": "<ul><li>Check bot health every morning: review dashboards and alerts, compare results over time, and report drops or anomalies.</li><li>Audit the vendor's QA reviews: confirm or dispute each pass/fail score, correct it where needed, and note why.</li><li>Review conversations end to end: listen to calls and read chat transcripts, check summaries and payment details, and confirm the account system was updated correctly, all against our QA manuals and SOPs.</li><li>Catch what the rules miss: recognize when a consumer is disputing a debt or describing a hardship without saying it outright, and flag when the bot misses it. Watch for compliance issues such as identity verification, required disclosures, cease and attorney requests, bankruptcy, and active-duty military.</li><li>",
+        "description": "<ul><li>Some QA or review experience: QA of any kind, AI data annotation or evaluation, content review or moderation (for example, tagging social media or political content), or contact center quality. This role is close to entry level, and we will train you on our products and rules.</li><li>Attention to detail: you catch the small error others miss and take pride in getting it right.</li><li>A strong feel for language: you understand what people mean even when they don't say it directly, and can tell when a bot handled a stressed consumer badly.</li><li>Thinking beyond pass/fail: you follow the manual and also notice what it doesn't cover.</li><li>Organized and thorough: you follow the same steps every day without cutting corners and are willing to dive in when something looks off.</li><li>Initiative balanced with direction: you raise ideas and issues while following the SOPs and priorities the team sets.</li><li>Clear communication and follow-through.</li><li>A basic understanding of large language models, or real curiosity to learn. Comfortable with Excel. You do not need to be technical.</li></ul>",
+        "desirable": "<ul><li>Conversational AI experience, especially in collections or another regulated industry</li><li>A linguistics or translation background</li><li>Bilingual English and Spanish</li><li>Knowledge of the FDCPA, Regulation F, or the TCPA</li></ul>",
+        "benefits": "",
+        "remote": true,
+        "remote_modality": "fully_remote",
+        "countries": [
+          "Remote"
+        ],
+        "lang": "en",
+        "category_name": "SysAdmin / DevOps / QA",
+        "published_at": 1793724576,
+        "seniority": {
+          "data": {
+            "id": 2,
+            "type": "seniority"
+          }
+        },
+        "modality": {
+          "data": {
+            "id": 1,
+            "type": "modality"
+          }
+        },
+        "location_tenants": {
+          "data": []
+        },
+        "location_regions": {
+          "data": []
+        },
+        "company": {
+          "data": {
+            "id": "evolution-collect-llc",
+            "type": "company",
+            "attributes": {
+              "name": "Evolution Collect LLC"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/conversational-ai-qa-specialist-evolution-collect-llc-remote"
+      }
+    },
+    "soChile": {
+      "id": "data-analyst-i-signant-health-remote-947a",
+      "type": "job",
+      "attributes": {
+        "title": "Data Analyst I",
+        "functions": "<ul><li>Verify SQL database contents and changes using source documentation and the database audit trail.</li><li>Verify data changes against Data Change Guides (DCGs) and associated risk/impact assessments.</li><li>Verify structure and content of client-requested database transfer datasets.</li><li>Verify Data Transfers/Reports per approved Data Transfer Specifications.</li><li>Verify data integrity across multiple databases using manual and automated techniques.</li><li>Perform routine data quality checks and report on the results on a regular basis.</li><li>Some data entry of data change requests (Change Forms).</li><li>Participates in special data-related projects as needed.</li><li>Demonstrate extreme attention to detail and organization in all aspects of work.</li><li>",
+        "description": "<p><u><strong>Education</strong></u></p><ul><li>1-3 years of experience working in a data-driven environment.</li><li>Working knowledge of Structured Query Language (SQL), as well as Microsoft Windows 2000/2003/XP and the suite of Microsoft Office applications.</li><li>Experience with standard data mining and data presentation techniques.</li><li>Proven ability to handle multiple competing priorities in a fast-paced work environment with minimal direct supervision.</li></ul><p><u><strong> Competencies &amp; Personal Attributes</strong></u></p><ul><li>Must have excellent written communication skills, including the ability to effectively document procedures, processes and results.</li><li>Demonstrated ability to meet deadlines &amp; multi-task in a fast-paced work environment.</li><li>Demonstrate extreme attention to detail and organization in all aspects of work.</li><li>Must have very strong skills with Microsoft Office applications.</li><li>Must be comfortable working with business users and technical teams.</li><li>Familiarity with SQL Queries is a plus.</li><li>Working knowledge of Visual Basic is a plus.</li><li>Familiarity with GCP and 21 CFR Part 11 is a plus.</li></ul>",
+        "desirable": "",
+        "benefits": "<p><strong>Language:</strong> Resumes must be submitted in English.</p>",
+        "remote": true,
+        "remote_modality": "remote_local",
+        "countries": [
+          "Remote"
+        ],
+        "lang": "en",
+        "category_name": "Data Science / Analytics",
+        "published_at": 1793287383,
+        "seniority": {
+          "data": {
+            "id": 2,
+            "type": "seniority"
+          }
+        },
+        "modality": {
+          "data": {
+            "id": 1,
+            "type": "modality"
+          }
+        },
+        "location_tenants": {
+          "data": [
+            {
+              "id": "chile",
+              "type": "country",
+              "attributes": {
+                "name": "Chile"
+              }
+            }
+          ]
+        },
+        "location_regions": {
+          "data": []
+        },
+        "company": {
+          "data": {
+            "id": "signant-health",
+            "type": "company",
+            "attributes": {
+              "name": "Signant Health"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/data-analyst-i-signant-health-remote-947a"
+      }
+    }
+  }
+}

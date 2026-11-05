@@ -87,21 +87,39 @@ Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Checar j�
 - **Fontes**: lista de URLs — busca do Remotar (`estágio`, `júnior`,
   `trainee`), issues abertas de `frontendbr/vagas`, `backend-br/vagas`,
   `react-brasil/vagas` e `soujava/vagas-java` (GitHub: 60 req/h sem token,
-  1000 com o `GITHUB_TOKEN` do Actions), a busca do Himalayas e 11 buscas de
-  estágio na Gupy (remoto do Brasil todo + Piauí).
+  1000 com o `GITHUB_TOKEN` do Actions), 7 buscas do Himalayas (4 delas de
+  remotas de fora do Brasil abertas a quem mora aqui), 11 buscas de estágio na
+  Gupy (remoto do Brasil todo + Piauí) e 3 buscas no GetOnBoard (América
+  Latina).
 - **Buscar vagas**: devolve o corpo como **texto** (a Gupy responde HTML);
   o `Montar vagas` faz o parse.
-- **Montar vagas**: normaliza os quatro formatos, pega as publicadas nos
+- **Montar vagas**: normaliza os cinco formatos, pega as publicadas nos
   últimos 7 dias (30 na Gupy, se o prazo de inscrição não passou), aplica o
   filtro de perfil e devolve as candidatas (até 300), estágio primeiro,
   intercalando as fontes. Cada uma leva `title` e `company` como a fonte
   publicou (`company` vazio no GitHub, que não tem esse campo). O perfil fica
   nas constantes do topo do código: `ESTADO_LOCAL`/`CIDADES_LOCAIS`
   (presencial/híbrido só em Teresina/PI; remoto de qualquer lugar),
-  `NIVEL_OK`/`NIVEL_FORA` (estágio–júnior), `AREA_TI`/`AREA_FORA`/`NAO_TI`,
-  `EXIGE_INGLES`, `EXIGE_ANOS` (2+ anos), `CATEGORIAS_REMOTAR` e o teste de
-  idioma (`emPortugues`). Para trocar de estado, mude `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a
-  busca `state=` da Gupy em "Fontes".
+  `NIVEL_OK`/`NIVEL_FORA` (estágio–júnior, com os termos em espanhol:
+  practicante, pasante, becario, sin experiencia), `AREA_TI`/`AREA_FORA`/`NAO_TI`
+  (também em espanhol), `EXIGE_INGLES` (inclui "inglés avanzado", "nivel de
+  inglés B2", "bilingüe"), `EXIGE_ANOS` (2+ anos/años; faixa que começa em 0
+  ou 1, como "entre 0 y 4 años" ou "1 a 2 anos", passa), `CATEGORIAS_REMOTAR`
+  e o teste de idioma (`idiomaAceito`). Para trocar de estado, mude
+  `ESTADO_LOCAL`/`CIDADES_LOCAIS` e a busca `state=` da Gupy em "Fontes".
+  - **Vaga de fora do Brasil** (Himalayas com lista de países que não é só o
+    Brasil, e todo o GetOnBoard): só **remota** e **aberta a quem mora no
+    Brasil**. Presencial/híbrido lá fora exige visto e cai. Aberta ao Brasil =
+    a lista de países da fonte tem o Brasil, ou não há lista (qualquer país);
+    no GetOnBoard também vale a região América do Sul/Latina. Remota restrita
+    a outro país (só Espanha, só UE, só Chile...) cai. O texto também é lido:
+    `restritoAoPais` derruba frase sobre quem se candidata que exige residir ou
+    ter permissão de trabalho em outro país ("solo residentes en España",
+    "must be based in the EU", "residir em Portugal", "permiso de trabajo en la
+    Unión Europea"); frase que também cita Brasil/LATAM/qualquer lugar não
+    conta, nem frase sobre a sede da empresa ("empresa ubicada en España").
+    `PRESENCIAL_EXTERIOR` derruba "Modalidad: presencial/híbrida",
+    "híbrido en Madrid", "on-site in..." no título ou no texto.
   - **Área (TI ou não)** sai do **título**, não da descrição: texto de vaga de
     marketing fala em "autodesenvolvimento" e "sistemas" e passava. No Remotar
     contam também as categorias (já filtradas por `CATEGORIAS_REMOTAR`); no
@@ -113,8 +131,9 @@ Manual ────┴→ Fontes → Buscar vagas → Montar vagas → Checar j�
   - **Idioma** compara palavras funcionais exclusivas de cada língua
     (português: `e`, `em`, `do`, `da`, `com`, `uma`, `não`...; inglês:
     `the`, `and`, `of`, `to`, `with`...; espanhol: `el`, `la`, `los`, `y`,
-    `en`, `con`...). Recusa só quando inglês ou espanhol têm mais que o
-    português. Texto com menos de 40 palavras (`MIN_PALAVRAS_IDIOMA`) ou
+    `en`, `con`...). Português e espanhol valem: recusa só quando o inglês
+    tem mais que os dois (até nov/2026 o espanhol também era recusado; mudou
+    com as fontes de fora do Brasil). Texto com menos de 40 palavras (`MIN_PALAVRAS_IDIOMA`) ou
     empate passa: na dúvida a vaga vai para `/monitoradas`, onde descartar
     custa um clique. A regra antiga (4 ocorrências de "vaga", "requisitos",
     "benefícios"...) recusava descrições curtas do Remotar em português.
@@ -178,9 +197,49 @@ e `react-brasil`. Outros repositórios (`qa-brasil`, `phpdevbr`,
 
 ### ✅ Himalayas (implementado — `vagas-br.json`)
 API pública `https://himalayas.app/jobs/api/search` (`q`, `country`,
-`sort=recent`; `seniority=Entry-level` também funciona). Maioria internacional
-e em inglês: o filtro só aceita vagas com `Brazil` em `locationRestrictions`
-e texto em português, o que deixa poucas.
+`sort=recent`; `seniority=Entry-level` também funciona), sem chave; os termos
+(cláusula 30A) liberam a API pública dentro dos limites documentados, e os
+dados só mudam uma vez por dia. Todas as vagas são remotas. Maioria
+internacional e em inglês: o filtro aceita vagas com `Brazil` em
+`locationRestrictions` ou sem restrição (qualquer país) e texto em português
+ou espanhol. `country=Brazil` na busca já traz só as abertas ao Brasil
+(inclusive listas "LATAM" com 45 países e as sem restrição); as buscas
+`desarrollador`, `datos`, `remoto` e `latam` com `country=Brazil` pegam as
+remotas de empresas hispânicas/LATAM. Vagas da Espanha e de Portugal quase
+sempre restringem a residentes (lista só `Spain`/`Portugal`/UE) e caem.
+Medido em 05/11/2026 (~260 vagas nas buscas novas): 2 vagas novas passariam
+(".NET Jr" e "Analista de Datos", LATAM, em espanhol); o resto cai por nível
+(semi senior/senior), inglês exigido ou texto em inglês.
+
+### ✅ GetOnBoard (implementado — `vagas-br.json`)
+API pública `https://www.getonbrd.com/api/v0/search/jobs?query=TERMO&per_page=100`
+(documentada em `getonbrd.com/api-doc.html`: "Public API — open to anyone, no
+authentication required"); `robots.txt` com `Allow: /`. Vagas de tecnologia
+da América Latina (Chile, Colômbia, México, Peru, Argentina...), em espanhol ou
+inglês. `expand=["company","location_tenants","location_regions"]` traz a
+empresa e os países/regiões aceitos. Campos usados: `remote_modality`
+(`fully_remote` = qualquer país se não houver lista; `remote_local` = só os
+países de `location_tenants`; `hybrid`/`no_remote` caem), `seniority`
+(1 sin experiencia, 2 junior, 3 semi senior, 4 senior, 5 expert) e
+`modality` 4 (práctica). Buscas: `junior`, `sin experiencia`, `practicante`.
+`source` enviado: `getonbrd` (o webhook ainda não conhece esse valor e grava
+`manual` no log/`AiUsage.action`). Medido em 05/11/2026: quase tudo é semi
+senior/senior ou restrito a um país sem o Brasil; 0 vagas passariam nessa
+amostra. Fica pelo baixo custo (3 requisições) e por ser a maior base LATAM de
+TI com API aberta; reavaliar pela contagem por busca do Actions.
+
+### ⛔ Avaliadas em 05/11/2026 para vagas remotas de fora do Brasil
+| Fonte | Motivo |
+|---|---|
+| Landing.jobs (Portugal) | `robots.txt` com `Disallow: /api/` |
+| Remotive | `robots.txt` com `Disallow: /api/*` |
+| Tecnoempleo (Espanha) | desafio do Cloudflare (exige navegador) |
+| ITJobs.pt | API exige chave (`API key required`) |
+| InfoJobs Espanha | API exige cadastro de aplicação (OAuth) |
+| Jobicy | API aberta (`geo=latam`, `geo=spain`), mas só vagas em inglês, quase todas senior; pede crédito com link |
+| Working Nomads | API aberta, 35 vagas em inglês, nenhuma júnior |
+| Net-Empregos (Portugal) | `robots.txt` libera e lista um RSS; não testado. Portal generalista de vagas em Portugal, que tendem a exigir residência (hipótese) |
+| Angola/Moçambique | não pesquisado a fundo; nenhum portal com API/feed conhecido |
 
 ### ✅ Gupy (implementado — `vagas-br.json`)
 Os endpoints JSON antigos (`portal.api.gupy.io`, `employability-portal.gupy.io`)
@@ -305,7 +364,8 @@ Ainda não coberto (ver `ROADMAP.md`):
 
 Fontes aceitas em `source`: `indeed`, `weworkremotely`, `github`,
 `himalayas`, `remotar`, `gupy`, `infojobs`, `catho`, `gmail`, `manual` (outro
-valor vira `manual`). Esse provedor vai só para o log, a resposta e
+valor vira `manual`; o workflow já envia `getonbrd`, que por enquanto cai
+aqui). Esse provedor vai só para o log, a resposta e
 `AiUsage.action` (`analyze_job_webhook_<fonte>`). No banco, `Job.source` é o
 **canal de entrada**: toda vaga criada pelo webhook grava `"n8n"`, e o
 cadastro pela interface fica com o padrão `"manual"`. O provedor sai do host
@@ -376,7 +436,11 @@ curl -X POST https://seu-projeto.vercel.app/api/webhook/n8n/check \
 **Testes automáticos** (`npm test`, também no CI): `tests/jobDedup.test.mjs`
 cobre as regras da seção 6 e `tests/n8nWorkflow.test.mjs` roda o código dos
 nós "Montar vagas" e "Separar novas" direto do `vagas-br.json`, com respostas
-falsas das fontes (filtro de área, campos enviados e teto de 40).
+falsas das fontes (filtro de área, campos enviados e teto de 40) e respostas
+reais cortadas em `tests/fixtures/` (`n8n-idioma.json`; `n8n-exterior.json`
+para Himalayas fora do Brasil e GetOnBoard: LATAM em espanhol passa; só
+Espanha/UE, presencial em Madri, texto "solo residentes en España" e júnior
+com 3 anos exigidos caem).
 
 **Ensaio completo sem tocar na produção**: suba o app numa porta livre
 apontando para um SQLite descartável (`DATABASE_URL=file:...`,
