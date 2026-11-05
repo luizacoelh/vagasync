@@ -196,14 +196,14 @@ test("descrição curta do Remotar segue o resto do filtro", () => {
   assert.deepEqual(vagas.map((v) => v.title), ["Estágio em Inteligência Artificial"]);
 });
 
-test("vaga em inglês ou espanhol continua recusada", () => {
+test("vaga em inglês continua recusada; em espanhol passa", () => {
   assert.equal(montar([soIdioma(fixture.himalayasIngles.map((j) => j.description))]).length, 0);
   const espanhol =
     "Buscamos un estudiante de ingeniería de sistemas para unirse a nuestro equipo de desarrollo. " +
     "El practicante trabajará con el equipo en la construcción de aplicaciones web y en la mejora de los procesos internos. " +
     "Requisitos: conocimientos en JavaScript y en bases de datos, disponibilidad para trabajar en las tardes, " +
     "buena comunicación con el cliente y con los compañeros. Ofrecemos un ambiente flexible y la posibilidad de crecer.";
-  assert.equal(montar([soIdioma([espanhol])]).length, 0);
+  assert.equal(montar([soIdioma([espanhol])]).length, 1);
 });
 
 test("ênclise do português não conta como espanhol", () => {
@@ -235,4 +235,116 @@ test("cada candidata diz de quais buscas veio", () => {
 
 test("índice repetido na resposta não envia a vaga duas vezes", () => {
   assert.deepEqual(separar({ novas: [3, 3, 5], duplicadas: 97 }), ["https://x/3", "https://x/5"]);
+});
+
+// Vagas de fora do Brasil (Himalayas com outros países, GetOnBoard). Respostas
+// reais de 05/11/2026, cortadas; a data é trocada por uma recente.
+const exterior = JSON.parse(readFileSync(new URL("./fixtures/n8n-exterior.json", import.meta.url), "utf8"));
+const himReal = (jobs) => ({ jobs: jobs.map((j) => ({ ...j, pubDate: Math.floor(now / 1000) - 3600 })) });
+const gobReal = (jobs) => ({
+  data: jobs.map((j) => ({ ...j, attributes: { ...j.attributes, published_at: Math.floor(now / 1000) - 3600 } })),
+  meta: { page: 1, per_page: 100, total_pages: 1 },
+});
+const [analistaDatos, netJr] = exterior.himalayas.latamEspanhol;
+// a mesma vaga real com outra lista de países, outro texto ou outro link
+const comPaises = (job, locationRestrictions) => ({ ...job, locationRestrictions });
+const comTexto = (job, texto, i = 0) => ({
+  ...job,
+  applicationLink: `${job.applicationLink}&teste=${i}`,
+  description: `<p>${texto}</p>${job.description}`,
+});
+const gobCom = (job, attrs) => ({ ...job, attributes: { ...job.attributes, ...attrs } });
+const tenants = (...ids) => ({ data: ids.map((id) => ({ id, type: "country", attributes: { name: id } })) });
+
+test("remota LATAM em espanhol aberta ao Brasil passa", () => {
+  // "Entre 0 y 4 años" e "1 a 2 años": faixa que começa em 0 ou 1 não é exigência
+  const vagas = montar([himReal([analistaDatos, netJr])]);
+  assert.deepEqual(vagas.map((v) => v.title).sort(), [analistaDatos.title, netJr.title].sort());
+  for (const v of vagas) assert.equal(v.source, "himalayas");
+  // sem lista de países = qualquer país
+  assert.equal(montar([himReal([comPaises(netJr, [])])]).length, 1);
+});
+
+test("remota só para Espanha ou UE cai", () => {
+  const { soEspanha, soEuropa } = exterior.himalayas;
+  assert.equal(montar([himReal([soEspanha, soEuropa])]).length, 0);
+  // a vaga que passa cai quando a lista de países não tem o Brasil
+  assert.equal(montar([himReal([comPaises(netJr, soEspanha.locationRestrictions)])]).length, 0);
+  assert.equal(montar([himReal([comPaises(netJr, soEuropa.locationRestrictions)])]).length, 0);
+});
+
+test("texto que restringe a residentes de outro país derruba a vaga de fora", () => {
+  const restritas = [
+    "Importante: solo residentes en España.",
+    "Candidates must be based in the EU.",
+    "É obrigatório residir em Portugal.",
+    "Requisito: contar con permiso de trabajo en la Unión Europea.",
+  ];
+  assert.equal(montar([himReal(restritas.map((t, i) => comTexto(netJr, t, i)))]).length, 0);
+  const abertas = [
+    "Debes residir en México, Colombia, Argentina o Brasil.",
+    "Somos una empresa ubicada en España con equipo distribuido.",
+    "Trabajo 100% remoto, sin presencialidad.",
+  ];
+  assert.equal(montar([himReal(abertas.map((t, i) => comTexto(netJr, t, i)))]).length, 3);
+});
+
+test("presencial ou híbrido fora do Brasil cai", () => {
+  const madri = comTexto(comPaises(netJr, []), "Modalidad: presencial en Madrid, de lunes a viernes.");
+  const hibrido = { ...comPaises(netJr, []), title: "Desarrollador Net Jr - híbrido en Madrid" };
+  assert.equal(montar([himReal([madri, hibrido])]).length, 0);
+  // GetOnBoard marca a modalidade: mesmo aberta ao Brasil, presencial cai
+  const base = exterior.getonbrd.latamSemBrasil;
+  const presencial = gobCom(base, { remote: false, remote_modality: "no_remote", countries: ["Spain"], location_tenants: tenants("brasil") });
+  assert.equal(montar([gobReal([presencial])]).length, 0);
+});
+
+test("júnior que exige 3 anos de experiência cai", () => {
+  const tresAnos = {
+    ...netJr,
+    description: netJr.description.replace("1 a 2 años de experiencia", "Mínimo 3 años de experiencia"),
+  };
+  assert.notEqual(tresAnos.description, netJr.description);
+  assert.equal(montar([himReal([tresAnos])]).length, 0);
+  const ptTresAnos = comTexto(comPaises(netJr, []), "Requisito: 3 anos de experiência com C#.");
+  assert.equal(montar([himReal([ptTresAnos])]).length, 0);
+});
+
+test("GetOnBoard: só remota aberta ao Brasil, em português ou espanhol", () => {
+  const { latamSemBrasil, soColombia, remotoIngles, soChile } = exterior.getonbrd;
+  // reais: LATAM sem o Brasil, só Colômbia, remota em inglês, só Chile
+  assert.equal(montar([gobReal([latamSemBrasil, soColombia, remotoIngles, soChile])]).length, 0);
+  // a primeira com o Brasil na lista (ou com a região América do Sul) passa
+  const ids = latamSemBrasil.attributes.location_tenants.data.map((t) => t.id);
+  const comBrasil = gobCom(latamSemBrasil, { location_tenants: tenants(...ids, "brasil") });
+  const comRegiao = gobCom(latamSemBrasil, {
+    location_regions: { data: [{ id: "south_america", type: "region", attributes: { name: "South America" } }] },
+  });
+  const [vaga, ...resto] = montar([gobReal([comBrasil])]);
+  assert.equal(resto.length, 0);
+  assert.equal(vaga.source, "getonbrd");
+  assert.equal(vaga.title, "Front-end (Angular Flutter)");
+  assert.equal(vaga.company, "Grupo Mariposa");
+  assert.equal(vaga.url, latamSemBrasil.links.public_url);
+  assert.match(vaga.description, /Modalidade: remoto/);
+  assert.equal(montar([gobReal([comRegiao])]).length, 1);
+  // remota sem lista de países (qualquer lugar) e em espanhol passa
+  const mundo = gobCom(latamSemBrasil, { remote_modality: "fully_remote", location_tenants: { data: [] }, location_regions: { data: [] } });
+  assert.equal(montar([gobReal([mundo])]).length, 1);
+  // semi senior cai pelo nível
+  assert.equal(montar([gobReal([gobCom(comBrasil, { seniority: { data: { id: 3, type: "seniority" } } })])]).length, 0);
+});
+
+test("resposta do GetOnBoard não é confundida com a do Remotar", () => {
+  const comBrasil = gobCom(exterior.getonbrd.latamSemBrasil, { location_tenants: tenants("brasil") });
+  const vagas = montar([gobReal([comBrasil]), remotar([["Estágio em Back-end", "ZG Soluções", "Programação"]])]);
+  assert.deepEqual(vagas.map((v) => v.source).sort(), ["getonbrd", "remotar"]);
+});
+
+test("Fontes inclui o GetOnBoard e as buscas do Himalayas abertas ao Brasil", () => {
+  const urls = runNode("Fontes").map((i) => i.json.url);
+  const gob = urls.filter((u) => u.startsWith("https://www.getonbrd.com/api/v0/search/jobs?"));
+  assert.ok(gob.length >= 1);
+  for (const u of gob) assert.match(decodeURIComponent(u), /expand=\["company","location_tenants","location_regions"\]/);
+  assert.ok(urls.some((u) => u.includes("himalayas.app") && u.includes("q=desarrollador&country=Brazil")));
 });

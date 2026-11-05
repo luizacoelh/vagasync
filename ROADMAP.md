@@ -118,6 +118,10 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 - As ~253 MB livres do incidente seguem no arquivo: o Turso recusa `VACUUM` pela
   API, e o espaço é reaproveitado pelas próximas gravações (`DEPLOY.md`)
 
+### feat(n8n): remotas de fora do Brasil
+- [x] Himalayas com `country=Brazil` em espanhol + GetOnBoard (LATAM): só remota aberta ao Brasil, PT ou ES, sem
+  restrição de residência no texto (`docs/N8N_SETUP.md`); falta `getonbrd` em `VALID_SOURCES` do webhook
+
 ### fix(build): fontes locais (issue #35)
 - [x] Inter e Outfit saem de `next/font/google` para `next/font/local`, com os
   `.woff2` e as licenças OFL em `app/fonts/`: o build não baixa mais nada do
@@ -518,7 +522,7 @@ Encaixe pronto: basta um terceiro botão (campo de e-mail) em
 login do modo visitante. Falta criar a conta no Resend e verificar um domínio.
 
 ### 2. Finalizar a automação n8n
-Rodando a cada 2h no GitHub Actions (Remotar, GitHub, Himalayas e Gupy →
+Rodando a cada 2h no GitHub Actions (Remotar, GitHub, Himalayas, Gupy e GetOnBoard →
 webhook → `/monitoradas`). Falta:
 - Gmail (alertas de vaga por e-mail: LinkedIn, CIEE...) — exige OAuth do
   Google no n8n, então não roda no Actions descartável
