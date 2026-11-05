@@ -71,6 +71,9 @@ model AppSettings {
   newAccountsPerDay      Int      @default(20)
   globalManualJobsPerDay Int      @default(500)
   globalAiPerDay         Int      @default(500)
+  // Horas, desde a criação da conta, em que contas novas veem a amostra de
+  // /monitoradas (lib/monitoredSample.ts). 0 desliga.
+  monitoredTrialHours    Int      @default(24)
   updatedAt              DateTime @updatedAt
 }
 
