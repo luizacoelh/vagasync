@@ -66,6 +66,11 @@ function searchLabel(url) {
     if (u.hostname === "api.github.com") return `github ${u.pathname.split("/").slice(2, 4).join("/")}`;
     if (u.hostname.endsWith("remotar.com.br")) return `remotar ${u.searchParams.get("search")}`;
     if (u.hostname.endsWith("getonbrd.com")) return `getonbrd ${u.searchParams.get("query")}`;
+    if (u.hostname.endsWith("solides.com.br")) {
+      const q = new URLSearchParams(u.search);
+      for (const k of ["page", "take"]) q.delete(k);
+      return `solides ${decodeURIComponent(q.toString().replace(/\+/g, " "))}`;
+    }
     if (u.hostname.endsWith("gupy.io")) {
       const q = new URLSearchParams(decodeURIComponent(u.pathname.split("/").pop()));
       for (const k of ["type", "sortBy", "sortOrder"]) q.delete(k);

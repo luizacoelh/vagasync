@@ -123,7 +123,9 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 
 ### feat(n8n): remotas de fora do Brasil
 - [x] Himalayas com `country=Brazil` em espanhol + GetOnBoard (LATAM): só remota aberta ao Brasil, PT ou ES, sem
-  restrição de residência no texto (`docs/N8N_SETUP.md`); falta `getonbrd` em `VALID_SOURCES` do webhook
+  restrição de residência no texto (`docs/N8N_SETUP.md`); `getonbrd` já está em `VALID_SOURCES` do webhook
+- [x] Sólides pela API JSON do portal (`/api/vacancies`): estágio e júnior de TI remotos e vagas em Teresina,
+  até 30 dias e com inscrição aberta (`docs/N8N_SETUP.md`)
 
 ### fix(build): fontes locais (issue #35)
 - [x] Inter e Outfit saem de `next/font/google` para `next/font/local`, com os

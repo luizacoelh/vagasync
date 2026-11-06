@@ -224,11 +224,30 @@ empresa e os países/regiões aceitos. Campos usados: `remote_modality`
 países de `location_tenants`; `hybrid`/`no_remote` caem), `seniority`
 (1 sin experiencia, 2 junior, 3 semi senior, 4 senior, 5 expert) e
 `modality` 4 (práctica). Buscas: `junior`, `sin experiencia`, `practicante`.
-`source` enviado: `getonbrd` (o webhook ainda não conhece esse valor e grava
-`manual` no log/`AiUsage.action`). Medido em 05/11/2026: quase tudo é semi
+`source` enviado: `getonbrd`. Medido em 05/11/2026: quase tudo é semi
 senior/senior ou restrito a um país sem o Brasil; 0 vagas passariam nessa
 amostra. Fica pelo baixo custo (3 requisições) e por ser a maior base LATAM de
 TI com API aberta; reavaliar pela contagem por busca do Actions.
+
+### ✅ Sólides (implementado — `vagas-br.json`)
+A página de busca de `vagas.solides.com.br` chama a API JSON
+`/api/vacancies?page=1&take=20&...` (`take` até 20; acima dá 500), em ordem de
+`createdAt` decrescente e já com a descrição completa: 1 requisição por busca,
+sem buscar o detalhe. `robots.txt`: `User-agent: * Allow: /`. Os termos de
+`solides.com.br/termos-de-uso/` são um contrato com as empresas clientes, sem
+termos próprios para quem visita o portal; as vagas vêm com
+`isGoogleForJobsEnabled: true` (avaliado em 06/11/2026, sem análise jurídica).
+Buscas (4): tecnologia + estágio remoto, tecnologia + júnior remoto, tecnologia
+em `Teresina - PI` e estágio em `Teresina - PI` (qualquer área; o filtro de TI
+pelo título decide). Filtros em "Montar vagas": `currentState = em_andamento`,
+sem `isDisabled`/`isHiddenJob`, publicada há até 30 dias e `date.due` não
+vencido (mesma regra da Gupy), remoto ou presencial/híbrido em Teresina. O
+`redirectLink` vem quebrado: o link é `https://{slug}.vagas.solides.com.br/vaga/{id}`;
+vaga sem `slug` fica de fora. A área de ocupação da Sólides é larga (SDR e
+marketing digital entram em "Tecnologia"), por isso a área sai do título.
+Medido em 06/11/2026 com as respostas salvas: 5 vagas passariam (estágio em IA/Full
+Stack, QA Júnior, Dev Web Fullstack, Infraestrutura Jr, Suporte de TI).
+`source` enviado: `solides`.
 
 ### ⛔ Avaliadas em 05/11/2026 para vagas remotas de fora do Brasil
 | Fonte | Motivo |
@@ -365,9 +384,8 @@ Ainda não coberto (ver `ROADMAP.md`):
   URL e, sendo da mesma origem, também não casa por título + empresa.
 
 Fontes aceitas em `source`: `indeed`, `weworkremotely`, `github`,
-`himalayas`, `remotar`, `gupy`, `infojobs`, `catho`, `gmail`, `manual` (outro
-valor vira `manual`; o workflow já envia `getonbrd`, que por enquanto cai
-aqui). Esse provedor vai só para o log, a resposta e
+`himalayas`, `remotar`, `gupy`, `getonbrd`, `solides`, `infojobs`, `catho`,
+`gmail`, `manual` (outro valor vira `manual`). Esse provedor vai só para o log, a resposta e
 `AiUsage.action` (`analyze_job_webhook_<fonte>`). No banco, `Job.source` é o
 **canal de entrada**: toda vaga criada pelo webhook grava `"n8n"`, e o
 cadastro pela interface fica com o padrão `"manual"`. O provedor sai do host
