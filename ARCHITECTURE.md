@@ -53,8 +53,11 @@ vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
 
 - Manifest V3, carregada no modo desenvolvedor (sem Chrome Web Store). No clique,
   `background.js` lê a aba ativa (`activeTab` + `scripting`): seleção, JSON-LD
-  `JobPosting`, blocos conhecidos (LinkedIn, Indeed, Gupy), `<main>`/`<article>`,
-  `<body>`; guarda em `chrome.storage.session` com um id e abre
+  `JobPosting`, blocos conhecidos (LinkedIn, Indeed, Gupy), bloco abaixo de um
+  título "Sobre a vaga"/"Descrição", bloco com mais texto corrido (fora de
+  links, menus, rodapés e barras laterais) e, por último, a página toda. Envia
+  também o método e se o texto foi cortado, e `/nova-vaga` mostra isso no aviso;
+  guarda em `chrome.storage.session` com um id e abre
   `/nova-vaga#captura=<id>`: só essa aba recebe a vaga.
 - `bridge.js` (content script só em `/nova-vaga`) entrega a captura à página por
   `window.postMessage` (`pronto` → `captura` → `recebido`). A página valida com

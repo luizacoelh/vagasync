@@ -26,8 +26,13 @@ extensão".
 ## Como funciona
 - `background.js`: no clique, roda `captureJob` na aba (permissão `activeTab`,
   só naquele momento) e abre `/nova-vaga`. Ordem de leitura: texto selecionado,
-  JSON-LD `JobPosting`, blocos conhecidos (LinkedIn, Indeed, Gupy), `<main>`,
-  `<article>`, `<body>`. Até 8.000 caracteres.
+  JSON-LD `JobPosting`, blocos conhecidos (LinkedIn, Indeed, Gupy), bloco abaixo
+  de "Sobre a vaga"/"Descrição", bloco com mais texto corrido (sem links, menus,
+  rodapés, propagandas laterais) e, por último, a página toda. Até 8.000
+  caracteres. O aviso em `/nova-vaga` diz de onde veio o texto, quantos
+  caracteres tem e se foi cortado.
+- Depois de mudar `background.js`, clique em "Recarregar" (seta circular) no
+  card da extensão em `chrome://extensions`.
 - `bridge.js`: content script só em `/nova-vaga` do VagaSync; troca mensagens
   com a página por `window.postMessage`. Contrato em `lib/extensionCapture.ts`.
 - Servidor local: troque `SITE` em `background.js` por `http://localhost:3000`
