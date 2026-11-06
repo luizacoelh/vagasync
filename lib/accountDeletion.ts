@@ -45,6 +45,7 @@ export async function deleteAccountData(
         image: null,
         isAdmin: false,
         dailyAiLimitOverride: 0,
+        monitoredTrialUntil: null,
       },
     });
     await tx.aiUsage.updateMany({

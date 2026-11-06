@@ -21,6 +21,7 @@ export async function GET() {
       dailyAiLimitOverride: true,
       geminiCallCount: true,
       geminiCallResetAt: true,
+      monitoredTrialUntil: true,
       createdAt: true,
       _count: { select: { jobs: true, aiUsage: { where: AI_ACTIONS_ONLY } } },
     },
