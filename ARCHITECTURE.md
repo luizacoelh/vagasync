@@ -37,7 +37,8 @@ vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
   `lib/rateLimit.ts` recusa sempre). Depois faz `signOut`.
 - IP em `AiUsage`: o da última hora fica, senão excluir a conta liberaria os
   limites por IP; cada exclusão limpa o IP com mais de 1h de todas as contas
-  excluídas. O `/admin` mostra "Excluída" e a PATCH recusa alterar a conta.
+  excluídas. A lista do `/admin` (página e `GET /api/admin/users`) esconde as
+  contas excluídas e mostra só quantas são; a PATCH recusa alterar a conta.
   A marca da conta excluída fica em `lib/deletedAccount.ts`.
 - A linha de `User` fica anônima ("Conta excluída") de propósito: o
   `onDelete: Cascade` levaria `createdAt`, `AiUsage` e `JobCreationQuota`, e os

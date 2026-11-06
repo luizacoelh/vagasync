@@ -14,7 +14,7 @@ process.env.NODE_ENV = "test";
 delete process.env.DATABASE_TARGET;
 process.env.DATABASE_URL = `file:${join(dir, "test.db").replace(/\\/g, "/")}`;
 
-let prisma, deleteMyAccount, DELETED_ACCOUNT_NAME, checkAndConsumeGeminiQuota, adminUserRoute, NextRequest;
+let prisma, deleteMyAccount, DELETED_ACCOUNT_NAME, checkAndConsumeGeminiQuota, adminUserRoute, adminUsersRoute, NextRequest;
 
 before(async () => {
   execFileSync(process.execPath, [join(root, "node_modules/prisma/build/index.js"), "migrate", "deploy"], { cwd: root, env: process.env, stdio: "pipe" });
@@ -24,6 +24,7 @@ before(async () => {
   ({ checkAndConsumeGeminiQuota } = await import("@/lib/rateLimit"));
   ({ NextRequest } = await import("next/server"));
   adminUserRoute = await import("@/app/api/admin/users/[id]/route");
+  adminUsersRoute = await import("@/app/api/admin/users/route");
 });
 after(async () => {
   await prisma?.$disconnect();
@@ -143,4 +144,19 @@ test("o admin não altera conta excluída", async () => {
   const row = await prisma.user.findUnique({ where: { id: target.id } });
   assert.equal(row.dailyAiLimitOverride, 0);
   assert.equal(row.isAdmin, false);
+});
+
+test("a lista de usuários do admin esconde as contas excluídas", async () => {
+  const gone = await fullUser();
+  await deleteMyAccount("EXCLUIR");
+  const kept = await fullUser();
+  const noName = await prisma.user.create({ data: { email: "semnome@teste.dev" } });
+  const noEmail = await prisma.user.create({ data: { name: "Sem e-mail" } });
+  const blank = await prisma.user.create({ data: {} });
+  globalThis.__session = { user: { id: kept.id, isAdmin: true } };
+  const res = await adminUsersRoute.GET();
+  assert.equal(res.status, 200);
+  const ids = (await res.json()).map((u) => u.id);
+  for (const u of [kept, noName, noEmail, blank]) assert.ok(ids.includes(u.id));
+  assert.ok(!ids.includes(gone.id));
 });

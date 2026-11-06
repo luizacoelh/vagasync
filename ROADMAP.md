@@ -16,6 +16,7 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
   perfil, vínculos de login, nome, e-mail e foto; mantém a linha de `User`
   anônima e o `AiUsage` sem IP para os tetos de contas, IA e cadastro não
   ganharem espaço com excluir e recriar. A conta da dona é recusada.
+- [x] `/admin` esconde as contas excluídas da lista de usuários (mostra só a contagem).
 - [x] `/monitoradas` mostra "Em breve" para contas que o n8n não alimenta
   (só `N8N_TARGET_USER_ID` recebe vagas).
 - [x] `/privacidade` e `/termos`: contato (`lib/site.ts`), cadastro pelo link,
