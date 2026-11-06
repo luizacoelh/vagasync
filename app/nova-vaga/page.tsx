@@ -9,7 +9,7 @@ import { useLoginGate } from "@/components/auth/LoginGate";
 import { EXAMPLE_ANALYSIS, EXAMPLE_IMPORT, EXAMPLE_IMPORT_URL, EXAMPLE_JOB } from "@/lib/demoJobs";
 import InputTabs, { panelId, tabId, type InputTab } from "@/components/nova-vaga/InputTabs";
 import { ackExtensionCapture, useExtensionCapture } from "@/components/nova-vaga/useExtensionCapture";
-import type { ExtensionCapture } from "@/lib/extensionCapture";
+import { CAPTURE_METHOD_LABEL, type ExtensionCapture } from "@/lib/extensionCapture";
 import LinkPanel from "@/components/nova-vaga/LinkPanel";
 import TextPanel from "@/components/nova-vaga/TextPanel";
 import JobPreview, { emptyPreviewFields, type PreviewFields } from "@/components/nova-vaga/JobPreview";
@@ -75,7 +75,7 @@ export default function NovaVagaPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
-  const [captured, setCaptured] = useState(false);
+  const [captured, setCaptured] = useState<ExtensionCapture | null>(null);
   const [pendingCapture, setPendingCapture] = useState<ExtensionCapture | null>(null);
 
   function applyCapture(capture: ExtensionCapture) {
@@ -83,7 +83,7 @@ export default function NovaVagaPage() {
     if (capture.url) setFields((f) => ({ ...f, url: capture.url ?? f.url }));
     setTab("texto");
     setError(null);
-    setCaptured(true);
+    setCaptured(capture);
     setPendingCapture(null);
   }
 
@@ -352,8 +352,22 @@ export default function NovaVagaPage() {
         )}
 
         {step === "input" && captured && !pendingCapture && (
-          <div className="mb-4 rounded-xl border border-[#378ADD]/35 bg-[#378ADD]/10 px-4 py-3 text-sm text-[#C4C7D0]">
-            Vaga trazida pela extensão. Confira o texto, apague o que não for da vaga e clique em Analisar.
+          <div className="mb-4 rounded-xl border border-[#378ADD]/35 bg-[#378ADD]/10 px-4 py-3 text-sm text-[#C4C7D0] space-y-1">
+            <p>
+              Vaga trazida pela extensão
+              {captured.method ? `, ${CAPTURE_METHOD_LABEL[captured.method]}` : ""} (
+              {captured.text.length.toLocaleString("pt-BR")} caracteres). Confira o texto, apague o que não for da
+              vaga e clique em Analisar.
+            </p>
+            {(captured.method === "pagina" || captured.truncated) && (
+              <p className="text-[#E3B341]">
+                {captured.truncated ? "O texto passou do limite e foi cortado no fim. " : ""}
+                {captured.method === "pagina"
+                  ? "Não achei o bloco da vaga e peguei a página toda. "
+                  : ""}
+                Para um resultado melhor, selecione na página só o texto da vaga e clique no ícone de novo.
+              </p>
+            )}
           </div>
         )}
 
