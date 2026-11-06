@@ -3,7 +3,7 @@
 import { useState } from "react";
 import GlassPanel from "@/components/ui/Glass";
 import { isDeletedAccount } from "@/lib/deletedAccount";
-import { MAX_SAMPLE_OVERRIDE_HOURS, sampleStatus } from "@/lib/sampleOverride";
+import { MAX_SAMPLE_OVERRIDE_HOURS, formatSampleDate, sampleStatus } from "@/lib/sampleOverride";
 
 interface AdminUser {
   id: string;
@@ -24,12 +24,14 @@ export default function UsersTable({
   currentUserId,
   sampleTargetId = null,
   trialHours = 0,
+  now = 0,
 }: {
   initialUsers: AdminUser[];
   deletedCount?: number;
   currentUserId: string;
   sampleTargetId?: string | null;
   trialHours?: number;
+  now?: number;
 }) {
   const [users, setUsers] = useState(initialUsers);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -86,12 +88,15 @@ export default function UsersTable({
   }
 
   function sampleLabel(u: AdminUser) {
+    if (!sampleTargetId) return "sem conta-alvo do n8n";
     if (u.id === sampleTargetId) return "recebe o feed do n8n";
-    const status = sampleStatus(u, trialHours);
-    const when = status.until?.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const status = sampleStatus(u, trialHours, now);
+    const when = status.until ? formatSampleDate(status.until) : "";
     switch (status.kind) {
       case "liberada":
         return `liberada até ${when}`;
+      case "liberacao-vencida":
+        return `liberação encerrada em ${when}`;
       case "bloqueada":
         return "bloqueada";
       case "padrao":
@@ -170,7 +175,7 @@ export default function UsersTable({
                 </td>
                 <td className="px-3 py-3">
                   <p className="mb-1.5 text-xs text-[#C4C7D0]">{sampleLabel(u)}</p>
-                  {u.id !== sampleTargetId && (
+                  {sampleTargetId && u.id !== sampleTargetId && (
                     <div className="flex flex-wrap items-center gap-1.5">
                       <input
                         type="number"

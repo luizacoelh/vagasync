@@ -129,10 +129,11 @@ test("conta excluída não usa IA nem depois de a janela de 24h vencer", async (
 
 test("o admin não altera conta excluída", async () => {
   const target = await fullUser();
+  await prisma.user.update({ where: { id: target.id }, data: { monitoredTrialUntil: new Date(Date.now() + 3600000) } });
   await deleteMyAccount("EXCLUIR");
   const admin = await prisma.user.create({ data: { name: "Admin", email: "admin@teste.dev", isAdmin: true } });
   globalThis.__session = { user: { id: admin.id, isAdmin: true } };
-  for (const body of [{ dailyAiLimitOverride: 50 }, { dailyAiLimitOverride: null }, { isAdmin: true }]) {
+  for (const body of [{ dailyAiLimitOverride: 50 }, { dailyAiLimitOverride: null }, { isAdmin: true }, { sampleHours: 24 }]) {
     const req = new NextRequest(`http://localhost/api/admin/users/${target.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -144,6 +145,7 @@ test("o admin não altera conta excluída", async () => {
   const row = await prisma.user.findUnique({ where: { id: target.id } });
   assert.equal(row.dailyAiLimitOverride, 0);
   assert.equal(row.isAdmin, false);
+  assert.equal(row.monitoredTrialUntil, null);
 });
 
 test("a lista de usuários do admin esconde as contas excluídas", async () => {

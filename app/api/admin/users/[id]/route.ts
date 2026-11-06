@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isDeletedAccount } from "@/lib/deletedAccount";
 import { requireAdmin } from "@/lib/adminAuth";
 import { MAX_SAMPLE_OVERRIDE_HOURS, sampleTargetUserId } from "@/lib/monitoredSample";
+import { SAMPLE_BLOCKED_AT } from "@/lib/sampleOverride";
 
 export const runtime = "nodejs";
 
@@ -69,8 +70,15 @@ export async function PATCH(
       { status: 400 }
     );
   }
-  if (sampleHours !== undefined && id === sampleTargetUserId()) {
-    return NextResponse.json({ error: "Esta conta já recebe as vagas do n8n." }, { status: 400 });
+  if (sampleHours !== undefined) {
+    const sampleTarget = sampleTargetUserId();
+    // Sem conta-alvo do n8n não há amostra para liberar (sampleHoursLeftFor dá 0).
+    if (!sampleTarget) {
+      return NextResponse.json({ error: "Sem N8N_TARGET_USER_ID não há amostra para liberar." }, { status: 400 });
+    }
+    if (id === sampleTarget) {
+      return NextResponse.json({ error: "Esta conta já recebe as vagas do n8n." }, { status: 400 });
+    }
   }
 
   if (
@@ -91,7 +99,14 @@ export async function PATCH(
         ...(dailyAiLimitOverride !== undefined ? { dailyAiLimitOverride } : {}),
         ...(isAdmin !== undefined ? { isAdmin } : {}),
         ...(sampleHours !== undefined
-          ? { monitoredTrialUntil: sampleHours === null ? null : new Date(Date.now() + sampleHours * 3600000) }
+          ? {
+              monitoredTrialUntil:
+                sampleHours === null
+                  ? null
+                  : sampleHours === 0
+                    ? SAMPLE_BLOCKED_AT
+                    : new Date(Date.now() + sampleHours * 3600000),
+            }
           : {}),
       },
       select: { id: true, isAdmin: true, dailyAiLimitOverride: true, monitoredTrialUntil: true },

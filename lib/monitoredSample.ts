@@ -64,7 +64,8 @@ export function hoursUntil(until: Date, now = Date.now()): number {
 
 // Quanto tempo de amostra a conta ainda tem; 0 para a conta-alvo do n8n, conta
 // excluída ou inexistente. User.monitoredTrialUntil (definido no /admin) vale
-// mais que a regra padrão, inclusive com a amostra padrão desligada (0 h).
+// mais que a regra padrão, inclusive com a amostra padrão desligada (0 h); uma
+// liberação vencida não volta à regra padrão (o /admin mostra "Padrão" para isso).
 export async function sampleHoursLeftFor(
   userId: string,
   db: Pick<PrismaClient, "user"> = prisma,

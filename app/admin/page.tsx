@@ -28,6 +28,8 @@ export default async function AdminPage() {
     notFound();
   }
 
+  // Mesmo "agora" no HTML do servidor e na hidratação do status da amostra.
+  const renderedAt = new Date().getTime();
   const [settings, users, deletedCount, aiStats] = await Promise.all([
     getAppSettings(),
     prisma.user.findMany({
@@ -89,6 +91,7 @@ export default async function AdminPage() {
             currentUserId={session.user.id}
             sampleTargetId={sampleTargetUserId()}
             trialHours={settings.monitoredTrialHours}
+            now={renderedAt}
           />
           <AiUsagePanel
             byUser={aiStats.byUser}

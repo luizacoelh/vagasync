@@ -83,8 +83,11 @@ vaga?", e a análise segue em `/api/analyze` depois do clique. Contrato em
 - Depois da amostra, a aba mostra "Em breve". Conta excluída não vê a amostra.
 - Liberação por conta no `/admin` (`User.monitoredTrialUntil`, migration
   `20261106120000_user_sample_override`): "Liberar N h" grava agora + N horas
-  (até 720), "Bloquear" grava agora (data no passado = bloqueada) e "Padrão"
-  volta a nulo (regra das horas depois do cadastro). Quando definida, vale mais
+  (até 720), "Bloquear" grava 1970 (`SAMPLE_BLOCKED_AT`; outra data no passado
+  é liberação vencida, também 0 h) e "Padrão" volta a nulo (regra das horas
+  depois do cadastro). Horário do /admin fixo em America/Sao_Paulo e "agora"
+  vindo do servidor, para a hidratação bater; sem `N8N_TARGET_USER_ID` a
+  coluna fica sem botões e a PATCH recusa. Quando definida, vale mais
   que a regra padrão, mesmo com `monitoredTrialHours` = 0. A conta-alvo do n8n
   é recusada; a exclusão de conta zera o campo. Status em `lib/sampleOverride.ts`.
 - A lista da amostra e as monitoradas da dona são ordenadas pelas skills do
