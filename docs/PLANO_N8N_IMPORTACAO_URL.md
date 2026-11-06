@@ -7,7 +7,10 @@ só com decisão nova: extensão, Sólides e novas fontes. A captura enviada pel
 extensão saiu do contrato até essa etapa. Diagnóstico feito em 28/10/2026,
 depois dos PRs #33 e #34. Atualização de 05/11/2026: novas fontes remotas da
 América Latina e em espanhol (PR #51) e extensão para uso pessoal
-(`extension/`) feitas; Sólides segue pendente.
+(`extension/`) feitas. Atualização de 06/11/2026: Sólides incluída pela API JSON
+`/api/vacancies` (não pelo RSC da listagem; sem requisição de detalhe), com os
+termos avaliados (ver `docs/N8N_SETUP.md`). Super Estágios, Programathor e
+Nube rechecados em 06/11: volume de TI perto de zero, seguem fora.
 A issue #35 (fontes do Google no build) fica fora deste plano.
 
 ### Pré-requisito novo: PR 0 — proteção de cadastro
@@ -179,7 +182,7 @@ ambiente: Actions descartável, sem navegador, sem OAuth, sem estado.
 
 | Fonte | Acesso | Filtros úteis | Volume relevante observado | robots / termos | Situação |
 |---|---|---|---|---|---|
-| **Sólides** (`vagas.solides.com.br`) | Listagem em HTML Next (RSC); detalhe com JSON-LD `JobPosting` | Pelo caminho: `/vagas/estagio-tecnologia/remoto`, `/vagas/estagio/teresina-pi`, `/vagas/area/tecnologia/teresina-pi`, `/vagas/desenvolvedor-junior/remoto`; paginação `?page=` | ~13 estágios em tecnologia remotos (~9 de TI); 9 estágios em Teresina (1 de TI); 25 de tecnologia em Teresina | robots `Allow: /`; termos genéricos proíbem "cópia/reprodução" (incerto) | **Candidata — viabilidade a confirmar** |
+| **Sólides** (`vagas.solides.com.br`) | Listagem em HTML Next (RSC); detalhe com JSON-LD `JobPosting` | Pelo caminho: `/vagas/estagio-tecnologia/remoto`, `/vagas/estagio/teresina-pi`, `/vagas/area/tecnologia/teresina-pi`, `/vagas/desenvolvedor-junior/remoto`; paginação `?page=` | ~13 estágios em tecnologia remotos (~9 de TI); 9 estágios em Teresina (1 de TI); 25 de tecnologia em Teresina | robots `Allow: /`; termos genéricos proíbem "cópia/reprodução" (incerto) | **Incluída em 06/11/2026 pela API JSON `/api/vacancies`** |
 | Super Estágios | JSON via POST (`comunicacaoAjax/vagas.php`) | Estado, cidade, curso, modalidade; **sem data** | ~1 de TI em Teresina; ~2 home office | robots sem restrição; termos incertos | Talvez |
 | Programathor | HTML + JSON-LD no detalhe | `contract_type`, `expertise`, `remoto` | ~1–2 úteis por rodada | robots libera `/jobs` | Talvez |
 | Nube | API JSON | tipo, área, modalidade | ~2 remotas de TI; 0 no PI | robots sem restrição; termos não encontrados | Talvez |

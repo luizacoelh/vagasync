@@ -29,7 +29,7 @@ function isValidAnalysis(data: unknown): data is JobAnalysis {
 // Provedor de onde o n8n tirou a vaga (gupy, remotar...): vai só para o log,
 // a resposta e AiUsage.action. Não é gravado em Job.source, que guarda o canal
 // de entrada ("manual" | "n8n"); o provedor sai do host da URL.
-const VALID_SOURCES = ["indeed", "weworkremotely", "github", "himalayas", "remotar", "gupy", "getonbrd", "infojobs", "catho", "gmail", "manual"] as const;
+const VALID_SOURCES = ["indeed", "weworkremotely", "github", "himalayas", "remotar", "gupy", "getonbrd", "solides", "infojobs", "catho", "gmail", "manual"] as const;
 type JobSource = typeof VALID_SOURCES[number];
 
 export async function POST(req: NextRequest) {
