@@ -37,6 +37,11 @@ model User {
   isAdmin              Boolean @default(false)
   isOwner              Boolean @default(false) // dono da instancia — imutavel pela UI, so via SQL/seed
 
+  // Amostra de /monitoradas definida no /admin (lib/monitoredSample.ts): nulo =
+  // regra padrão (AppSettings.monitoredTrialHours depois do cadastro); data no
+  // futuro = liberada até lá; data no passado = bloqueada.
+  monitoredTrialUntil DateTime?
+
   createdAt DateTime @default(now())
 }
 

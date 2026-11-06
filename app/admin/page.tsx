@@ -7,6 +7,7 @@ import AppSettingsForm from "@/components/admin/AppSettingsForm";
 import UsersTable from "@/components/admin/UsersTable";
 import AiUsagePanel from "@/components/admin/AiUsagePanel";
 import BackButton from "@/components/ui/BackButton";
+import { sampleTargetUserId } from "@/lib/monitoredSample";
 import { ACTIVE_ACCOUNT_WHERE, DELETED_ACCOUNT_WHERE } from "@/lib/deletedAccount";
 
 export default async function AdminPage() {
@@ -40,6 +41,7 @@ export default async function AdminPage() {
         isOwner: true,
         dailyAiLimitOverride: true,
         geminiCallCount: true,
+        monitoredTrialUntil: true,
         createdAt: true,
         _count: { select: { jobs: true, aiUsage: { where: AI_ACTIONS_ONLY } } },
       },
@@ -81,7 +83,13 @@ export default async function AdminPage() {
 
         <div className="space-y-6">
           <AppSettingsForm initialSettings={settings} />
-          <UsersTable initialUsers={users} deletedCount={deletedCount} currentUserId={session.user.id} />
+          <UsersTable
+            initialUsers={users}
+            deletedCount={deletedCount}
+            currentUserId={session.user.id}
+            sampleTargetId={sampleTargetUserId()}
+            trialHours={settings.monitoredTrialHours}
+          />
           <AiUsagePanel
             byUser={aiStats.byUser}
             byDay={aiStats.byDay}

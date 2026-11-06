@@ -30,6 +30,8 @@ de forma inteligente, sem a complexidade de um Kanban ou a bagunça de um Notion
 - [x] Amostra de `/monitoradas` para contas novas por `monitoredTrialHours`
   (migration `20261105120000_monitored_trial`, editável em `/admin`); vagas
   ordenadas pelas skills do perfil.
+- [x] `/admin`: liberar a amostra por N horas, bloquear ou voltar ao padrão,
+  por conta (migration `20261106120000_user_sample_override`).
 - Antes de divulgar (painéis, fora do código): tela de consentimento do Google
   OAuth em produção, limite de gastos da Gemini API, `newAccountsPerDay` em
   `/admin` ajustado para o dia da divulgação.

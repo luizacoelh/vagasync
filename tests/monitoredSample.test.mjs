@@ -157,3 +157,49 @@ test("o admin define as horas da amostra, de 0 a 720", async () => {
   assert.equal((await put({ monitoredTrialHours: 1.5 })).status, 400);
   assert.equal((await put({ monitoredTrialHours: 48 })).status, 200);
 });
+
+test("o admin libera, bloqueia e devolve a amostra à regra padrão", async () => {
+  const usersRoute = await import("@/app/api/admin/users/[id]/route");
+  const admin = await prisma.user.create({ data: { name: "Admin", email: `adm${++seq}@teste.dev`, isAdmin: true } });
+  const patch = async (id, body) => {
+    globalThis.__session = { user: { id: admin.id, isAdmin: true } };
+    const req = new NextRequest(`http://localhost/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return usersRoute.PATCH(req, { params: Promise.resolve({ id }) });
+  };
+
+  const old = await newUser(100);
+  assert.equal(await lib.sampleHoursLeftFor(old.id), 0);
+  assert.equal((await patch(old.id, { sampleHours: 48 })).status, 200);
+  assert.equal(await lib.sampleHoursLeftFor(old.id), 48);
+
+  const fresh = await newUser(1);
+  assert.equal((await patch(fresh.id, { sampleHours: 0 })).status, 200);
+  assert.equal(await lib.sampleHoursLeftFor(fresh.id), 0);
+  assert.equal((await patch(fresh.id, { sampleHours: null })).status, 200);
+  assert.ok((await lib.sampleHoursLeftFor(fresh.id)) > 0);
+
+  // Liberação individual vale mesmo com a amostra padrão desligada.
+  await prisma.appSettings.update({ where: { id: "singleton" }, data: { monitoredTrialHours: 0 } });
+  assert.equal(await lib.sampleHoursLeftFor(old.id), 48);
+  await prisma.appSettings.update({ where: { id: "singleton" }, data: { monitoredTrialHours: 24 } });
+
+  for (const sampleHours of [-1, 1.5, 721, "24"]) {
+    assert.equal((await patch(fresh.id, { sampleHours })).status, 400);
+  }
+  assert.equal((await patch(target.id, { sampleHours: 24 })).status, 400);
+});
+
+test("status da amostra mostrado no admin", async () => {
+  const { sampleStatus } = await import("@/lib/sampleOverride");
+  const now = Date.now();
+  const created = new Date(now - 2 * HOUR);
+  assert.equal(sampleStatus({ createdAt: created, monitoredTrialUntil: null }, 24, now).kind, "padrao");
+  assert.equal(sampleStatus({ createdAt: new Date(now - 30 * HOUR), monitoredTrialUntil: null }, 24, now).kind, "encerrada");
+  assert.equal(sampleStatus({ createdAt: created, monitoredTrialUntil: null }, 0, now).kind, "desligada");
+  assert.equal(sampleStatus({ createdAt: created, monitoredTrialUntil: new Date(now + HOUR).toISOString() }, 0, now).kind, "liberada");
+  assert.equal(sampleStatus({ createdAt: created, monitoredTrialUntil: new Date(now - HOUR) }, 24, now).kind, "bloqueada");
+});

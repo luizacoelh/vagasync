@@ -5,6 +5,8 @@ import { parseArray } from "@/lib/json";
 import { compareSkills } from "@/lib/skillGap";
 import { isDeletedAccount } from "@/lib/deletedAccount";
 
+export { MAX_SAMPLE_OVERRIDE_HOURS } from "@/lib/sampleOverride";
+
 // Amostra de /monitoradas para contas novas. O n8n só alimenta a conta de
 // N8N_TARGET_USER_ID (lib/n8nWebhook.ts); durante AppSettings.monitoredTrialHours
 // depois de criar a conta, as outras contas veem as vagas que o robô trouxe
@@ -54,8 +56,15 @@ export function trialHoursLeft(createdAt: Date, trialHours: number, now = Date.n
   return left > 0 ? Math.ceil(left / HOUR) : 0;
 }
 
+// Horas até a data liberada no /admin (0 = já passou, ou seja, bloqueada).
+export function hoursUntil(until: Date, now = Date.now()): number {
+  const left = until.getTime() - now;
+  return left > 0 ? Math.ceil(left / HOUR) : 0;
+}
+
 // Quanto tempo de amostra a conta ainda tem; 0 para a conta-alvo do n8n, conta
-// excluída ou inexistente.
+// excluída ou inexistente. User.monitoredTrialUntil (definido no /admin) vale
+// mais que a regra padrão, inclusive com a amostra padrão desligada (0 h).
 export async function sampleHoursLeftFor(
   userId: string,
   db: Pick<PrismaClient, "user"> = prisma,
@@ -63,11 +72,12 @@ export async function sampleHoursLeftFor(
   const target = sampleTargetUserId();
   if (!target || userId === target) return 0;
   const [user, settings] = await Promise.all([
-    db.user.findUnique({ where: { id: userId }, select: { createdAt: true, email: true, name: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { createdAt: true, email: true, name: true, monitoredTrialUntil: true } }),
     getAppSettings(),
   ]);
   // Conta excluída (lib/accountDeletion.ts) não usa a amostra.
   if (!user || isDeletedAccount(user)) return 0;
+  if (user.monitoredTrialUntil) return hoursUntil(user.monitoredTrialUntil);
   return trialHoursLeft(user.createdAt, settings.monitoredTrialHours);
 }
 
