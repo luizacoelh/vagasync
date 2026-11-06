@@ -347,6 +347,7 @@ test("Fontes inclui o GetOnBoard e as buscas do Himalayas abertas ao Brasil", ()
   assert.ok(gob.length >= 1);
   for (const u of gob) assert.match(decodeURIComponent(u), /expand=\["company","location_tenants","location_regions"\]/);
   assert.ok(urls.some((u) => u.includes("himalayas.app") && u.includes("q=desarrollador&country=Brazil")));
+  assert.ok(urls.some((u) => u.includes("himalayas.app") && u.includes("q=junior&country=Brazil")));
 });
 
 test("Remotar: etiqueta Espanhol passa; Inglês e Sênior continuam fora", () => {

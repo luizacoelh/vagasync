@@ -207,7 +207,8 @@ internacional e em inglês: o filtro aceita vagas com `Brazil` em
 ou espanhol. `country=Brazil` na busca já traz só as abertas ao Brasil
 (inclusive listas "LATAM" com 45 países e as sem restrição); as buscas
 `desarrollador`, `datos`, `remoto` e `latam` com `country=Brazil` pegam as
-remotas de empresas hispânicas/LATAM. Vagas da Espanha e de Portugal quase
+remotas de empresas hispânicas/LATAM. Desde 06/11/2026 há também `q=junior&country=Brazil`
+(vagas júnior do Brasil: ~8 de TI em 9 dias na medição). Vagas da Espanha e de Portugal quase
 sempre restringem a residentes (lista só `Spain`/`Portugal`/UE) e caem.
 Medido em 05/11/2026 (~260 vagas nas buscas novas): 2 vagas novas passariam
 (".NET Jr" e "Analista de Datos", LATAM, em espanhol); o resto cai por nível
