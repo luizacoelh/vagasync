@@ -359,3 +359,63 @@ test("Remotar: etiqueta Espanhol passa; Inglês e Sênior continuam fora", () =>
   assert.equal(montar([comTag("Inglês")]).length, 0);
   assert.equal(montar([comTag("Sênior")]).length, 0);
 });
+
+// Sólides: resposta de /api/vacancies (formato salvo em 06/11/2026).
+const dia = (dias) => new Date(now - dias * 86400000).toISOString().slice(0, 10);
+const solides = (vagas) => ({
+  totalPages: 1,
+  currentPage: 1,
+  count: vagas.length,
+  data: vagas.map((v, i) => ({
+    id: 900 + i,
+    title: "Estágio em Desenvolvimento Web",
+    companyName: "Empresa",
+    slug: "empresa",
+    redirectLink: "https://empresa./vacancies/x",
+    currentState: "em_andamento",
+    isDisabled: false,
+    isHiddenJob: false,
+    jobType: "remoto",
+    homeOffice: false,
+    city: { name: "São Paulo" },
+    state: { code: "SP" },
+    seniority: [{ name: "Estagiário" }],
+    recruitmentContractType: [{ name: "Estágio" }],
+    occupationAreas: [{ name: "Tecnologia" }],
+    language: [],
+    createdAt: dia(2),
+    date: { due: dia(-20) },
+    description: DESC("React e JavaScript."),
+    ...v,
+  })),
+});
+
+test("Sólides: estágio e júnior de TI remotos ou em Teresina, até 30 dias e com inscrição aberta", () => {
+  const vagas = montar([
+    solides([
+      {},
+      { title: "Analista de QA Júnior", seniority: [{ name: "Junior" }], recruitmentContractType: [{ name: "CLT" }], createdAt: dia(20) },
+      { title: "Estagiário - TI", jobType: "presencial", city: { name: "Teresina" }, state: { code: "PI" } },
+      { title: "Estágio em Suporte de TI", jobType: "presencial", city: { name: "Recife" }, state: { code: "PE" } },
+      { title: "Estágio em Desenvolvimento Mobile", createdAt: dia(40) },
+      { title: "Estágio em Dados", date: { due: dia(1) } },
+      { title: "Estágio em Back-end", slug: "" },
+      { title: "Estágio em Front-end", isHiddenJob: true },
+      { title: "Estágio em Marketing Digital" },
+      { title: "Desenvolvedor Pleno", seniority: [{ name: "Pleno" }], recruitmentContractType: [{ name: "CLT" }] },
+    ]),
+  ]);
+  assert.deepEqual(vagas.map((v) => v.title).sort(), ["Analista de QA Júnior", "Estagiário - TI", "Estágio em Desenvolvimento Web"]);
+  const web = vagas.find((v) => v.title === "Estágio em Desenvolvimento Web");
+  assert.equal(web.source, "solides");
+  assert.equal(web.url, "https://empresa.vagas.solides.com.br/vaga/900");
+  assert.match(web.description, /Modalidade: remoto/);
+  assert.match(web.description, /Inscrições até: /);
+});
+
+test("Fontes inclui as buscas da Sólides", () => {
+  const urls = runNode("Fontes").map((i) => i.json.url).filter((u) => u.includes("vagas.solides.com.br/api/vacancies"));
+  assert.equal(urls.length, 4);
+  for (const u of urls) assert.match(u, /take=20/);
+  assert.ok(urls.some((u) => decodeURIComponent(u).includes("locations=Teresina - PI")));
+});
