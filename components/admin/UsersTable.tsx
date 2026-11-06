@@ -17,9 +17,11 @@ interface AdminUser {
 
 export default function UsersTable({
   initialUsers,
+  deletedCount = 0,
   currentUserId,
 }: {
   initialUsers: AdminUser[];
+  deletedCount?: number;
   currentUserId: string;
 }) {
   const [users, setUsers] = useState(initialUsers);
@@ -72,6 +74,11 @@ export default function UsersTable({
         style={{ fontFamily: "var(--font-outfit)" }}
       >
         Usuários ({users.length})
+        {deletedCount > 0 && (
+          <span className="normal-case tracking-normal font-normal">
+            {" "}· {deletedCount} {deletedCount === 1 ? "conta excluída oculta" : "contas excluídas ocultas"}
+          </span>
+        )}
       </p>
 
       {error && (

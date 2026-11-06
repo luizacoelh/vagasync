@@ -7,6 +7,7 @@ import AppSettingsForm from "@/components/admin/AppSettingsForm";
 import UsersTable from "@/components/admin/UsersTable";
 import AiUsagePanel from "@/components/admin/AiUsagePanel";
 import BackButton from "@/components/ui/BackButton";
+import { ACTIVE_ACCOUNT_WHERE, DELETED_ACCOUNT_WHERE } from "@/lib/deletedAccount";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -26,9 +27,10 @@ export default async function AdminPage() {
     notFound();
   }
 
-  const [settings, users, aiStats] = await Promise.all([
+  const [settings, users, deletedCount, aiStats] = await Promise.all([
     getAppSettings(),
     prisma.user.findMany({
+      where: ACTIVE_ACCOUNT_WHERE,
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -42,6 +44,7 @@ export default async function AdminPage() {
         _count: { select: { jobs: true, aiUsage: { where: AI_ACTIONS_ONLY } } },
       },
     }),
+    prisma.user.count({ where: DELETED_ACCOUNT_WHERE }),
     getAiUsageStats(),
   ]);
 
@@ -78,7 +81,7 @@ export default async function AdminPage() {
 
         <div className="space-y-6">
           <AppSettingsForm initialSettings={settings} />
-          <UsersTable initialUsers={users} currentUserId={session.user.id} />
+          <UsersTable initialUsers={users} deletedCount={deletedCount} currentUserId={session.user.id} />
           <AiUsagePanel
             byUser={aiStats.byUser}
             byDay={aiStats.byDay}
