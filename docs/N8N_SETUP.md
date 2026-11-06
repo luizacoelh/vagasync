@@ -259,8 +259,42 @@ Stack, QA Júnior, Dev Web Fullstack, Infraestrutura Jr, Suporte de TI).
 | InfoJobs Espanha | API exige cadastro de aplicação (OAuth) |
 | Jobicy | API aberta (`geo=latam`, `geo=spain`), mas só vagas em inglês, quase todas senior; pede crédito com link |
 | Working Nomads | API aberta, 35 vagas em inglês, nenhuma júnior |
-| Net-Empregos (Portugal) | `robots.txt` libera e lista um RSS; não testado. Portal generalista de vagas em Portugal, que tendem a exigir residência (hipótese) |
-| Angola/Moçambique | não pesquisado a fundo; nenhum portal com API/feed conhecido |
+| Net-Empregos (Portugal) | RSS (`rss.asp`, 1000 itens, ISO-8859-1): em 06/11/2026, 30 de TI e 0 remotas; as juniores são presenciais/híbridas em Lisboa |
+
+### ⛔ Avaliadas em 06/11/2026 (Portugal, Espanha, América Latina, África lusófona, agregadores)
+Regra: só remota, aberta a quem mora no Brasil, em PT ou ES. Padrão em todos os
+países: o portal nacional publica remoto só para residentes (o JSON-LD traz
+`applicantLocationRequirements` com o próprio país), e os portais abertos são
+sênior, em inglês ou restritos a um país. Contagens de 06/11/2026.
+
+| Fonte | Motivo |
+|---|---|
+| Sapo Emprego (PT) | `Disallow: /offers/search`; listagem montada em JS com hCaptcha |
+| Teamlyzer (PT) | JSON-LD; 68 full-remote, 3 júnior, `applicantLocationRequirements: Portugal`, em inglês |
+| Expresso Emprego (PT) | RSS por categoria; ~15 de TI, todas presenciais/híbridas em Portugal |
+| IEFP / NetEmprego (PT) | emprego público em Portugal; exige residência (hipótese) |
+| Manfred (ES) | API JSON aberta; 25 vagas ativas, todas na Espanha, 0 júnior |
+| JobFluent (ES) | `Disallow: /api/*`; remotas sênior, em inglês, "from Europe" |
+| Welcome to the Jungle | `robots.txt` bloqueia as buscas (`Disallow: /*?`) |
+| Remoters (ES) | sem vagas no HTML; `Disallow: */feed/*` |
+| Domestika (ES) | Atom aberto; quase só design/marketing, 0 de TI remota aberta ao Brasil |
+| EURES | mobilidade UE/EEE: exige direito de trabalhar na UE |
+| Computrabajo (vários países) | 403 do WAF, até no `robots.txt` |
+| Bumeran, ZonaJobs, Laborum, Multitrabajos, Konzerta | API `searchV2` atrás do Cloudflare (403) |
+| OCC Mundial (MX) | 403 nas listagens; `/rest` dá 401 |
+| elempleo (CO) | remotas de dev quase todas sênior e restritas à Colômbia |
+| Trabajando (CL), Hireline (MX) | remoto restrito ao país (hipótese); Hireline com `Disallow: /api/v1/*` |
+| Jobartis, AngoEmprego (Angola) | 26 vagas de TI no Jobartis, 0 remotas |
+| emprego.co.mz (Moçambique) | vagas de TI expiradas e presenciais em Maputo |
+| Cabo Verde, Guiné-Bissau, São Tomé, Timor-Leste, Guiné Equatorial | sem portal com feed ou API; vagas em jornal/PDF ou presenciais |
+| Adzuna | `api.adzuna.com` com `Disallow: /`; sem filtro de remoto; não cobre Portugal |
+| Jooble | chave por formulário com telefone; devolve só trecho e link de redirecionamento |
+| Careerjet | exige conta de publisher e o IP de um usuário final (não serve para robô) |
+| Arbeitnow | API aberta; 23 remotas, 0 em PT/ES |
+
+Aceitar vaga com relocação/visto tornaria Net-Empregos, Teamlyzer, Expresso,
+Manfred e JobFluent relevantes, mas na amostra nenhuma júnior/estágio citava
+patrocínio de visto; seria outra regra (mudar de país), não adotada.
 
 ### ✅ Gupy (implementado — `vagas-br.json`)
 Os endpoints JSON antigos (`portal.api.gupy.io`, `employability-portal.gupy.io`)
